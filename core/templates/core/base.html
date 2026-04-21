@@ -211,19 +211,31 @@ function isWorkEmail(email) {
   return domain && !blockedDomains.includes(domain);
 }
 
-// REGISTER VALIDATION
-document.getElementById("registerForm").addEventListener("submit", function(e) {
-  const email = document.getElementById("registerEmail").value;
+// REGISTER VALIDATION (FIXED)
+document.addEventListener("DOMContentLoaded", function () {
+
+  const form = document.getElementById("registerForm");
   const error = document.getElementById("emailError");
+  const emailInput = document.getElementById("registerEmail");
 
-  if (!isWorkEmail(email)) {
-    e.preventDefault();
-    error.innerText = "Please use your work email (company email only)";
-  } else {
-    error.innerText = "";
-  }
+  if (!form || !emailInput) return; // prevent console error
+
+  form.addEventListener("submit", function (e) {
+
+    const email = emailInput.value.trim();
+
+    if (!isWorkEmail(email)) {
+      e.preventDefault();
+      if (error) {
+        error.innerText = "Please use your work email (company email only)";
+      }
+    } else {
+      if (error) error.innerText = "";
+    }
+
+  });
+
 });
-
 </script>
 </body>
 </html>
