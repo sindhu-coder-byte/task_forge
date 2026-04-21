@@ -168,7 +168,7 @@
 </div>
 
 <!-- INVITE MODAL -->
-{% if can_manage_members %}
+{% comment %} {% if can_manage_members %}
 <div class="modal-overlay" id="inviteModalOverlay" hidden>
   <div class="modal-dialog">
     <div class="modal-head">
@@ -205,7 +205,7 @@
     </form>
   </div>
 </div>
-{% endif %}
+{% endif %} {% endcomment %}
 
 {% endblock %}
 
@@ -504,7 +504,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // SAFE DOM REFERENCES
   // =============================
   const sidebar = document.getElementById("taskSidebar");
-  const overlay = document.getElementById('inviteModalOverlay');
 
   if (!sidebar) {
     console.warn("Sidebar not found - script safely stopped");
@@ -662,90 +661,6 @@ document.addEventListener("DOMContentLoaded", function () {
     targetCol.appendChild(card);
     card.dataset.status = previousStatus;
   }
-
-  // =============================
-  // MODAL CONTROL (CLEAN)
-  // =============================
-  const openBtn = document.getElementById('openInviteModalBoard');
-  const closeBtn = document.getElementById('closeInviteModal');
-  const cancelBtn = document.getElementById('cancelInviteModal');
-
-function setModal(open) {
-  if (!overlay) return;
-  overlay.hidden = !open;
-}
-
-// ✅ SAFE bindings (NO crashes)
-if (openBtn) {
-  openBtn.addEventListener("click", () => {
-    setModal(true);
-    document.getElementById("inviteEmail")?.focus();
-  });
-}
-
-if (closeBtn) {
-  closeBtn.addEventListener("click", () => setModal(false));
-}
-
-if (cancelBtn) {
-  cancelBtn.addEventListener("click", () => setModal(false));
-}
-
-if (overlay) {
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) setModal(false);
-  });
-}
-  // =============================
-// INVITE FORM (SAFE VERSION)
-// =============================
-const inviteForm = document.getElementById('inviteForm');
-const inviteError = document.getElementById('inviteError');
-
-function showErr(msg){
-  if (!inviteError) return;
-  inviteError.textContent = msg;
-  inviteError.hidden = !msg;
-}
-
-if (inviteForm) {   // ✅ IMPORTANT FIX
-  inviteForm.addEventListener("submit", async function(e){
-
-    e.preventDefault();
-    showErr("");
-
-    const btn = inviteForm.querySelector("button[type='submit']");
-    if (!btn) return; // ✅ extra safety
-
-    btn.disabled = true;
-    btn.innerText = "Sending...";
-
-    try {
-      const res = await fetch('{% url "core:invite_project_member" project.id %}', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-        body: new FormData(inviteForm)
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.status === 'invited') {
-        location.reload();
-      } else {
-        showErr(data.error || "Invite failed");
-      }
-
-    } catch (err) {
-      showErr("Network error");
-    }
-
-    btn.disabled = false;
-    btn.innerText = "Send invite";
-  });
-
-} else {
-  console.warn("inviteForm not found"); // 🔍 debug helper
-}
 
 // =============================
 // RECHECK BUTTON (SAFE)
