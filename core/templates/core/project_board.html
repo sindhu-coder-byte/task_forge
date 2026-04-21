@@ -504,6 +504,7 @@
   function escapeHtml(text){ const div=document.createElement("div"); div.innerText=text; return div.innerHTML; }
 
   function openSidebarFromCard(card) {
+     if (!sidebar) return; 
     const data = card.dataset;
     sidebar.dataset.taskId = data.id;
     setText("sideTitle", data.title);
@@ -511,13 +512,17 @@
     setText("sideProject", data.project);
     setText("sideUser", data.user);
 
-    const p = document.getElementById('sidePriority');
-    p.innerText = data.priority;
-    p.className = 'tk-badge ' + data.priority.toLowerCase();
+const p = document.getElementById('sidePriority');
+if (p) {
+  p.innerText = data.priority;
+  p.className = 'tk-badge ' + data.priority.toLowerCase();
+}
 
-    const s = document.getElementById('sideStatusText');
-    s.innerText = data.status.replaceAll('_',' ');
-    s.className = 'tk-badge ' + data.status;
+const s = document.getElementById('sideStatusText');
+if (s) {
+  s.innerText = data.status.replaceAll('_',' ');
+  s.className = 'tk-badge ' + data.status;
+}
 
     const openLink = document.getElementById('openIssueLink');
     if (openLink) openLink.href = '/tasks/' + data.id + '/';
@@ -992,13 +997,14 @@
 // Recheck Board functionality
 function recheckBoard() {
     const btn = document.getElementById('recheckBoardBtn');
+
+    if (!btn) return;   // ✅ FIX (important)
+
     const originalText = btn.innerHTML;
-    
-    // Show loading state
+
     btn.innerHTML = '<i class="ri-refresh-line ri-spin"></i> Rechecking...';
     btn.disabled = true;
-    
-    // Reload the page to refresh board state
+
     setTimeout(() => {
         window.location.reload();
     }, 500);
