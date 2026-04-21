@@ -628,7 +628,6 @@ document.addEventListener("DOMContentLoaded", function () {
       updateTask(taskId, newStatus, previousStatus, draggedCard);
     });
   });
-
   // =============================
   // TASK UPDATE
   // =============================
@@ -671,41 +670,53 @@ document.addEventListener("DOMContentLoaded", function () {
   const closeBtn = document.getElementById('closeInviteModal');
   const cancelBtn = document.getElementById('cancelInviteModal');
 
-  function setModal(open) {
-    if (!overlay) return;
-    overlay.hidden = !open;
-  }
+function setModal(open) {
+  if (!overlay) return;
+  overlay.hidden = !open;
+}
 
-  openBtn?.addEventListener("click", () => {
+// ✅ SAFE bindings (NO crashes)
+if (openBtn) {
+  openBtn.addEventListener("click", () => {
     setModal(true);
     document.getElementById("inviteEmail")?.focus();
   });
+}
 
-  closeBtn?.addEventListener("click", () => setModal(false));
-  cancelBtn?.addEventListener("click", () => setModal(false));
+if (closeBtn) {
+  closeBtn.addEventListener("click", () => setModal(false));
+}
 
-  overlay?.addEventListener("click", (e) => {
+if (cancelBtn) {
+  cancelBtn.addEventListener("click", () => setModal(false));
+}
+
+if (overlay) {
+  overlay.addEventListener("click", (e) => {
     if (e.target === overlay) setModal(false);
   });
-
+}
   // =============================
-  // INVITE FORM
-  // =============================
-  const inviteForm = document.getElementById('inviteForm');
-  const inviteError = document.getElementById('inviteError');
+// INVITE FORM (SAFE VERSION)
+// =============================
+const inviteForm = document.getElementById('inviteForm');
+const inviteError = document.getElementById('inviteError');
 
-  function showErr(msg){
-    if (!inviteError) return;
-    inviteError.textContent = msg;
-    inviteError.hidden = !msg;
-  }
+function showErr(msg){
+  if (!inviteError) return;
+  inviteError.textContent = msg;
+  inviteError.hidden = !msg;
+}
 
-  inviteForm?.addEventListener("submit", async function(e){
+if (inviteForm) {   // ✅ IMPORTANT FIX
+  inviteForm.addEventListener("submit", async function(e){
 
     e.preventDefault();
     showErr("");
 
     const btn = inviteForm.querySelector("button[type='submit']");
+    if (!btn) return; // ✅ extra safety
+
     btn.disabled = true;
     btn.innerText = "Sending...";
 
@@ -724,7 +735,7 @@ document.addEventListener("DOMContentLoaded", function () {
         showErr(data.error || "Invite failed");
       }
 
-    } catch {
+    } catch (err) {
       showErr("Network error");
     }
 
@@ -732,8 +743,9 @@ document.addEventListener("DOMContentLoaded", function () {
     btn.innerText = "Send invite";
   });
 
-})(); // END IIFE
-
+} else {
+  console.warn("inviteForm not found"); // 🔍 debug helper
+}
 
 // =============================
 // RECHECK BUTTON (SAFE)
@@ -767,4 +779,3 @@ if (!document.getElementById("spinStyle")) {
 });
 </script>
 {% endblock %}
-
