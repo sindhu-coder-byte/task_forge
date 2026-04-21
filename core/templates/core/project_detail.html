@@ -1,0 +1,466 @@
+{% extends "core/app_shell.html" %}
+
+{% block shell_title %}
+<span class="issue-shell-title">
+  <i class="ri-folder-3-line"></i>
+  <span>{{ project.name }}</span>
+</span>
+{% endblock %}
+
+{% block shell_page %}
+
+<div class="card">
+  <div class="overview-header">
+
+    <div class="section-title">Overview</div>
+
+    {% if can_manage_members %}
+    <div class="action-bar">
+
+      <a class="btn-primary-sm"
+         href="{% url 'core:create_task' %}?project_id={{ project.id }}">
+        <i class="ri-add-line"></i>
+        <span>Create Task</span>
+      </a>
+
+      <span class="action-divider"></span>
+
+      {% if role == 'project_lead' %}
+        <a class="btn-secondary-sm"
+           href="{% url 'core:project_team' project.id %}">
+          <i class="ri-team-line"></i>
+          <span>Manage Team</span>
+        </a>
+
+        <a class="btn-secondary-sm" id="openTeamModal">
+          <i class="ri-group-line"></i>
+          <span>Create Team</span>
+        </a>
+      {% endif %}
+
+      {% if role == 'team_lead' %}
+        <a class="btn-secondary-sm"
+           href="{% url 'core:project_team' project.id %}">
+          <i class="ri-eye-line"></i>
+          <span>View Team</span>
+        </a>
+      {% endif %}
+
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- ========================= -->
+<!-- ✅ TEAM FILTER -->
+<!-- ========================= -->
+<div class="card" style="margin-top:14px;">
+  <div class="card-body flex-between">
+
+    <div class="section-title">Teams</div>
+
+    <form method="GET">
+      <select name="team" onchange="this.form.submit()" class="team-filter">
+        <option value="">All Teams</option>
+        {% for team in teams %}
+          <option value="{{ team.id }}"
+            {% if selected_team and team.id == selected_team.id %}selected{% endif %}>
+            {{ team.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </form>
+
+  </div>
+
+  <!-- ========================= -->
+  <!-- ✅ TEAM CARDS -->
+  <!-- ========================= -->
+  <div class="team-grid">
+
+    {% for team in teams %}
+      {% if not selected_team or team.id == selected_team.id %}
+      <div class="team-card {% if selected_team and team.id == selected_team.id %}active{% endif %}">
+
+        <div class="team-header">
+          <strong>{{ team.name }}</strong>
+          {% if team.lead %}
+            <span class="team-lead">Lead: {{ team.lead.username }}</span>
+          {% endif %}
+        </div>
+
+        <div class="team-members">
+          {% for m in team.members.all|slice:":4" %}
+            <span class="member-chip">{{ m.username }}</span>
+          {% empty %}
+            <span class="dash-muted">No members</span>
+          {% endfor %}
+        </div>
+
+        <a href="?team={{ team.id }}" class="view-team-btn">
+          View Tasks
+        </a>
+
+      </div>
+      {% endif %}
+    {% empty %}
+      <div class="dash-muted">No teams created yet.</div>
+    {% endfor %}
+
+  </div>
+</div>
+
+<!-- ========================= -->
+<!-- ✅ STATS -->
+<!-- ========================= -->
+<div class="card" style="margin-top:14px;">
+  <div class="card-body">
+
+    <div class="stats-row">
+      <div class="stat">Total: <strong>{{ tasks|length }}</strong></div>
+      <div class="stat">To Do: <strong>{{ status_counts.todo|default:0 }}</strong></div>
+      <div class="stat">In Progress: <strong>{{ status_counts.in_progress|default:0 }}</strong></div>
+      <div class="stat">In Review: <strong>{{ status_counts.in_review|default:0 }}</strong></div>
+      <div class="stat">Done: <strong>{{ status_counts.done|default:0 }}</strong></div>
+
+      <div class="stat">
+        Members:
+        <strong>
+          {% if selected_team %}
+            {{ selected_team.members.count }}
+          {% else %}
+            {{ project.members.count }}
+          {% endif %}
+        </strong>
+      </div>
+    </div>
+
+    {% if tasks %}
+    <div class="progress-box">
+      <div class="progress-label">Progress</div>
+
+      <div class="progress-bar">
+        <div class="progress-fill"
+             style="width:{{ progress_percent }}%"></div>
+      </div>
+
+      <div class="progress-text">
+        {{ status_counts.done|default:0|add:status_counts.in_review|default:0 }}
+        of {{ tasks|length }} complete
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- ========================= -->
+<!-- ✅ RECENT TASKS -->
+<!-- ========================= -->
+<div class="card" style="margin-top:14px;">
+  <div class="section-title">Recent issues</div>
+
+  <div class="card-body">
+    {% for t in tasks|slice:":8" %}
+      <div class="task-row">
+
+        <div>
+          <a href="{% url 'core:task_detail' t.id %}" class="task-title">
+            {{ t.issue_key }} · {{ t.title }}
+          </a>
+
+          <div class="task-meta">
+            {% if t.assigned_to %}
+              Assignee: {{ t.assigned_to.username }}
+            {% else %}
+              Unassigned
+            {% endif %}
+          </div>
+        </div>
+
+        <span class="chip chip--{{ t.status }}">
+          {{ t.get_status_display }}
+        </span>
+
+      </div>
+    {% empty %}
+      <div class="dash-muted">No issues yet.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ========================= -->
+<!-- ✅ CREATE TEAM MODAL -->
+<!-- ========================= -->
+<div id="teamModal" class="modal">
+  <div class="modal-content">
+
+    <div class="modal-header">
+      <h3>Create Team</h3>
+      <span class="close" id="closeTeamModal">&times;</span>
+    </div>
+
+    <form method="POST" action="{% url 'core:create_team' project.id %}">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label>Team Name</label>
+        <input type="text" name="name" required>
+      </div>
+
+      <div class="form-group">
+        <label>Team Lead</label>
+        <select name="lead">
+          <option value="">Select Lead</option>
+          {% for member in lead_candidates %}
+            <option value="{{ member.id }}">{{ member.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Team Members</label>
+        <select name="members" multiple>
+          {% for member in valid_members %}
+            <option value="{{ member.id }}">{{ member.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="modal-actions">
+        <button type="submit" class="btn-primary-sm">Create</button>
+      </div>
+
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block shell_extra_css %}
+<style>
+.btn-ghost{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;text-decoration:none;color:#111827;font-size:13px}
+{% comment %} .btn-primary-sm{padding:8px 12px;border-radius:8px;border:none;background:#4F46E5;color:#fff;text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary-sm:hover{background:#6366F1;} {% endcomment %}
+{% comment %} .btn-secondary-sm{padding:8px 12px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#111827;text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.btn-secondary-sm:hover{background:#f9fafb;border-color:#d1d5db;} {% endcomment %}
+.stat{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;font-size:13px;color:#111827}
+.chip{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:650;background:#f4f5f7;color:#172b4d}
+.chip--todo{background:#f4f5f7;color:#42526e}
+.chip--in_progress{background:#deebff;color:#0747a6}
+.chip--in_review{background:#eae6ff;color:#403294}
+.chip--done{background:#e3fcef;color:#006644}
+
+.overview-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.action-bar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.action-divider{
+  width:1px;
+  height:22px;
+  background:#e5e7eb;
+  margin:0 4px;
+}
+
+.btn-primary-sm{
+  padding:8px 14px;
+  border-radius:8px;
+  background:#4F46E5;
+  color:#fff;
+  font-size:13px;
+  font-weight:500;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  text-decoration:none;
+}
+
+.btn-primary-sm:hover{
+  background:#6366F1;
+}
+
+.btn-secondary-sm{
+  padding:8px 12px;
+  border-radius:8px;
+  border:1px solid #e5e7eb;
+  background:#fff;
+  color:#111827;
+  font-size:13px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  text-decoration:none;
+}
+
+.btn-secondary-sm:hover{
+  background:#f9fafb;
+}
+
+.modal{
+  display:none;
+  position:fixed;
+  z-index:1000;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.4);
+}
+
+.modal-content{
+  background:#fff;
+  margin:10% auto;
+  padding:20px;
+  width:400px;
+  border-radius:12px;
+}
+
+.modal-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.modal-actions{
+  margin-top:16px;
+  display:flex;
+  justify-content:flex-end;
+}
+
+.close{
+  cursor:pointer;
+  font-size:20px;
+}
+
+.form-group{
+  margin-bottom:12px;
+}
+
+.form-group input,
+.form-group select{
+  width:100%;
+  padding:8px;
+  border:1px solid #ddd;
+  border-radius:8px;
+}
+
+.team-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:12px;
+  margin-top:12px;
+}
+
+.team-card{
+  padding:14px;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  background:#fff;
+}
+
+.team-header{
+  margin-bottom:8px;
+}
+
+.team-lead{
+  font-size:12px;
+  color:#6b7280;
+}
+
+.team-members{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:10px;
+}
+
+.member-chip{
+  background:#f4f5f7;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:11px;
+}
+
+.view-team-btn{
+  display:block;
+  text-align:center;
+  padding:6px;
+  border-radius:8px;
+  background:#eef2ff;
+  color:#4338ca;
+  text-decoration:none;
+  font-size:12px;
+}
+</style>
+{% endblock %}
+
+{% block shell_foot_scripts %}
+<script>
+  // ===== Progress Update =====
+  async function updateProgress() {
+    try {
+      const res = await fetch('/projects/{{ project.id }}/progress/');
+      const data = await res.json();
+
+      if (data.status === 'ok') {
+        const progressBar = document.querySelector('.progress-fill');
+        if (progressBar) {
+          progressBar.style.width = data.progress_percent + '%';
+        }
+
+        const statElements = document.querySelectorAll('.stat');
+        statElements.forEach(stat => {
+          const text = stat.textContent;
+
+          if (text.includes('Total:')) {
+            stat.innerHTML = 'Total: <strong>' + data.total_tasks + '</strong>';
+          }
+
+          if (text.includes('Done:')) {
+            stat.innerHTML = 'Done: <strong>' + data.done_tasks + '</strong>';
+          }
+        });
+      }
+    } catch (err) {
+      console.log("Progress update failed:", err);
+    }
+  }
+
+  // ===== Team Modal =====
+  const modal = document.getElementById("teamModal");
+  const openBtn = document.getElementById("openTeamModal");
+  const closeBtn = document.getElementById("closeTeamModal");
+
+  if (openBtn) {
+    openBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      modal.style.display = "block";
+    });
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      modal.style.display = "none";
+    });
+  }
+
+  window.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      modal.style.display = "none";
+    }
+  });
+</script>
+{% endblock %}

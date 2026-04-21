@@ -1,0 +1,123 @@
+{% extends 'core/app_shell.html' %}
+
+{% block shell_title %}Create task{% endblock %}
+
+{% block shell_page %}
+<div style="max-width: 760px; margin: 0 auto;">
+  <div style="margin-bottom: 14px;">
+    <h1 style="margin: 0; font-size: 20px; font-weight: 650; color:#172b4d;">Create task</h1>
+    <p style="margin: 8px 0 0; color:#6b7280; font-size: 13px;">Create an issue and assign it to a project member.</p>
+  </div>
+
+  <div style="background:#fff; border: 1px solid #dfe1e6; border-radius: 12px; padding: 14px;">
+    <form method="POST">
+      {% csrf_token %}
+
+      <div style="display:grid; gap: 10px;">
+        <input type="text" name="title" placeholder="Task title" required
+               style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+
+        <textarea name="description" placeholder="Description"
+                  style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px; min-height: 110px; resize: vertical;"></textarea>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <select name="project" required style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+            <option value="">Select project</option>
+            {% for project in projects %}
+              <option value="{{ project.id }}" {% if selected_project and selected_project|stringformat:"s" == project.id|stringformat:"s" %}selected{% endif %}>{{ project.name }}</option>
+            {% endfor %}
+          </select>
+
+          <select name="assigned_to" id="assignedToSelect" required style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+            <option value="">{% if selected_project %}Assign user{% else %}Select a project first{% endif %}</option>
+            {% for user in users %}
+              <option value="{{ user.id }}" {% if selected_assignee and selected_assignee|stringformat:"s" == user.id|stringformat:"s" %}selected{% endif %}>{{ user.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <select name="priority" style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+          <option value="High">High</option>
+          <option value="Medium" selected>Medium</option>
+          <option value="Low">Low</option>
+        </select>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <input type="date" name="due_date"
+                 style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+
+          <select name="labels" multiple
+                  style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px; min-height:44px;">
+            {% for l in labels %}
+              <option value="{{ l.id }}">{{ l.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top: 4px;">
+          <a href="{% url 'core:tasks' %}" style="text-decoration:none; padding: 9px 12px; border: 1px solid #dfe1e6; border-radius: 10px; color:#172b4d; background:#fff;">Cancel</a>
+          <button type="submit" style="padding: 9px 12px; border-radius: 10px; border:0; background:#0052cc; color:#fff; cursor:pointer;">Create</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block shell_foot_scripts %}
+<script>
+(function () {
+  var projectSelect = document.querySelector('select[name="project"]');
+  var assignedSelect = document.getElementById('assignedToSelect');
+  if (!projectSelect || !assignedSelect) return;
+
+  function setPlaceholder(text) {
+    assignedSelect.innerHTML = '';
+    var opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = text;
+    assignedSelect.appendChild(opt);
+  }
+
+  function loadMembers(projectId) {
+    if (!projectId) {
+      setPlaceholder('Select a project first');
+      return;
+    }
+    setPlaceholder('Loading members…');
+    fetch('/projects/' + encodeURIComponent(projectId) + '/members/')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!Array.isArray(data)) {
+          setPlaceholder('No members found');
+          return;
+        }
+        assignedSelect.innerHTML = '';
+        var first = document.createElement('option');
+        first.value = '';
+        first.textContent = 'Assign user';
+        assignedSelect.appendChild(first);
+
+        data.forEach(function (m) {
+          var opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = m.username;
+          assignedSelect.appendChild(opt);
+        });
+      })
+      .catch(function () {
+        setPlaceholder('Unable to load members');
+      });
+  }
+
+  projectSelect.addEventListener('change', function () {
+    loadMembers(projectSelect.value);
+  });
+
+  // hydrate on load if preselected
+  if (projectSelect.value && assignedSelect.options.length <= 1) {
+    loadMembers(projectSelect.value);
+  }
+})();
+</script>
+{% endblock %}

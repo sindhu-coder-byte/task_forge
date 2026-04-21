@@ -1,0 +1,582 @@
+{% extends 'core/app_shell.html' %}
+
+{% block shell_title %}Projects{% endblock %}
+
+{% block shell_extra_css %}
+
+<style>
+/* ===== WRAPPER ===== */
+.pm-wrap {
+  padding: 0;
+}
+
+/* HEADER */
+.pm-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:24px;
+}
+
+.pm-title {
+  font-size:22px;
+  font-weight:600;
+  color:#172b4d;
+}
+
+/* BUTTON */
+.pm-create {
+  background:#0052cc;
+  color:#fff;
+  padding:10px 16px;
+  border-radius:8px;
+  text-decoration:none;
+  font-size:14px;
+  font-weight:500;
+  transition:0.2s;
+}
+
+.pm-create:hover {
+  background:#0747a6;
+}
+
+/* GRID */
+.pm-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:20px;
+}
+
+/* CARD */
+.pm-card {
+  background:#fff;
+  padding:18px;
+  border-radius:10px;
+  border:1px solid #dfe1e6;
+  transition:all 0.2s ease;
+  cursor:pointer;
+  position:relative;
+}
+
+.pm-card:hover {
+  box-shadow:0 4px 14px rgba(0,0,0,0.1);
+  transform:translateY(-3px);
+}
+
+/* TITLE */
+.pm-name {
+  font-size:16px;
+  font-weight:600;
+  color:#172b4d;
+}
+
+.pm-desc {
+  font-size:13px;
+  color:#5e6c84;
+  margin:6px 0 14px;
+}
+
+/* MEMBERS */
+.pm-members {
+  display:flex;
+  align-items:center;
+  margin-bottom:12px;
+}
+
+/* AVATAR */
+.pm-avatar {
+  position:relative;
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  background:#0052cc;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+  margin-left:-8px;
+  border:2px solid #fff;
+  font-weight:500;
+  transition:0.2s;
+}
+
+.pm-avatar:first-child {
+  margin-left:0;
+}
+
+.pm-avatar:hover {
+  transform:scale(1.15);
+  z-index:2;
+}
+
+/* MORE */
+.pm-avatar.more {
+  background:#dfe1e6;
+  color:#172b4d;
+}
+
+/* REMOVE BUTTON */
+.remove-btn {
+  position:absolute;
+  top:-6px;
+  right:-6px;
+  background:#ff4d4f;
+  color:#fff;
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:10px;
+  cursor:pointer;
+  opacity:0;
+  transition:0.2s;
+}
+
+.pm-avatar:hover .remove-btn {
+  opacity:1;
+}
+
+/* ADD MEMBER */
+.pm-add {
+  display:flex;
+  gap:6px;
+  margin-top:10px;
+}
+
+.pm-add select {
+  flex:1;
+  padding:6px;
+  border-radius:6px;
+  border:1px solid #dfe1e6;
+  font-size:12px;
+}
+
+.pm-add button {
+  padding:6px 10px;
+  border:none;
+  background:#0052cc;
+  color:#fff;
+  border-radius:6px;
+  font-size:12px;
+  cursor:pointer;
+}
+
+.pm-add button:hover {
+  background:#0747a6;
+}
+
+/* ACTIONS */
+.pm-actions {
+  display:flex;
+  justify-content:space-between;
+  margin-top:12px;
+  font-size:12px;
+}
+
+.pm-actions a {
+  color:#0052cc;
+  text-decoration:none;
+}
+
+.pm-actions a:hover {
+  text-decoration:underline;
+}
+
+/* EMPTY */
+.pm-empty {
+  text-align:center;
+  padding:60px;
+  color:#6b7280;
+  font-size:14px;
+}
+
+/* ===== MODAL (Create Project) ===== */
+.pm-modal{
+  position:fixed;
+  inset:0;
+  background:rgba(9,30,66,0.54);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  z-index:1200;
+}
+.pm-modal[hidden]{display:none}
+.pm-modal-card{
+  width:100%;
+  max-width:560px;
+  background:#fff;
+  border-radius:14px;
+  border:1px solid #dfe1e6;
+  box-shadow:0 18px 46px rgba(9,30,66,0.18);
+  padding:22px 22px 18px;
+}
+.pm-modal-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px}
+.pm-modal-title{font-size:18px;font-weight:700;color:#172b4d}
+.pm-modal-sub{font-size:13px;color:#5e6c84;margin-top:4px}
+.pm-modal-close{border:none;background:transparent;font-size:22px;line-height:1;cursor:pointer;color:#6b778c;padding:0 6px}
+.pm-modal-close:hover{color:#172b4d}
+.pm-field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.pm-field label{font-size:12px;font-weight:600;color:#5e6c84}
+.pm-field input,.pm-field textarea,.pm-field select{
+  width:100%;
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid #dfe1e6;
+  font-size:13px;
+  box-sizing:border-box;
+  background:#fff;
+}
+.pm-field textarea{min-height:90px;resize:vertical}
+.pm-field input:focus,.pm-field textarea:focus,.pm-field select:focus{
+  outline:none;
+  border-color:#0052cc;
+  box-shadow:0 0 0 2px rgba(0,82,204,0.12);
+}
+.pm-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pm-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
+.pm-btn-ghost{padding:10px 14px;border-radius:10px;border:1px solid #dfe1e6;background:#fff;color:#172b4d;cursor:pointer}
+.pm-btn-ghost:hover{background:#f4f5f7}
+.pm-btn-primary{padding:10px 14px;border-radius:10px;border:none;background:#0052cc;color:#fff;font-weight:650;cursor:pointer}
+.pm-btn-primary:hover{background:#0747a6}
+.pm-error{margin-top:6px;color:#bf2600;font-size:13px}
+
+@media (max-width: 640px){
+  .pm-grid2{grid-template-columns:1fr}
+}
+</style>
+
+{% endblock %}
+
+{% block shell_page %}
+
+<div class="pm-wrap">
+
+  <!-- HEADER -->
+  <div class="pm-header">
+    <div class="pm-title">Projects</div>
+
+    {% if request.user.profile.role == 'admin' %}
+      <button type="button" class="pm-create" id="openCreateProject">
+        + Create Project
+      </button>
+    {% endif %}
+  </div>
+
+  <!-- GRID -->
+  <div class="pm-grid">
+
+    {% for project in projects %}
+    <div class="pm-card" data-project-id="{{ project.id }}">
+
+      <div class="pm-name">{{ project.name }}</div>
+      <div class="pm-desc">{{ project.description|default:"No description" }}</div>
+
+      <!-- MEMBERS -->
+      <div class="pm-members">
+        {% for member in project.members.all|slice:":4" %}
+          <div class="pm-avatar" data-project-id="{{ project.id }}" data-user-id="{{ member.id }}">
+            {{ member.username|slice:":1"|upper }}
+
+{% if request.user.profile.role == 'admin' or project.project_lead == request.user %}            <span class="remove-btn">
+              ×
+            </span>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+        {% if project.members.count > 4 %}
+          <div class="pm-avatar more">
+            +{{ project.members.count|add:"-4" }}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- ADD MEMBER -->
+{% if request.user.profile.role == 'admin' or project.project_lead == request.user %}      <div class="pm-add" data-project-id="{{ project.id }}">
+        <select>
+          <option value="">Add member</option>
+          {% for user in users %}
+            <option value="{{ user.id }}">{{ user.username }}</option>
+          {% endfor %}
+        </select>
+
+        <button type="button">
+          Add
+        </button>
+      </div>
+      {% endif %}
+
+      <!-- ACTIONS -->
+      <div class="pm-actions">
+        <div>
+          {% if request.user.profile.role == 'admin' %}
+            <a href="{% url 'core:edit_project' project.id %}">Edit</a>
+          {% endif %}
+        </div>
+
+        <div>
+          {% if request.user.profile.role == 'admin' %}
+            <a href="{% url 'core:delete_project' project.id %}">Delete</a>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    {% empty %}
+      <div class="pm-empty">
+        🚀 No projects yet <br>
+        Start by creating your first project
+      </div>
+    {% endfor %}
+
+  </div>
+</div>
+
+{% if request.user.profile.role == 'admin' %}
+<!-- Create Project Modal -->
+<div class="pm-modal" id="createProjectModal" hidden aria-hidden="true">
+  <div class="pm-modal-card" role="dialog" aria-modal="true" aria-labelledby="pmCreateTitle">
+    <div class="pm-modal-head">
+      <div>
+        <div class="pm-modal-title" id="pmCreateTitle">Create project</div>
+        <div class="pm-modal-sub">Organize work and collaborate with your team.</div>
+      </div>
+      <button type="button" class="pm-modal-close" id="closeCreateProject" aria-label="Close">&times;</button>
+    </div>
+
+    <form id="createProjectForm">
+      {% csrf_token %}
+      <div class="pm-field">
+        <label>Project name</label>
+        <input type="text" name="name" required placeholder="e.g. Mobile app" />
+      </div>
+
+      <div class="pm-field">
+        <label>Description</label>
+        <textarea name="description" placeholder="Short description…"></textarea>
+      </div>
+
+      <div class="pm-grid2">
+        <div class="pm-field">
+          <label>Project type</label>
+          <select name="project_type">
+            <option value="kanban" selected>Kanban</option>
+            <option value="scrum">Scrum</option>
+          </select>
+        </div>
+        <div class="pm-field">
+          <label>Key prefix</label>
+          <input type="text" name="key_prefix" maxlength="10" value="TF" />
+        </div>
+      </div>
+
+      <div class="pm-field">
+  <label>Project Lead</label>
+  <select name="project_lead" required>
+    <option value="">Select Lead</option>
+
+    {% for user in users %}
+      <option value="{{ user.id }}">{{ user.username }}</option>
+    {% endfor %}
+
+  </select>
+</div>
+
+      <div class="pm-error" id="pmCreateErr" hidden></div>
+
+      <div class="pm-modal-actions">
+        <button type="button" class="pm-btn-ghost" id="cancelCreateProject">Cancel</button>
+        <button type="submit" class="pm-btn-primary" id="submitCreateProject">Create</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<script>
+
+
+document.addEventListener('DOMContentLoaded', function () {
+
+  const csrf = '{{ csrf_token }}';
+
+  // =========================
+  // CARD CLICK NAVIGATION
+  // =========================
+  function attachCardClick(card) {
+    const id = card.getAttribute('data-project-id');
+    card.addEventListener('click', () => {
+      window.location.href = '/projects/' + id + '/';
+    });
+  }
+
+  document.querySelectorAll('.pm-card[data-project-id]')
+    .forEach(attachCardClick);
+
+  // =========================
+  // REMOVE MEMBER
+  // =========================
+document.querySelectorAll('.pm-avatar[data-project-id]').forEach(function (avatar) {
+  const projectId = avatar.dataset.projectId;
+  const userId = avatar.dataset.userId;
+  const btn = avatar.querySelector('.remove-btn');
+
+  if (!btn) return;
+
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+
+    if (!confirm("Remove this member?")) return;
+
+    fetch(`/projects/${projectId}/remove-member/${userId}/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCSRFToken(),
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'removed') {
+        avatar.remove(); // ✅ instant UI update
+      } else {
+        alert(data.error || "Failed to remove");
+      }
+    })
+    .catch(() => {
+      alert("Network error");
+    });
+  });
+});
+
+  // =========================
+  // ADD MEMBER
+  // =========================
+  document.querySelectorAll('.pm-add').forEach(function (wrap) {
+    const projectId = wrap.dataset.projectId;
+    const select = wrap.querySelector('select');
+    const btn = wrap.querySelector('button');
+
+    if (!select || !btn) return;
+
+    wrap.addEventListener('click', e => e.stopPropagation());
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+
+      const userId = select.value;
+      if (!userId) return alert('Select user');
+
+      fetch(`/projects/${projectId}/add-member/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrf,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'user_id=' + userId
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'added') {
+          location.reload(); // optional upgrade later
+        }
+      });
+    });
+  });
+
+  // =========================
+  // MODAL
+  // =========================
+  const modal = document.getElementById('createProjectModal');
+  const openBtn = document.getElementById('openCreateProject');
+  const closeBtn = document.getElementById('closeCreateProject');
+  const cancelBtn = document.getElementById('cancelCreateProject');
+  const form = document.getElementById('createProjectForm');
+  const err = document.getElementById('pmCreateErr');
+
+  function setModal(open) {
+    modal.hidden = !open;
+    if (!open) {
+      err.hidden = true;
+      err.textContent = '';
+    }
+  }
+
+  openBtn?.addEventListener('click', () => setModal(true));
+  closeBtn?.addEventListener('click', () => setModal(false));
+  cancelBtn?.addEventListener('click', () => setModal(false));
+
+  // =========================
+  // CREATE PROJECT (NO RELOAD)
+  // =========================
+  form?.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const fd = new FormData(form);
+
+    fetch('', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrf,
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: fd
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        createProjectCard(data.project);
+        setModal(false);
+        form.reset();
+      } else {
+        err.textContent = data.error || 'Error';
+        err.hidden = false;
+      }
+    })
+    .catch(() => {
+      err.textContent = 'Network error';
+      err.hidden = false;
+    });
+  });
+
+});
+
+
+// =========================
+// CREATE CARD (DYNAMIC UI)
+// =========================
+function createProjectCard(project) {
+  const grid = document.querySelector('.pm-grid');
+
+  const card = document.createElement('div');
+  card.className = 'pm-card fade-in';
+  card.setAttribute('data-project-id', project.id);
+
+  card.innerHTML = `
+    <div class="pm-name">
+      ${project.name}
+      ${project.lead ? '<span class="badge">👑</span>' : ''}
+    </div>
+    <div class="pm-desc">${project.description}</div>
+
+    <div class="pm-members">
+      <div class="pm-avatar">
+        ${project.lead ? project.lead[0].toUpperCase() : 'U'}
+      </div>
+    </div>
+  `;
+
+  card.addEventListener('click', () => {
+    window.location.href = '/projects/' + project.id + '/';
+  });
+
+  grid.prepend(card);
+}
+</script>
+
+{% endblock %}

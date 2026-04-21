@@ -1,0 +1,65 @@
+{# Admin-only panels (merged into Jira-style home) #}
+<section class="dash-panel dash-admin-grid">
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <i class="ri-team-line"></i>
+        <h3>Workspace overview</h3>
+      </div>
+    </div>
+    <div class="card-body dash-admin-stats">
+      <div class="dash-stat-tile">
+        <span class="dash-stat-label">Users</span>
+        <strong class="dash-stat-num">{{ total_users }}</strong>
+      </div>
+      <div class="dash-stat-tile">
+        <span class="dash-stat-label">Completed tasks</span>
+        <strong class="dash-stat-num">{{ completed_tasks }}</strong>
+      </div>
+      <div class="dash-stat-tile">
+        <span class="dash-stat-label">Projects</span>
+        <strong class="dash-stat-num">{{ total_projects }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <i class="ri-task-line"></i>
+        <h3>Recent tasks</h3>
+      </div>
+    </div>
+    <div class="card-body">
+      {% for task in recent_tasks %}
+        <div class="dash-list-row">
+          <a href="{% url 'core:task_detail' task.id %}">#{{ task.id }} {{ task.title }}</a>
+          <span class="status-pill status-pill--{{ task.status }}">{{ task.get_status_display }}</span>
+        </div>
+      {% empty %}
+        <div class="empty">No recent tasks</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card dash-admin-projects">
+    <div class="card-header">
+      <div class="card-title">
+        <i class="ri-folder-line"></i>
+        <h3>Projects</h3>
+      </div>
+    </div>
+    <div class="card-body">
+      {% for project in admin_projects %}
+        <div class="dash-list-row">
+          <a href="{% url 'core:project_detail' project.id %}">{{ project.name }}</a>
+          <span class="dash-muted">{{ project.members.count }} members</span>
+        </div>
+      {% empty %}
+        <div class="empty">No projects yet</div>
+      {% endfor %}
+    </div>
+  </div>
+
+</section>

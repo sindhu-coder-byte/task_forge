@@ -1,0 +1,229 @@
+{% load static socialaccount %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TaskForge</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Poppins:wght@500;600&display=swap" rel="stylesheet">
+
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'core/css/auth.css' %}">
+{% block extra_css %}{% endblock %}
+</head>
+
+<body>
+
+  <!-- Alerts -->
+  {% if messages %}
+    <div class="alert-container">
+      {% for message in messages %}
+        <div class="alert {{ message.tags }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+
+  <!-- AUTH MODAL -->
+<div id="authModal" class="auth-modal">
+  <div class="auth-container">
+
+    <!-- LEFT SIDE -->
+    <div class="auth-left">
+
+      <div class="forge-logo">
+        <i class="ri-rocket-2-line"></i>
+        <h2>TaskForge</h2>
+      </div>
+
+      <ul class="auth-features">
+        <li><i class="ri-check-line"></i> Jira-style workflow</li>
+        <li><i class="ri-check-line"></i> Role-based dashboards</li>
+        <li><i class="ri-check-line"></i> Smart collaboration</li>
+      </ul>
+
+      <p class="auth-note">
+        🔓 Login using Google or your work account
+      </p>
+
+      <!-- GOOGLE LOGIN -->
+      {% get_providers as socialaccount_providers %}
+      {% for provider in socialaccount_providers %}
+        {% if provider.id == 'google' %}
+        <div class="social-login">
+          <a href="{% provider_login_url provider.id process='login' %}" class="social-btn google">
+            <span class="google-icon">
+              <svg viewBox="0 0 48 48" width="18" height="18">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.72 1.22 9.22 3.6l6.9-6.9C35.7 2.2 30.3 0 24 0 14.64 0 6.44 5.4 2.56 13.28l8.04 6.24C12.52 13.14 17.82 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.5 24c0-1.64-.14-3.22-.4-4.76H24v9.02h12.7c-.55 2.96-2.2 5.48-4.68 7.18l7.2 5.6C43.94 36.5 46.5 30.8 46.5 24z"/>
+                <path fill="#FBBC05" d="M10.6 28.52A14.5 14.5 0 0 1 9.5 24c0-1.56.26-3.06.72-4.48l-8.04-6.24A23.97 23.97 0 0 0 0 24c0 3.86.92 7.5 2.56 10.72l8.04-6.2z"/>
+                <path fill="#34A853" d="M24 48c6.3 0 11.6-2.08 15.48-5.66l-7.2-5.6c-2 1.34-4.56 2.12-8.28 2.12-6.18 0-11.48-3.64-13.4-8.88l-8.04 6.2C6.44 42.6 14.64 48 24 48z"/>
+              </svg>
+            </span>
+            Continue with Google
+          </a>
+        </div>
+        {% endif %}
+      {% endfor %}
+
+    </div>
+
+    <!-- RIGHT SIDE -->
+    <div class="auth-box">
+
+      <span class="close-btn" onclick="closeAuth()">&times;</span>
+
+<h3 class="tf-auth-title">Login to your account</h3>
+
+    
+<!-- DIVIDER -->
+<div class="tf-divider">
+  <span>OR</span>
+</div>
+
+      <!-- EMAIL LOGIN -->
+      <form id="loginForm" method="POST" action="{% url 'core:login' %}">
+        {% csrf_token %}
+
+        <div class="input-group">
+          <i class="ri-mail-line"></i>
+          <input type="text" name="username" placeholder="Work email or username" required>
+        </div>
+
+        <div class="input-group">
+          <i class="ri-lock-line"></i>
+          <input type="password" id="loginPassword" name="password" placeholder="Password" required>
+          <i class="ri-eye-line toggle" onclick="togglePassword('loginPassword')"></i>
+        </div>
+
+<div class="tf-auth-links">
+  <a href="#" onclick="openForgotPassword();" class="tf-auth-link">Forgot password?</a>
+</div>
+<button type="submit" class="tf-auth-btn">Login</button>
+      </form>
+
+ <p class="tf-auth-footer">
+  Work account required for full access
+</p>
+
+    </div>
+
+  </div>
+</div>
+  <!-- Chart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  // OPEN MODAL
+  window.openAuth = function(type) {
+    const modal = document.getElementById("authModal");
+
+    if (!modal) {
+      console.error("Modal not found ❌");
+      return;
+    }
+
+    modal.classList.add("active");
+    switchTab(type);
+  };
+
+  // CLOSE MODAL
+  window.closeAuth = function() {
+    const modal = document.getElementById("authModal");
+    if (modal) modal.classList.remove("active");
+  };
+
+  // SWITCH TAB
+  window.switchTab = function(type) {
+    const loginForm = document.getElementById("loginForm");
+    const registerForm = document.getElementById("registerForm");
+
+    const loginTab = document.getElementById("loginTab");
+    const registerTab = document.getElementById("registerTab");
+
+    if (!loginForm || !registerForm) {
+      console.error("Forms missing ❌");
+      return;
+    }
+
+    if (type === "login") {
+      loginForm.style.display = "block";
+      registerForm.style.display = "none";
+      loginTab.classList.add("active");
+      registerTab.classList.remove("active");
+    } else {
+      loginForm.style.display = "none";
+      registerForm.style.display = "block";
+      registerTab.classList.add("active");
+      loginTab.classList.remove("active");
+    }
+  };
+
+  // PASSWORD TOGGLE
+  window.togglePassword = function(id) {
+    const input = document.getElementById(id);
+    if (!input) return;
+
+    input.type = input.type === "password" ? "text" : "password";
+  };
+
+  // FORGOT PASSWORD
+  window.openForgotPassword = function() {
+    const email = prompt("Enter your email address:");
+    if (email) {
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "{% url 'core:password-reset' %}";
+      
+      const csrf = document.querySelector("[name=csrfmiddlewaretoken]");
+      if (csrf) form.appendChild(csrf.cloneNode(true));
+      
+      const emailInput = document.createElement("input");
+      emailInput.type = "hidden";
+      emailInput.name = "email";
+      emailInput.value = email;
+      form.appendChild(emailInput);
+      
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+    }
+  };
+
+});
+
+const blockedDomains = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com"];
+
+function isWorkEmail(email) {
+  const domain = email.split("@")[1]?.toLowerCase();
+  return domain && !blockedDomains.includes(domain);
+}
+
+// REGISTER VALIDATION
+document.getElementById("registerForm").addEventListener("submit", function(e) {
+  const email = document.getElementById("registerEmail").value;
+  const error = document.getElementById("emailError");
+
+  if (!isWorkEmail(email)) {
+    e.preventDefault();
+    error.innerText = "Please use your work email (company email only)";
+  } else {
+    error.innerText = "";
+  }
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<div style="min-height: 100vh;"></div>
+<script>
+  (function () {
+    // `openAuth` is defined in `base.html` after its own DOMContentLoaded handler,
+    // so we wait until it exists before calling it.
+    const tab = "{{ initialTab|default:'login' }}";
+    let tries = 0;
+
+    function tryOpen() {
+      if (typeof window.openAuth === "function") {
+        window.openAuth(tab);
+        return;
+      }
+      tries += 1;
+      if (tries < 100) {
+        window.setTimeout(tryOpen, 25);
+      }
+    }
+
+    if (document.readyState === "complete") {
+      tryOpen();
+    } else {
+      window.addEventListener("load", tryOpen);
+    }
+  })();
+</script>
+{% endblock %}
+

@@ -1,0 +1,138 @@
+<script>
+function toggleSidebar() {
+  var sb = document.querySelector(".sidebar");
+  if (sb) sb.classList.toggle("collapsed");
+}
+
+(function () {
+  document.querySelectorAll('.progress span[data-progress]').forEach(function (el) {
+    var pct = parseFloat(el.getAttribute('data-progress'), 10);
+    if (!isNaN(pct)) {
+      el.style.width = Math.min(100, Math.max(0, pct)) + '%';
+    }
+  });
+})();
+
+(function () {
+  // Enable optional right panel layout when content exists
+  var layout = document.getElementById('shellLayout');
+  var right = document.getElementById('shellRight');
+  if (layout && right) {
+    var has = right.children && right.children.length > 0;
+    if (has) layout.classList.add('has-right');
+  }
+})();
+
+(function () {
+  // Lightweight notification dropdown (UI-only)
+  var btn = document.getElementById('notifBtn');
+  var dd = document.getElementById('notifDropdown');
+  if (!btn || !dd) return;
+  var badge = btn.querySelector('.badge');
+  var sub = dd.querySelector('.dropdown-sub');
+
+  function open() {
+    dd.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+    // UX: treat opening the dropdown as "seen" (client-side only).
+    // Note: server-side count is a "pending queue" metric, not unread notifications.
+    if (badge) badge.textContent = '0';
+    if (sub) sub.textContent = '0 pending';
+  }
+  function close() {
+    dd.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+  }
+  function toggle() {
+    if (dd.classList.contains('open')) close();
+    else open();
+  }
+
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    toggle();
+  });
+  btn.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggle();
+    } else if (e.key === 'Escape') {
+      close();
+    }
+  });
+  document.addEventListener('click', function () { close(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') close();
+  });
+})();
+
+var searchTimeout;
+var searchInput = document.getElementById("searchInput");
+var searchRoot = document.getElementById("searchRoot");
+var appRoot = document.getElementById("appRoot");
+
+if (searchInput && searchRoot) {
+  var searchBase = searchRoot.dataset.searchUrl || "/search/";
+  var tasksBase = appRoot ? appRoot.dataset.tasksUrl : "/tasks/";
+  var resultsBox = document.getElementById("searchResults");
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function hideResults() {
+    if (!resultsBox) return;
+    resultsBox.innerHTML = "";
+    resultsBox.classList.remove("open");
+  }
+
+  function showResults() {
+    if (!resultsBox) return;
+    resultsBox.classList.add("open");
+  }
+
+  searchInput.addEventListener("input", function () {
+    clearTimeout(searchTimeout);
+    var query = this.value.trim();
+    if (!query) {
+      hideResults();
+      return;
+    }
+    searchTimeout = setTimeout(function () {
+      fetch(searchBase + "?q=" + encodeURIComponent(query))
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (!data || !Array.isArray(data.results) || !data.results.length) {
+            resultsBox.innerHTML = "<div class=\"search-empty\">No results</div>";
+            showResults();
+            return;
+          }
+          resultsBox.innerHTML = data.results.map(function (r) {
+            return (
+              "<div class=\"search-item\" data-href=\"" + tasksBase + "?q=" + String(r.id) + "\">" +
+              "<i class=\"ri-task-line\"></i> " + escHtml(r.title) +
+              "</div>"
+            );
+          }).join("");
+          resultsBox.querySelectorAll(".search-item").forEach(function (row) {
+            row.addEventListener("click", function () {
+              window.location.href = row.getAttribute("data-href");
+            });
+          });
+          showResults();
+        });
+    }, 300);
+  });
+
+  searchInput.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") hideResults();
+  });
+  document.addEventListener("click", function (e) {
+    if (!searchRoot.contains(e.target)) hideResults();
+  });
+}
+</script>

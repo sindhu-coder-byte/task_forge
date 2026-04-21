@@ -1,0 +1,441 @@
+/* Container */
+.user-container {
+  padding: 30px;
+}
+
+.user-page {
+  padding: 20px 30px;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.sub-text {
+  color: #777;
+  font-size: 14px;
+}
+
+
+
+
+/* Title */
+.page-title {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+/* Top bar */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+/* Button */
+.btn-add {
+  background: #455a64;
+  color: white;
+  padding: 8px 15px;
+  text-decoration: none;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: 0.3s;
+}
+
+.btn-add:hover {
+  background: #263238;
+}
+
+.search-row {
+  margin-bottom: 20px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  padding: 10px 15px;
+  border-radius: 8px;
+  width: 300px;
+}
+
+.search-box i {
+  color: #888;
+  margin-right: 8px;
+}
+
+.search-box input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+}
+
+
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.stat-card h3 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.stat-card p {
+  margin: 5px 0 0;
+  color: #777;
+}
+
+.card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+/* Table */
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-header {
+  background: #f5f5f5;
+}
+
+
+/* HEAD */
+.user-table th {
+  text-align: left;
+  padding: 12px;
+  color: #666;
+  font-size: 14px;
+  background: #f9fafb;
+}
+
+.user-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;   /* 🔥 MAIN FIX */
+}
+
+/* ROW HOVER */
+.user-table tr:hover {
+  background: #f9fafb;
+}
+
+
+.table-row {
+  border-bottom: 1px solid #ddd;
+}
+
+.uid {
+  font-weight: 600;
+  color: #2563eb;
+}
+
+/* User info */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Avatar */
+.avatar {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: #455a64;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* ROLE CELL CENTER */
+.role-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* STATUS COLUMN */
+.user-table th {
+  text-align: left;
+}
+
+.user-table th:nth-child(4),
+.user-table th:nth-child(5),
+.user-table th:nth-child(6) {
+  text-align: center;
+}
+
+/* FORCE CENTER INSIDE CELL */
+.role-cell .badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto;              
+  height: 28px;             
+  min-width: 70px;
+}
+
+.role-cell,
+.status-cell {
+  text-align: center;
+}
+
+/* BADGE STYLE */
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  min-width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border-radius: 20px;
+  line-height: 1;
+  font-weight: 600;
+  border: 2px solid #fff;
+  pointer-events: none;
+}
+
+/* COLORS */
+.badge.admin {
+  background: #ef4444;
+}
+
+.badge.user {
+  background: #3b82f6;
+}
+
+
+/* Status */
+.status.active {
+  color: green;
+}
+
+.status.inactive {
+  color: gray;
+}
+
+
+
+/* Actions */
+/* .action {
+  margin: 0 5px;
+  text-decoration: none;
+} */
+
+.actions {
+  text-align: center;
+}
+
+.actions a {
+  margin: 0 6px;
+  display: inline-block;
+}
+
+/* .user-table td {
+  height: 70px;   /* uniform row height 
+}
+*/
+/* Pagination */
+.pagination {
+  margin-top: 20px;
+  text-align: center;
+}
+
+/* Column widths */
+.col-id {
+  width: 100px;
+}
+
+.col-role {
+  width: 120px;
+  text-align: center;
+}
+
+.col-status {
+  width: 130px;
+  text-align: center;
+}
+
+.col-actions {
+  width: 100px;
+  text-align: center;
+}
+
+/* USER CREATE */
+
+/* FORM CARD */
+.form-card {
+  padding: 25px;
+  max-width: 500px;
+  margin: auto;
+}
+
+/* FORM */
+.user-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* GROUP */
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: #555;
+}
+
+/* INPUTS */
+.form-group input,
+.form-group select {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* CHECKBOX */
+.form-group.checkbox {
+  flex-direction: row;
+  align-items: center;
+}
+
+/* BUTTON */
+.btn-primary {
+  background: #2563eb;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: #1e4fd1;
+}
+
+/* INPUT */
+.form-control {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 100%;
+}
+
+/* ERROR TEXT */
+.error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* ERROR BOX */
+.form-error {
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+/* user-preview */
+.user-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.user-preview .avatar.big {
+  width: 60px;
+  height: 60px;
+  font-size: 24px;
+}
+
+.user-preview h3 {
+  margin: 0;        
+}
+.user-preview p {
+  margin: 4px 0 0;
+  color: #777;  
+}
+
+/* User delete */
+
+/* DELETE CARD */
+.delete-card {
+  max-width: 500px;
+  margin: auto;
+  padding: 25px;
+}
+
+/* WARNING BOX */
+.delete-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 12px;
+  border-radius: 6px;
+  margin: 20px 0;
+  font-size: 14px;
+}
+
+.delete-warning i {
+  font-size: 18px;
+}
+
+/* BUTTONS */
+.btn-danger {
+  background: #ef4444;
+  color: white;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+.btn-cancel {
+  padding: 10px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  background: #e5e7eb;
+  color: #333;
+}

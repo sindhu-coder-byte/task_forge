@@ -1,0 +1,635 @@
+{% extends "core/app_shell.html" %}
+{% load static %}
+
+{% block shell_extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/user.css' %}">
+<link href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css" rel="stylesheet">
+{% endblock %}
+
+{% block shell_title %}Users{% endblock %}
+
+{% block shell_page %}
+<style>
+/* ===============================
+   USER MANAGEMENT (UM) NAMESPACE
+   =============================== */
+
+.um-page {
+  padding: 24px;
+}
+
+/* HEADER */
+.um-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.um-title {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.um-sub {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.um-btn-add {
+  background: #4f46e5;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  transition: 0.2s;
+}
+
+.um-btn-add:hover {
+  background: #4338ca;
+}
+
+/* STATS */
+.um-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.um-stat-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.um-stat-card h3 {
+  font-size: 22px;
+  margin: 0;
+}
+
+.um-stat-card p {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* SEARCH */
+.um-search-row {
+  margin-bottom: 20px;
+}
+
+.um-search-box {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  max-width: 320px;
+}
+
+.um-search-box input {
+  border: none;
+  outline: none;
+  margin-left: 8px;
+  width: 100%;
+}
+
+/* TABLE CARD */
+.um-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.um-table-wrapper {
+  overflow-x: auto;
+}
+
+/* TABLE */
+.um-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* HEADER */
+.um-table thead {
+  background: #f9fafb;
+}
+
+.um-table th {
+  text-align: left;
+  padding: 12px;
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* ROWS */
+.um-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #f1f1f1;
+  font-size: 14px;
+}
+
+.um-table tbody tr {
+  transition: 0.2s;
+}
+
+.um-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+/* USER INFO */
+.um-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.um-avatar {
+  width: 36px;
+  height: 36px;
+  background: #eef2ff;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 600;
+}
+
+.um-user-text small {
+  display: block;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+/* EMAIL */
+.um-email {
+  color: #374151;
+  font-size: 13px;
+}
+
+/* STATUS */
+.um-status {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.um-status.active {
+  color: #16a34a;
+}
+
+.um-status.inactive {
+  color: #dc2626;
+}
+
+/* ACTION CELL FIX */
+.um-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* center horizontally */
+  gap: 12px;               /* spacing between icons */
+  white-space: nowrap;
+}
+
+
+/* ACTIONS */
+.um-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: #6b7280;
+  transition: 0.2s;
+}
+
+/* HOVER EFFECT */
+.um-actions a:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+/* ICON SIZE */
+.um-actions i {
+  font-size: 16px;
+}
+
+/* PAGINATION */
+.um-pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.um-page-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: #f3f4f6;
+  text-decoration: none;
+  font-size: 13px;
+  color: #111827;
+}
+
+.um-page-btn:hover {
+  background: #e5e7eb;
+}
+
+.um-page-info {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* ===============================
+   BUTTONS (INCLUDING CANCEL)
+   =============================== */
+
+.um-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+}
+
+.um-btn-primary {
+  background: #4f46e5;
+  color: white;
+}
+
+.um-btn-primary:hover {
+  background: #4338ca;
+}
+
+.um-btn-cancel {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.um-btn-cancel:hover {
+  background: #d1d5db;
+}
+
+
+/* TOGGLE SWITCH */
+.um-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+.um-switch input { display: none; }
+
+.um-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: #ccc;
+  border-radius: 20px;
+  transition: 0.3s;
+}
+.um-slider:before {
+  content: "";
+  position: absolute;
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background: white;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+.um-switch input:checked + .um-slider {
+  background: #22c55e;
+}
+.um-switch input:checked + .um-slider:before {
+  transform: translateX(20px);
+}
+
+/* MODAL */
+.um-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.um-modal.active { display: flex; }
+
+.um-modal-box {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  width: 400px;
+}
+
+/* INPUT */
+.um-input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+
+/* MODAL FOOTER */
+.um-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* ===============================
+   RESPONSIVE
+   =============================== */
+
+/* TABLET */
+@media (max-width: 992px) {
+  .um-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .um-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* MOBILE */
+@media (max-width: 600px) {
+
+  .um-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .um-table th,
+  .um-table td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .um-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+
+  .um-actions a {
+    font-size: 14px;
+  }
+
+  .um-pagination {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+</style>
+
+<div class="um-page">
+
+  <!-- HEADER -->
+   <div class="um-header">
+    <div>
+      <h2>User Management</h2>
+      <p class="sub-text">Manage all users, roles and access</p>
+    </div>
+
+    <a href="{% url 'core:user_create' %}" class="btn-add">
+      <i class="ri-user-add-line"></i> Add User
+    </a>
+  </div>
+
+  <!-- STATS -->
+  <div class="um-stats">
+    <div class="card stat-card">
+      <h3>{{ total_users }}</h3>
+      <p>Total Users</p>
+    </div>
+
+    <div class="card stat-card">
+      <h3>
+      {{total_admins}}
+      </h3>
+      <p>Admins</p>
+    </div>
+
+    <div class="card stat-card">
+      <h3>
+        {{active_users}}
+      </h3>
+      <p>Active</p>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-row">
+    <form method="GET" class="search-box um-search-box">
+      <i class="ri-search-line"></i>
+      <input type="text" name="q" placeholder="Search users..." value="{{ query }}">
+    </form>
+  </div>
+  
+
+ <!-- TABLE CARD -->
+<div class="card um-card">
+
+  <div class="table-wrapper um-table-wrapper">
+    <table class="user-table um-table">
+
+      <thead>
+        <tr>
+          <th class="col-id">ID</th>
+          <th>User</th>
+          <th>Email</th>
+          <th class="col-status">Status</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for user in page_obj %}
+        <tr>
+
+          <!-- ID -->
+          <td class="uid">
+            TF-{{ user.id|stringformat:"03d" }}
+          </td>
+
+          <!-- USER -->
+          <td>
+            <div class="user-info um-user">
+              <div class="avatar um-avatar">
+                {{ user.username|first|upper }}
+              </div>
+              <div class="user-text">
+                <strong>{{ user.username }}</strong>
+                <small>ID: {{ user.id }}</small>
+              </div>
+            </div>
+          </td>
+
+          <!-- EMAIL -->
+          <td class="email-cell um-email">
+            {{ user.email }}
+          </td>
+
+          <!-- STATUS TOGGLE -->
+          <td class="status-cell">
+            <label class="um-switch">
+              <input type="checkbox"
+                {% if user.is_active %}checked{% endif %}
+                onchange="toggleUser({{ user.id }}, this)">
+              <span class="um-slider"></span>
+            </label>
+          </td>
+
+          <!-- ACTIONS -->
+          <td class="actions um-actions">
+
+            <!-- Assign -->
+            <a href="{% url 'core:create_task' %}?assignee={{ user.id }}" title="Assign task">
+              <i class="ri-task-line"></i>
+            </a>
+
+            <!-- Edit (Modal) -->
+            <a href="javascript:void(0)" onclick="openEditModal({{ user.id }})" title="Edit">
+              <i class="ri-edit-line"></i>
+            </a>
+
+            <!-- Delete -->
+            <a href="javascript:void(0)" onclick="deleteUser({{ user.id }})" title="Delete">
+              <i class="ri-delete-bin-line"></i>
+            </a>
+
+          </td>
+
+        </tr>
+        {% endfor %}
+      </tbody>
+
+    </table>
+  </div>
+
+</div>
+
+<div class="um-modal" id="editUserModal">
+  <div class="um-modal-box">
+
+    <h3>Edit User</h3>
+
+    <input type="text" id="editUsername" placeholder="Username" class="um-input">
+    <input type="email" id="editEmail" placeholder="Email" class="um-input">
+
+    <div class="um-modal-footer">
+      <button class="um-btn um-btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="um-btn um-btn-primary" onclick="saveUser()">Save</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- PAGINATION -->
+<div class="pagination um-pagination">
+
+  {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}" class="page-btn um-page-btn">
+      ← Prev
+    </a>
+  {% endif %}
+
+  <span class="page-info um-page-info">
+    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+  </span>
+
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&q={{ query }}" class="page-btn um-page-btn">
+      Next →
+    </a>
+  {% endif %}
+
+</div>
+
+<script>
+let currentUserId = null;
+
+/* TOGGLE */
+function toggleUser(id, el){
+  fetch(`/user/${id}/toggle/`, {
+    method: "POST",
+    headers: { "X-CSRFToken": "{{ csrf_token }}" }
+  }).catch(() => {
+    el.checked = !el.checked; // revert on error
+  });
+}
+
+/* OPEN MODAL */
+function openEditModal(id){
+  currentUserId = id;
+  document.getElementById('editUserModal').classList.add('active');
+
+  fetch(`/user/${id}/data/`)
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById('editUsername').value = data.username;
+    document.getElementById('editEmail').value = data.email;
+  });
+}
+
+/* CLOSE */
+function closeModal(){
+  document.getElementById('editUserModal').classList.remove('active');
+}
+
+/* SAVE */
+function saveUser(){
+  fetch(`/user/save/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": "{{ csrf_token }}"
+    },
+    body: JSON.stringify({
+      id: currentUserId,
+      username: document.getElementById('editUsername').value,
+      email: document.getElementById('editEmail').value
+    })
+  }).then(() => location.reload());
+}
+
+/* DELETE */
+function deleteUser(id){
+  if(!confirm("Delete this user?")) return;
+
+  fetch(`/user/${id}/delete/`, {
+    method: "POST",
+    headers: { "X-CSRFToken": "{{ csrf_token }}" }
+  }).then(() => location.reload());
+}
+
+
+function loadStats(){
+  fetch('/user/stats/')
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById('totalUsers').innerText = data.total;
+    document.getElementById('totalAdmins').innerText = data.admins;
+    document.getElementById('activeUsers').innerText = data.active;
+  });
+}
+</script>
+
+{% endblock shell_page %}

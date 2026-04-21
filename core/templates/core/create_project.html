@@ -1,0 +1,197 @@
+{% extends 'core/base.html' %}
+{% block extra_css %}
+
+<style>
+/* ===== WRAPPER ===== */
+.cp-wrap {
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#f4f5f7;
+  padding:20px;
+}
+
+/* CARD */
+.cp-card {
+  width:100%;
+  max-width:500px;
+  background:#fff;
+  border-radius:12px;
+  padding:28px;
+  border:1px solid #dfe1e6;
+  box-shadow:0 10px 30px rgba(0,0,0,0.08);
+}
+
+/* HEADER */
+.cp-header {
+  margin-bottom:20px;
+}
+
+.cp-title {
+  font-size:20px;
+  font-weight:600;
+  color:#172b4d;
+}
+
+.cp-sub {
+  font-size:13px;
+  color:#5e6c84;
+  margin-top:4px;
+}
+
+/* FORM */
+.form-group {
+  margin-bottom:16px;
+}
+
+.form-group label {
+  display:block;
+  font-size:12px;
+  font-weight:500;
+  color:#5e6c84;
+  margin-bottom:6px;
+}
+
+/* INPUTS */
+.form input,
+.form textarea {
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #dfe1e6;
+  font-size:13px;
+  transition:0.2s;
+}
+
+.form select {
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #dfe1e6;
+  font-size:13px;
+  transition:0.2s;
+  background:#fff;
+}
+
+.form input:focus,
+.form textarea:focus {
+  border-color:#0052cc;
+  outline:none;
+  box-shadow:0 0 0 2px rgba(0,82,204,0.1);
+}
+
+.form select:focus {
+  border-color:#0052cc;
+  outline:none;
+  box-shadow:0 0 0 2px rgba(0,82,204,0.1);
+}
+
+/* TEXTAREA */
+textarea {
+  min-height:90px;
+  resize:vertical;
+}
+
+/* BUTTONS */
+.cp-actions {
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:20px;
+}
+
+.btn-secondary {
+  padding:10px 16px;
+  background:#f4f5f7;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.btn-secondary:hover {
+  background:#e4e6ea;
+}
+
+.btn-primary {
+  padding:10px 16px;
+  background:#0052cc;
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.btn-primary:hover {
+  background:#0747a6;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="cp-wrap">
+
+  <div class="cp-card">
+
+    <!-- HEADER -->
+    <div class="cp-header">
+      <div class="cp-title">Create Project</div>
+      <div class="cp-sub">Organize your work and collaborate with your team</div>
+    </div>
+
+    <!-- FORM -->
+    <form method="POST" class="form">
+      {% csrf_token %}
+
+      <!-- NAME -->
+      <div class="form-group">
+        <label>Project Name</label>
+        <input type="text" name="name" placeholder="Enter project name" required>
+      </div>
+
+      <!-- DESCRIPTION -->
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="description" placeholder="Describe your project..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Project type</label>
+        <select name="project_type" class="input">
+          <option value="kanban" selected>Kanban</option>
+          <option value="scrum">Scrum</option>
+        </select>
+      </div>
+
+<div class="pm-field">
+  <label>Project Lead</label>
+  <select name="project_lead" required>
+    <option value="">Select Lead</option>
+    {% for user in users %}
+      <option value="{{ user.id }}">{{ user.username }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+      <div class="form-group">
+        <label>Key prefix</label>
+        <input type="text" name="key_prefix" placeholder="TF" maxlength="10" value="TF">
+      </div>
+
+
+      
+
+      <!-- ACTIONS -->
+      <div class="cp-actions">
+        <a href="{% url 'core:projects' %}" class="btn-secondary">Cancel</a>
+        <button type="submit" class="btn-primary">Create Project</button>
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,25 @@
+{# Tester queue (merged into Jira-style home) #}
+<section class="dash-panel">
+  <div class="dash-panel-head">
+    <h3><i class="ri-bug-line"></i> In review</h3>
+    <span class="dash-muted">{{ testing_tasks|length }} in queue</span>
+  </div>
+
+  <div class="tester-grid">
+    {% for task in testing_tasks %}
+      <div class="tester-card card">
+        <h4><a href="{% url 'core:task_detail' task.id %}">{{ task.title }}</a></h4>
+        <p class="dash-muted">
+          {% if task.project %}{{ task.project.name }} · {% endif %}
+          {% if task.assigned_to %}@{{ task.assigned_to.username }}{% endif %}
+        </p>
+        <div class="tester-actions">
+          <a href="{% url 'core:approve_task' task.id %}" class="dev-btn dev-btn--success">Approve</a>
+          <a href="{% url 'core:reject_task' task.id %}" class="dev-btn dev-btn--ghost">Reject</a>
+        </div>
+      </div>
+    {% empty %}
+      <p class="empty">No issues in review</p>
+    {% endfor %}
+  </div>
+</section>

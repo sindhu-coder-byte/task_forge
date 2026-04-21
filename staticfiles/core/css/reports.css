@@ -1,0 +1,140 @@
+/* ===== WRAPPER ===== */
+.reports-wrap {
+  padding: 28px;
+  max-width: 1300px;
+  margin: auto;
+}
+
+/* HEADER */
+.reports-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+}
+
+.reports-header h1 {
+  font-size:22px;
+  font-weight:600;
+}
+
+/* BUTTONS */
+.reports-btn {
+  padding:10px 16px;
+  border-radius:6px;
+  font-size:14px;
+  cursor:pointer;
+  border:none;
+  text-decoration: none;
+}
+
+.reports-btn--primary {
+  background:#0052cc;
+  color:#fff;
+}
+
+.reports-btn--ghost {
+  background:#fff;
+  border:1px solid #dfe1e6;
+}
+
+/* FILTERS */
+.reports-filters {
+  display:flex;
+  gap:10px;
+  margin-bottom:20px;
+}
+
+.reports-filters select {
+  padding:8px 12px;
+  border-radius:6px;
+  border:1px solid #dfe1e6;
+}
+
+/* STATS */
+.reports-stats {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:16px;
+  margin-bottom:24px;
+}
+
+.reports-card {
+  background:#fff;
+  padding:16px;
+  border-radius:10px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.05);
+}
+
+.reports-card span {
+  font-size:13px;
+  color:#6b778c;
+}
+
+.reports-card h2 {
+  margin-top:6px;
+}
+
+/* SECTION */
+.reports-section {
+  margin-bottom:28px;
+}
+
+/* PROGRESS */
+.reports-progress-row {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.reports-progress-title {
+  width:180px;
+}
+
+.reports-progress-bar {
+  flex:1;
+  height:8px;
+  background:#f1f2f4;
+  border-radius:6px;
+  overflow:hidden;
+}
+
+.reports-progress-bar div {
+  height:100%;
+  background:#36b37e;
+}
+
+.reports-progress-text {
+  width:40px;
+}
+
+/* TABLE */
+.reports-table {
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+}
+
+.reports-table th,
+.reports-table td {
+  padding:10px;
+  border-bottom:1px solid #eee;
+  text-align:left;
+}
+
+.reports-table th {
+  background:#f4f5f7;
+}
+
+/* STATUS */
+.status {
+  padding:4px 8px;
+  border-radius:4px;
+  font-size:12px;
+}
+
+.status.todo { background:#dfe1e6; }
+.status.in_progress { background:#2684ff; color:#fff; }
+.status.in_review { background:#ffab00; }
+.status.done { background:#36b37e; color:#fff; }

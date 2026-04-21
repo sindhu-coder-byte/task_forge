@@ -1,0 +1,592 @@
+/* =========================
+   GLOBAL RESET
+========================= */
+* {
+  box-sizing: border-box;
+  transition: all 0.2s ease-in-out;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  background: #f8fafc;
+}
+
+/* =========================
+   MODAL BACKDROP
+========================= */
+.auth-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  display: none;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+}
+
+.auth-modal.active {
+  display: flex;
+  animation: fadeIn 0.3s ease;
+}
+
+/* =========================
+   MAIN CONTAINER
+========================= */
+.auth-container {
+  display: flex;
+  width: 900px;
+  max-width: 95%;
+  max-height: 92vh;
+
+  border-radius: 20px;
+  overflow: hidden;
+
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(18px);
+
+  border: 1px solid rgba(255,255,255,0.3);
+
+  box-shadow:
+    0 25px 60px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.4);
+
+  animation: slideUp 0.4s ease;
+}
+
+/* =========================
+   LEFT PANEL
+========================= */
+.auth-left {
+  flex: 1;
+  padding: 45px;
+
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: white;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+.auth-left::after {
+  content: "";
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+  bottom: -60px;
+  right: -60px;
+}
+
+/* LOGO (Auth Modal) */
+.auth-left .forge-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.auth-left .forge-logo i {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  color: #4f46e5;
+  font-size: 20px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.auth-left .forge-logo h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: white;
+}
+
+/* FEATURES */
+.auth-features {
+  margin: 20px 0;
+  list-style: none;
+  padding: 0;
+}
+
+.auth-features li {
+  margin-bottom: 10px;
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+}
+
+/* NOTE */
+.auth-note {
+  font-size: 13px;
+  opacity: 0.9;
+  margin-bottom: 20px;
+}
+
+/* =========================
+   GOOGLE BUTTON
+========================= */
+.social-login {
+  margin-top: 10px;
+}
+
+.social-btn.google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  padding: 12px;
+  border-radius: 12px;
+
+  background: white;
+  color: #111;
+  border: 1px solid #d1d5db;
+
+  font-weight: 600;
+  text-decoration: none;
+
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.social-btn.google:hover {
+  background: #f3f4f6;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+.google-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* =========================
+   RIGHT PANEL
+========================= */
+.auth-box {
+  flex: 1;
+  padding: 40px;
+  position: relative;
+}
+
+/* CLOSE BUTTON */
+.close-btn {
+  position: absolute;
+  top: 15px;
+  right: 18px;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  color: #ef4444;
+}
+
+/* TITLE */
+.auth-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+/* DIVIDER */
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+}
+
+
+
+/* =========================
+   INPUT FIELDS
+========================= */
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  border: 1px solid #e5e7eb;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+
+  background: white;
+}
+
+.input-group i {
+  color: #6b7280;
+}
+
+.input-group input {
+  border: none;
+  outline: none;
+  flex: 1;
+  font-size: 14px;
+}
+
+.input-group input::placeholder {
+  color: #9ca3af;
+}
+
+.input-group:hover {
+  border-color: #c7d2fe;
+}
+
+.input-group:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
+
+/* =========================
+   LINKS
+========================= */
+.auth-links {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+.auth-link {
+  font-size: 13px;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+/* =========================
+   BUTTON
+========================= */
+.auth-btn {
+  width: 100%;
+  padding: 13px;
+
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: white;
+
+  border: none;
+  border-radius: 12px;
+
+  font-weight: 600;
+}
+
+.auth-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(37,99,235,0.35);
+}
+
+.auth-btn:active {
+  transform: scale(0.97);
+}
+
+/* FOOTER */
+/* .auth-footer {
+  margin-top: 15px;
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+} */
+
+/* =========================
+   ALERTS
+========================= */
+.alert-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  width: 300px;
+}
+
+.alert {
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: white;
+  font-weight: 500;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  animation: fadeOut 5s forwards;
+}
+
+.alert.success { background: #10B981; }
+.alert.error { background: #EF4444; }
+.alert.warning { background: #F59E0B; }
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 768px) {
+  .auth-container {
+    flex-direction: column;
+    max-width: 95%;
+  }
+
+  .auth-left {
+    padding: 20px;
+    text-align: center;
+  }
+
+  .auth-box {
+    padding: 20px;
+  }
+}
+
+/* =========================
+   ANIMATIONS
+========================= */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  0% {opacity: 1;}
+  80% {opacity: 1;}
+  100% {opacity: 0; display: none;}
+}
+
+/* =========================
+   DIVIDER (OR)
+========================= */
+.divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 25px 0;
+  width: 100%;
+}
+
+.divider span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 0 10px;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+/* =========================
+   FORGOT PASSWORD LINK
+========================= */
+.auth-links {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: -5px;
+  margin-bottom: 18px;
+}
+
+.auth-link {
+  font-size: 13px;
+  font-weight: 500;
+  color: #2563eb;
+  text-decoration: none;
+  position: relative;
+}
+
+.auth-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0%;
+  height: 1px;
+  background: #2563eb;
+  transition: width 0.3s ease;
+}
+
+.auth-link:hover::after {
+  width: 100%;
+}
+
+.auth-link:hover {
+  color: #1d4ed8;
+}
+
+/* =========================
+   FOOTER TEXT
+========================= */
+.auth-footer {
+  margin-top: 18px;
+  font-size: 12px;
+  text-align: center;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* Optional subtle highlight */
+.auth-footer::before {
+  content: "🔒 ";
+}
+
+/* =========================
+   EXTRA POLISH (OPTIONAL BUT NICE)
+========================= */
+
+/* Slight spacing fix for form */
+#loginForm {
+  margin-top: 5px;
+}
+
+/* Better visual separation */
+.auth-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+
+/* =========================================================
+   TASKFORGE AUTH (Scoped - No Conflicts)
+   ========================================================= */
+
+/* TITLE */
+.tf-auth-title {
+  font-size: 22px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 20px;
+  color: #111827;
+}
+
+/* DIVIDER */
+.tf-divider {
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+  gap: 10px;
+}
+
+.tf-divider::before,
+.tf-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #d1d5db, transparent);
+}
+
+.tf-divider span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  letter-spacing: 1px;
+}
+
+/* LINKS */
+.tf-auth-links {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+.tf-auth-link {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4F46E5;
+  text-decoration: none;
+  position: relative;
+}
+
+.tf-auth-link::after {
+  content: "";
+  position: absolute;
+  width: 0%;
+  height: 2px;
+  bottom: -2px;
+  left: 0;
+  background: #6366F1;
+  transition: width 0.3s ease;
+}
+
+.tf-auth-link:hover::after {
+  width: 100%;
+}
+
+/* BUTTON (UPGRADED) */
+.tf-auth-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+
+  font-weight: 600;
+  font-size: 15px;
+
+  color: white;
+  background: linear-gradient(135deg, #4F46E5, #6366F1);
+
+  box-shadow: 0 8px 20px rgba(79,70,229,0.35);
+  cursor: pointer;
+}
+
+.tf-auth-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(79,70,229,0.45);
+}
+
+.tf-auth-btn:active {
+  transform: scale(0.97);
+}
+
+/* FOOTER TEXT */
+.tf-auth-footer {
+  margin-top: 18px;
+  font-size: 12px;
+  text-align: center;
+  color: #6b7280;
+}
+
+/* OPTIONAL NOTE STYLE */
+.auth-note {
+  margin-top: 20px;
+  font-size: 13px;
+  opacity: 0.9;
+  text-align: center;
+}
+
+/* IMPROVED INPUT FOCUS */
+.input-group input::placeholder {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+/* SMOOTH ENTRY ANIMATION */
+.auth-box {
+  animation: fadeIn 0.4s ease;
+}

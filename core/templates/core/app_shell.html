@@ -1,0 +1,163 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/shell.css' %}">
+{% block shell_extra_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+{% url 'core:tasks' as url_tasks %}
+{% url 'core:projects' as url_projects %}
+<div class="app app--shell" id="appRoot" data-tasks-url="{{ url_tasks }}">
+
+  {% include 'core/partials/app_sidebar.html' %}
+
+  <main class="main main--shell">
+    <div class="topbar topbar--shell">
+      <div class="topbar-left">
+        <button type="button" class="toggle-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+          <i class="ri-menu-line"></i>
+        </button>
+        <div class="topbar-title">
+          <span>{% block shell_title %}TaskForge{% endblock %}</span>
+        </div>
+        <div class="search-box" id="searchRoot" data-search-url="{% url 'core:search' %}">
+          <i class="ri-search-line"></i>
+          <input type="search" id="searchInput" name="q" placeholder="Search tasks, projects…" autocomplete="off" />
+          <div id="searchResults" class="search-results"></div>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <div class="icon-btn icon-btn--dropdown" id="notifBtn" title="Notifications" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
+          <i class="ri-notification-3-line"></i>
+          <span class="badge" id="notifBadge">0</span>
+          <div class="dropdown dropdown--notif" id="notifDropdown" role="menu" aria-label="Notifications">
+            <div class="dropdown-head">
+              <strong>Notifications</strong>
+              <span class="dropdown-sub"><span id="notifCount">0</span> pending</span>
+            </div>
+            <div class="dropdown-body" id="notifBody">
+              <div class="dropdown-empty">Loading notifications...</div>
+            </div>
+          </div>
+        </div>
+        <div class="icon-btn" title="Help">
+          <i class="ri-question-line"></i>
+        </div>
+        {% if request.user.is_authenticated %}
+        <div class="user-avatar" title="{{ request.user.username }}">
+          {{ request.user.username|slice:":1"|upper }}
+        </div>
+        {% endif %}
+        {% if request.user.is_authenticated and request.user.profile.role == 'admin' %}
+        <a href="{% url 'core:create_task' %}" class="create-btn">
+          <i class="ri-add-line"></i>
+          <span>Create</span>
+        </a>
+        {% elif request.user.is_authenticated and request.user.profile.role == 'project_lead' %}
+        <a href="{% url 'core:create_task' %}" class="create-btn">
+          <i class="ri-add-line"></i>
+          <span>Create Task</span>
+        </a>
+        {% elif request.user.is_authenticated %}
+        <a href="{% url 'core:tasks' %}" class="create-btn create-btn--secondary">
+          <i class="ri-task-line"></i>
+          <span>My tasks</span>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="page-content page-content--shell">
+      <div class="shell-layout" id="shellLayout">
+        <div class="shell-main">
+          {% block shell_page %}{% endblock %}
+        </div>
+        <aside class="shell-right" id="shellRight">{% block shell_right %}{% endblock %}</aside>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// Load notifications dynamically
+async function loadNotifications() {
+  try {
+    const response = await fetch('{% url "core:get_notifications" %}', {
+      method: 'GET',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'ok') {
+      const badge = document.getElementById('notifBadge');
+      const count = document.getElementById('notifCount');
+      const body = document.getElementById('notifBody');
+      
+      badge.textContent = data.count;
+      count.textContent = data.count;
+      
+      if (data.count === 0) {
+        body.innerHTML = '<div class="dropdown-empty">No new notifications.</div>';
+      } else {
+        body.innerHTML = data.notifications.map(n => `
+          <div class="dropdown-item" data-notif-id="${n.id}">
+            <div class="dropdown-item-title">${n.title}</div>
+            <div class="dropdown-item-sub">${n.message}</div>
+            <div style="margin-top: 8px; font-size: 12px; color: #999;">
+              ${new Date(n.created_at).toLocaleString()}
+            </div>
+            <a class="dropdown-link" href="#" onclick="markNotificationRead(${n.id}, event)">Mark as read</a>
+          </div>
+        `).join('');
+      }
+    }
+  } catch (err) {
+    console.log('Failed to load notifications:', err);
+  }
+}
+
+// Mark notification as read
+async function markNotificationRead(notifId, event) {
+  event.preventDefault();
+  
+  try {
+    const response = await fetch(`/notifications/${notifId}/read/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'ok') {
+      // Reload notifications
+      loadNotifications();
+    }
+  } catch (err) {
+    console.log('Failed to mark notification as read:', err);
+  }
+}
+
+// Load notifications on page load
+document.addEventListener('DOMContentLoaded', function() {
+  loadNotifications();
+  
+  // Reload notifications every 30 seconds
+  setInterval(loadNotifications, 30000);
+  
+  // Reload when notification button is clicked
+  const notifBtn = document.getElementById('notifBtn');
+  if (notifBtn) {
+    notifBtn.addEventListener('click', function() {
+      loadNotifications();
+    });
+  }
+});
+</script>
+
+{% include 'core/partials/shell_scripts.html' %}
+{% block shell_foot_scripts %}{% endblock %}
+{% endblock %}

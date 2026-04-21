@@ -1,0 +1,473 @@
+/* ============================================================
+   BASE LAYOUT
+   ============================================================ */
+
+.guest-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  background: linear-gradient(180deg, #f4f5f7 0%, #ebecf0 100%);
+}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+
+.guest-sidebar {
+  padding: 22px 18px;
+  background: rgba(255, 255, 255, 0.9);
+  border-right: 1px solid rgba(223, 225, 230, 0.9);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.guest-sidebar-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.guest-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0052cc, #2684ff);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  box-shadow: 0 12px 28px rgba(0, 82, 204, 0.18);
+}
+
+.guest-appname {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #172b4d;
+}
+
+.guest-sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guest-sidebar-foot {
+  margin-top: auto;
+}
+
+.guest-muted {
+  font-size: 0.85rem;
+  color: #5e6c84;
+}
+
+/* ============================================================
+   MAIN
+   ============================================================ */
+
+.guest-main {
+  padding: 48px 32px;
+}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+
+.guest-hero {
+  max-width: 760px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(223, 225, 230, 0.8);
+  border-radius: 18px;
+  padding: 34px 30px;
+  box-shadow: 0 20px 60px rgba(23, 43, 77, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.guest-title {
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #172b4d;
+}
+
+.guest-tagline {
+  margin-top: 12px;
+  font-size: 1rem;
+  color: #5e6c84;
+  line-height: 1.6;
+}
+
+.guest-cta-row {
+  margin-top: 22px;
+  display: flex;
+  gap: 10px;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.guest-btn {
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  transition: 0.2s ease;
+}
+
+.guest-btn--primary {
+  background: #0052cc;
+  color: #fff;
+}
+
+.guest-btn--primary:hover {
+  background: #0747a6;
+}
+
+.guest-btn--ghost {
+  background: #fff;
+  color: #0052cc;
+  border: 1px solid #dfe1e6;
+}
+
+.guest-btn--ghost:hover {
+  background: #f4f5f7;
+}
+
+/* ============================================================
+   BOARD PREVIEW (JIRA STYLE)
+   ============================================================ */
+
+.guest-preview {
+  margin-top: 30px;
+}
+
+.guest-board {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+}
+
+.guest-column {
+  min-width: 240px;
+  background: #f4f5f7;
+  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid #dfe1e6;
+}
+
+.guest-col-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #5e6c84;
+  margin-bottom: 10px;
+}
+
+.guest-task {
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border: 1px solid #dfe1e6;
+  transition: 0.2s;
+}
+
+.guest-task:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(23, 43, 77, 0.12);
+}
+
+.task-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #172b4d;
+}
+
+.task-meta {
+  font-size: 0.75rem;
+  color: #5e6c84;
+  margin-top: 4px;
+}
+
+/* STATES */
+.guest-task.active {
+  border-left: 3px solid #0052cc;
+}
+
+.guest-task.done {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+/* ============================================================
+   FEATURES
+   ============================================================ */
+
+.guest-features {
+  margin-top: 36px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.guest-feature-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px;
+  border: 1px solid #dfe1e6;
+  transition: 0.2s;
+}
+
+.guest-feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(23, 43, 77, 0.12);
+}
+
+.guest-feature-card i {
+  font-size: 1.4rem;
+  color: #0052cc;
+  margin-bottom: 8px;
+}
+
+.guest-feature-card h3 {
+  font-size: 1rem;
+  color: #172b4d;
+}
+
+.guest-feature-card p {
+  font-size: 0.85rem;
+  color: #5e6c84;
+  margin-top: 6px;
+}
+
+/* ============================================================
+   CTA
+   ============================================================ */
+
+.guest-bottom-cta {
+  margin-top: 40px;
+  text-align: center;
+}
+
+.guest-bottom-cta h2 {
+  font-size: 1.4rem;
+  color: #172b4d;
+  margin-bottom: 12px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1024px) {
+  .guest-shell {
+    grid-template-columns: 220px 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .guest-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .guest-sidebar {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .guest-sidebar-foot {
+    display: none;
+  }
+
+  .guest-main {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .guest-title {
+    font-size: 1.5rem;
+  }
+
+  .guest-cta-row {
+    flex-direction: column;
+  }
+
+  .guest-btn {
+    width: 100%;
+  }
+
+  .guest-column {
+    min-width: 180px;
+  }
+}
+
+
+/* HERO BADGE */
+.guest-badge {
+  display: inline-block;
+  background: #e9f2ff;
+  color: #0052cc;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+
+/* GRADIENT TEXT */
+.guest-gradient {
+  background: linear-gradient(90deg, #0052cc, #2684ff);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* BADGES */
+.badge {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-right: 6px;
+}
+
+.badge.high { background:#ffebe6; color:#bf2600; }
+.badge.medium { background:#fff7e6; color:#b76e00; }
+.badge.low { background:#e3fcef; color:#006644; }
+
+/* AVATAR */
+.avatar {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  background:#0052cc;
+  color:#fff;
+  font-size:0.7rem;
+}
+
+/* TRUST */
+.guest-trust {
+  margin-top: 30px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #6b778c;
+}
+
+/* WORKFLOW SECTION */
+.guest-workflow {
+  margin-top: 50px;
+}
+
+.workflow-intro {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto 30px;
+}
+
+.workflow-intro h2 {
+  font-size: 1.6rem;
+  color: #172b4d;
+}
+
+.workflow-intro p {
+  font-size: 0.95rem;
+  color: #5e6c84;
+  margin-top: 8px;
+}
+
+/* STEPS */
+.workflow-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+.workflow-step {
+  background: #fff;
+  border: 1px solid #dfe1e6;
+  border-radius: 14px;
+  padding: 20px;
+  transition: 0.25s ease;
+}
+
+.workflow-step:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(23, 43, 77, 0.12);
+}
+
+.step-badge {
+  font-size: 0.75rem;
+  background: #e9f2ff;
+  color: #0052cc;
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: inline-block;
+  margin-bottom: 10px;
+}
+
+.workflow-step h3 {
+  font-size: 1.05rem;
+  color: #172b4d;
+}
+
+.workflow-step p {
+  font-size: 0.85rem;
+  color: #5e6c84;
+  margin: 8px 0 14px;
+}
+
+/* PREVIEW ELEMENTS */
+.step-preview {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* MINI CARDS */
+.mini-card {
+  background: #f4f5f7;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+/* MINI COLUMNS */
+.mini-column {
+  background: #f4f5f7;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.mini-column.active {
+  background: #deebff;
+  color: #0052cc;
+}
+
+.mini-column.done {
+  background: #e3fcef;
+  color: #006644;
+}
+
+/* MINI STATS */
+.mini-stat {
+  background: #f4f5f7;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.mini-stat strong {
+  display: block;
+  font-size: 1rem;
+  color: #0052cc;
+}

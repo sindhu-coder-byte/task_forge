@@ -1,0 +1,272 @@
+{% extends "core/app_shell.html" %}
+{% load static %}
+
+{% block shell_extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/task_detail.css' %}">
+{% endblock %}
+
+{% block shell_title %}
+<span class="issue-shell-title">
+  <i class="ri-trello-line" aria-hidden="true"></i>
+  <span>Issue</span>
+</span>
+{% endblock %}
+
+{% block shell_page %}
+<div class="issue-page" data-task-id="{{ task.id }}">
+  <header class="issue-header">
+    <div class="issue-key">{{ task.issue_key }}{% if task.project %}<span class="issue-dot">·</span><a class="issue-project" href="{% url 'core:project_detail' task.project.id %}">{{ task.project.name }}</a>{% endif %}</div>
+    <h1 class="issue-title">{{ task.title }}</h1>
+    <div class="issue-actions">
+      <a class="btn-ghost" href="{% url 'core:tasks' %}">Back to board</a>
+    </div>
+  </header>
+
+  <div class="issue-grid">
+    <section class="issue-main">
+      <div class="card">
+        <div class="card-head">
+          <h2>Description</h2>
+        </div>
+        <div class="card-body prose">
+          {% if task.description %}
+            {{ task.description }}
+          {% else %}
+            <span class="muted">No description.</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Comments</h2>
+        </div>
+        <div class="card-body">
+          <div id="issueComments" class="stream muted">Loading…</div>
+          <div class="comment-compose">
+            <textarea id="commentInput" class="input" placeholder="Write a comment…"></textarea>
+            <button type="button" class="btn-primary" id="postCommentBtn">Post</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Attachments</h2>
+        </div>
+        <div class="card-body">
+          <div class="attach-row">
+            <input type="file" id="fileInput" class="input-file">
+            <button type="button" class="btn-primary" id="uploadBtn">Upload</button>
+          </div>
+          <div id="issueFiles" class="stream muted">Loading…</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Activity</h2>
+        </div>
+        <div class="card-body">
+          <div id="issueActivity" class="stream muted">Loading…</div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="issue-right">
+      <div class="card card--right">
+        <div class="card-head">
+          <h2>Details</h2>
+        </div>
+        <div class="card-body meta">
+          <div class="meta-row">
+            <span>Status</span>
+            <div class="meta-inline">
+              <strong id="issueStatusChip" class="chip chip--{{ task.status }}">{{ task.get_status_display }}</strong>
+              {% if next_statuses %}
+                <select id="issueStatusSelect" class="input input--sm" aria-label="Change status">
+                  <option value="">Change…</option>
+                  {% for s in next_statuses %}
+                    <option value="{{ s }}">{{ s|capfirst|cut:"_" }}</option>
+                  {% endfor %}
+                </select>
+              {% endif %}
+            </div>
+          </div>
+          <div class="meta-row">
+            <span>Priority</span>
+            <strong>{{ task.priority }}</strong>
+          </div>
+          <div class="meta-row">
+            <span>Assignee</span>
+            <strong>{% if task.assigned_to %}{{ task.assigned_to.username }}{% else %}<span class="muted">Unassigned</span>{% endif %}</strong>
+          </div>
+          <div class="meta-row">
+            <span>Due date</span>
+            <strong>{% if task.due_date %}{{ task.due_date }}{% else %}<span class="muted">Not set</span>{% endif %}</strong>
+          </div>
+          <div class="meta-row meta-row--labels">
+            <span>Labels</span>
+            <div class="labels">
+              {% for l in task.labels.all %}
+                <span class="label" style="--label-color: {{ l.color }};">{{ l.name }}</span>
+              {% empty %}
+                <span class="muted">None</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+
+{% block shell_foot_scripts %}
+<script>
+(function () {
+  var root = document.querySelector('.issue-page');
+  if (!root) return;
+  var taskId = root.getAttribute('data-task-id');
+  if (!taskId) return;
+  var statusSelect = document.getElementById('issueStatusSelect');
+  var statusChip = document.getElementById('issueStatusChip');
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function loadComments() {
+    var el = document.getElementById('issueComments');
+    if (!el) return;
+    fetch('/task/' + taskId + '/comments/')
+      .then(function (r) { return r.json(); })
+      .then(function (rows) {
+        if (!rows || !rows.length) {
+          el.classList.add('muted');
+          el.innerHTML = 'No comments.';
+          return;
+        }
+        el.classList.remove('muted');
+        el.innerHTML = rows.map(function (c) {
+          return '<div class="stream-item"><strong>' + escHtml(c.user) + '</strong><div class="stream-text">' + escHtml(c.text) + '</div><div class="stream-time">' + escHtml(c.time) + '</div></div>';
+        }).join('');
+      })
+      .catch(function () { el.innerHTML = 'Failed to load comments.'; });
+  }
+
+  function postComment() {
+    var input = document.getElementById('commentInput');
+    if (!input) return;
+    var text = input.value.trim();
+    if (!text) return;
+    fetch('/task/' + taskId + '/add-comment/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ text: text })
+    }).then(function () {
+      input.value = '';
+      loadComments();
+      loadActivity();
+    });
+  }
+
+  function loadFiles() {
+    var el = document.getElementById('issueFiles');
+    if (!el) return;
+    fetch('/task/' + taskId + '/files/')
+      .then(function (r) { return r.json(); })
+      .then(function (rows) {
+        if (!rows || !rows.length) {
+          el.classList.add('muted');
+          el.innerHTML = 'No files.';
+          return;
+        }
+        el.classList.remove('muted');
+        el.innerHTML = rows.map(function (f) {
+          return '<div class="stream-item"><a href="' + escHtml(f.url) + '" target="_blank" rel="noopener noreferrer">' + escHtml(f.name) + '</a><div class="stream-time">by ' + escHtml(f.user) + '</div></div>';
+        }).join('');
+      })
+      .catch(function () { el.innerHTML = 'Failed to load files.'; });
+  }
+
+  function uploadFile() {
+    var input = document.getElementById('fileInput');
+    if (!input || !input.files || !input.files.length) return;
+    var formData = new FormData();
+    formData.append('file', input.files[0]);
+    fetch('/task/' + taskId + '/upload/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+      body: formData
+    }).then(function () {
+      input.value = '';
+      loadFiles();
+      loadActivity();
+    });
+  }
+
+  function loadActivity() {
+    var el = document.getElementById('issueActivity');
+    if (!el) return;
+    fetch('/task/' + taskId + '/activity/')
+      .then(function (r) { return r.json(); })
+      .then(function (rows) {
+        if (!rows || !rows.length) {
+          el.classList.add('muted');
+          el.innerHTML = 'No activity.';
+          return;
+        }
+        el.classList.remove('muted');
+        el.innerHTML = rows.map(function (a) {
+          return '<div class="stream-item"><strong>' + escHtml(a.user) + '</strong> ' + escHtml(a.action) + '<div class="stream-time">' + escHtml(a.time) + '</div></div>';
+        }).join('');
+      })
+      .catch(function () { el.innerHTML = 'Failed to load activity.'; });
+  }
+
+  var postBtn = document.getElementById('postCommentBtn');
+  if (postBtn) postBtn.addEventListener('click', postComment);
+  var uploadBtn = document.getElementById('uploadBtn');
+  if (uploadBtn) uploadBtn.addEventListener('click', uploadFile);
+
+  function updateStatus(newStatus) {
+    if (!newStatus) return;
+    fetch('/tasks/' + taskId + '/status/' + encodeURIComponent(newStatus) + '/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.status === 'success') {
+          if (statusChip) {
+            statusChip.className = 'chip chip--' + data.new;
+            statusChip.textContent = data.new.replaceAll('_', ' ');
+          }
+          loadActivity();
+        }
+      })
+      .catch(function () {});
+  }
+
+  if (statusSelect) {
+    statusSelect.addEventListener('change', function () {
+      updateStatus(this.value);
+      this.value = '';
+    });
+  }
+
+  loadComments();
+  loadFiles();
+  loadActivity();
+})();
+</script>
+{% endblock %}
+

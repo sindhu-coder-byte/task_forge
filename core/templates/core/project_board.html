@@ -1,0 +1,1021 @@
+{% extends "core/app_shell.html" %}
+
+{% block shell_title %}
+<span class="issue-shell-title">
+  <i class="ri-kanban-view" aria-hidden="true"></i>
+  <span>{{ project.name }} · Board</span>
+  <p>Lead: {{ project.project_lead.username }}</p>
+</span>
+{% endblock %}
+
+{% block shell_page %}
+<div class="board-container">
+  <div class="board-header">
+    <div class="board-title">Board</div>
+    <div class="board-actions">
+      <a class="btn-ghost" href="{% url 'core:project_backlog' project.id %}">Backlog</a>
+      <a class="btn-ghost" href="{% url 'core:project_team' project.id %}">Team</a>
+      <a class="btn-ghost" href="{% url 'core:project_detail' project.id %}">Overview</a>
+      {% if can_manage_members %}
+      <a class="btn-jira" href="{% url 'core:create_task' %}?project_id={{ project.id }}">
+        <i class="ri-add-line"></i>
+        Create Task
+      </a>
+      {% endif %}
+      <button type="button" class="btn-ghost" id="recheckBoardBtn" onclick="recheckBoard()">
+        <i class="ri-refresh-line"></i>
+        Recheck Board
+      </button>
+      {% if can_manage_members %}
+      <button type="button" class="btn-jira" id="openInviteModalBoard">
+        <i class="ri-user-add-line"></i>
+        Invite
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="board-progress-card">
+    <div class="board-progress-label">Project progress</div>
+    <div class="board-progress-bar">
+      <div id="boardProgressFill" class="board-progress-fill" style="width: {{ progress_percent }}%"></div>
+    </div>
+    <div class="board-progress-text"><span id="boardProgressText">{{ progress_percent }}%</span> complete</div>
+  </div>
+
+  <div class="board">
+    {% for status, label in status_choices %}
+    <div class="column" data-status="{{ status }}">
+      <div class="column-header">
+        <h3>{{ label }}</h3>
+        <span class="count">
+          {% if status == 'todo' %}{{ status_counts.todo|default:0 }}
+          {% elif status == 'in_progress' %}{{ status_counts.in_progress|default:0 }}
+          {% elif status == 'in_review' %}{{ status_counts.in_review|default:0 }}
+          {% elif status == 'done' %}{{ status_counts.done|default:0 }}
+          {% endif %}
+        </span>
+      </div>
+
+      {% for task in tasks %}
+        {% if task.status == status %}
+          <div class="task-card"
+               draggable="true"
+               data-id="{{ task.id }}"
+               data-title="{{ task.title|escapejs }}"
+               data-desc="{{ task.description|default:''|escapejs }}"
+               data-project="{{ task.project.name|default:'No Project'|escapejs }}"
+               data-priority="{{ task.priority }}"
+               data-user="{{ task.assigned_to.username|default:'Unassigned' }}"
+               data-status="{{ task.status }}"
+               data-due="{{ task.due_date|default:'' }}"
+               data-labels='[
+                 {% for l in task.labels.all %}
+                   {"name":"{{ l.name|escapejs }}","color":"{{ l.color }}"}{% if not forloop.last %},{% endif %}
+                 {% endfor %}
+               ]'>
+            <div class="task-title">{{ task.issue_key }} {{ task.title }}</div>
+            <div class="task-project">{{ task.project.name|default:"No Project" }}</div>
+            <div class="task-labels">
+              {% for l in task.labels.all %}
+                <span class="label" style="--label-color: {{ l.color }};">{{ l.name }}</span>
+              {% endfor %}
+            </div>
+            <div class="task-footer">
+              <div class="priority {{ task.priority|lower }}">{{ task.priority }}</div>
+              <div class="avatar">{{ task.assigned_to.username|default:"?"|slice:":1"|upper }}</div>
+            </div>
+          </div>
+        {% endif %}
+      {% empty %}
+        <div class="empty">No tasks</div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div id="taskSidebar" class="tk-sidebar">
+  <div class="tk-sidebar-header">
+    <div class="tk-sidebar-header-left"><h3 id="sideTitle"></h3></div>
+    <div class="tk-sidebar-header-right"><span onclick="closeSidebar()" class="tk-sidebar-close">&times;</span></div>
+  </div>
+  <p class="tk-sidebar-desc" id="sideDesc"></p>
+  <div class="tk-sidebar-grid">
+    <div><span>Project</span><strong id="sideProject"></strong></div>
+    <div><span>Priority</span><strong id="sidePriority" class="tk-badge"></strong></div>
+    <div><span>Assigned</span><strong id="sideUser"></strong></div>
+    <div><span>Status</span><strong id="sideStatusText" class="tk-badge"></strong></div>
+  </div>
+  <div class="tk-sidebar-actions" id="sideActions">
+    <a class="tk-btn-secondary" href="#" id="openIssueLink">Open issue</a>
+  </div>
+
+  <hr class="tk-divider">
+  <div class="tk-comments">
+    <h4>Comments</h4>
+    <div id="commentsList" class="tk-comments-list"></div>
+    <textarea id="commentInput" class="tk-comment-input" placeholder="Write a comment..."></textarea>
+    <button onclick="addComment()" class="tk-btn-primary">Post</button>
+  </div>
+
+  <hr class="tk-divider">
+
+  <!-- ATTACHMENTS (upload + preview + remove) -->
+  <div class="tk-attachments">
+    <h4>Attachments</h4>
+    <div class="tk-upload-wrap">
+      <input type="file" id="fileInput" class="tk-file-input" accept="image/*,application/pdf,.zip,.rar,.txt,.doc,.docx,.xls,.xlsx">
+      <label for="fileInput" class="tk-btn-secondary">Choose file</label>
+      <button onclick="uploadFile()" class="tk-btn-primary" id="uploadBtn">Upload</button>
+    </div>
+    <div class="tk-file-preview" id="filePreview" hidden></div>
+    <div id="fileList" class="tk-file-list empty">No files</div>
+  </div>
+
+  <hr class="tk-divider">
+
+  <!-- ACTIVITY -->
+  <div class="tk-activity">
+    <h4>Activity</h4>
+    <div id="activityList" class="tk-activity-list empty">No activity</div>
+  </div>
+
+  <hr class="tk-divider">
+
+  <!-- LABELS -->
+  <div class="tk-labels">
+    <h4>Labels</h4>
+    <div class="tk-labels-actions">
+      <input type="text" id="labelsInput" class="tk-input" placeholder="Label IDs (comma separated) e.g. 1,2,3">
+      <button type="button" class="tk-btn-primary" onclick="saveLabels()">Save</button>
+    </div>
+    <div id="sideLabels" class="tk-labels-list empty">No labels</div>
+  </div>
+
+  <hr class="tk-divider">
+
+  <!-- DUE DATE -->
+  <div class="tk-due">
+    <h4>Due date</h4>
+    <div class="tk-due-actions">
+      <input type="date" id="dueDateInput" class="tk-input">
+      <button type="button" class="tk-btn-secondary" onclick="clearDueDate()">Clear</button>
+      <button type="button" class="tk-btn-primary" onclick="saveDueDate()">Save</button>
+    </div>
+    <div id="sideDue" class="tk-due-text">Not set</div>
+  </div>
+</div>
+
+<!-- INVITE MODAL -->
+{% if can_manage_members %}
+<div class="modal-overlay" id="inviteModalOverlay" hidden>
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <h2>Invite people</h2>
+      <button type="button" class="modal-close" id="closeInviteModal">&times;</button>
+    </div>
+<form id="inviteForm">
+
+  <input 
+    type="email" 
+    id="inviteEmail" 
+    name="email" 
+    placeholder="Enter email address" 
+    required 
+    class="input input--full"
+  >
+
+<select name="role" id="inviteRole" class="input input--full" required>
+
+  <option value="" disabled selected>Select role</option>
+
+  {% for role in invite_role_choices %}
+    <option value="{{ role.0 }}">{{ role.1 }}</option>
+  {% endfor %}
+
+</select>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="cancelInviteModal">Cancel</button>
+        <button type="submit" class="btn-jira">Send invite</button>
+      </div>
+
+      <p id="inviteError" class="invite-error" hidden></p>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block shell_foot_scripts %}
+<style>
+/* Minimal board styles (kept close to tasks.html for now) */
+.board-container{padding:24px;max-width:1400px;margin:auto}
+.board-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.board-title{font-size:18px;font-weight:650}
+.board-actions{display:flex;gap:10px;align-items:center}
+.btn-ghost{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;text-decoration:none;color:#111827;font-size:13px}
+.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.column{background:#f8fafc;border-radius:14px;padding:14px;max-height:calc(100vh - 180px);overflow-y:auto;border:1px solid #e5e7eb}
+.column.drag-over{background:#e6f4ff;border:2px dashed #1677ff}
+.column-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.count{font-size:12px;color:#666;background:#e0e0e0;padding:2px 8px;border-radius:10px}
+.task-card{background:#fff;padding:12px;border-radius:12px;margin-bottom:12px;border:1px solid #eee;transition:box-shadow .2s,border-color .2s}
+.task-card:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(0,0,0,.12);border-color:#1677ff}
+.task-card.dragging{opacity:.5}
+.task-card.task-card--revert-flash{animation:task-revert-flash .55s ease}
+@keyframes task-revert-flash{0%{box-shadow:0 0 0 2px #0052cc,0 8px 20px rgba(0,82,204,.25)}100%{box-shadow:none}}
+.task-title{font-weight:600;font-size:14px;margin-bottom:4px}
+.board-progress-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin:18px 0;box-shadow:0 1px 3px rgba(15,23,42,.06)}
+.board-progress-label{font-size:12px;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.board-progress-bar{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden}
+.board-progress-fill{height:100%;background:#10b981;transition:width .3s ease}
+.board-progress-text{margin-top:10px;font-size:13px;color:#111827;font-weight:600}
+
+.task-project{font-size:11px;color:#888}
+.task-labels{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.label{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:600;color:#fff;background:var(--label-color,#64748b)}
+.task-footer{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.priority{font-size:10px;padding:4px 8px;border-radius:20px}
+.priority.high{background:#ff4d4f;color:#fff}
+.priority.medium{background:#faad14;color:#fff}
+.priority.low{background:#52c41a;color:#fff}
+.avatar{width:28px;height:28px;border-radius:50%;background:#1677ff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
+.empty{text-align:center;font-size:13px;color:#aaa;margin-top:20px;font-style:italic}
+
+/* =========================
+   🧩 SIDEBAR (ported from tasks.html so Board sidebar works)
+========================= */
+.tk-sidebar{
+  position:fixed;
+  top:0;
+  right:-420px;
+  width:400px;
+  height:100%;
+  background:#fff;
+  box-shadow:-6px 0 24px rgba(0,0,0,0.08);
+  transition:right 0.3s ease;
+  z-index:1100;
+  display:flex;
+  flex-direction:column;
+  overflow-y:auto;
+}
+.tk-sidebar.open{ right:0; }
+.tk-sidebar > *{ padding:0 20px; }
+
+.tk-sidebar-header{
+  position:sticky;
+  top:0;
+  background:#fff;
+  z-index:10;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:16px 20px;
+  border-bottom:1px solid #eee;
+}
+.tk-sidebar-header-left h3{
+  font-size:16px;
+  font-weight:600;
+  margin:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.tk-sidebar-close{
+  font-size:20px;
+  cursor:pointer;
+  color:#888;
+  padding:4px;
+  border-radius:6px;
+  transition:0.2s;
+}
+.tk-sidebar-close:hover{ background:#f0f0f0; color:#000; }
+
+.tk-sidebar-desc{
+  font-size:13px;
+  color:#555;
+  line-height:1.5;
+  margin:15px 0;
+}
+.tk-sidebar-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-bottom:16px;
+}
+.tk-sidebar-grid span{ font-size:11px; color:#888; display:block; }
+.tk-sidebar-grid strong{ font-size:13px; font-weight:600; color:#222; }
+
+.tk-badge{
+  padding:4px 8px;
+  font-size:11px;
+  border-radius:12px;
+  display:inline-block;
+}
+.tk-badge.high{ background:#ff4d4f; color:#fff; }
+.tk-badge.medium{ background:#faad14; color:#fff; }
+.tk-badge.low{ background:#52c41a; color:#fff; }
+.tk-badge.todo{ background:#f3f4f6; color:#374151; }
+.tk-badge.in_progress{ background:#0052cc; color:#fff; }
+.tk-badge.in_review{ background:#6554c0; color:#fff; }
+.tk-badge.done{ background:#22c55e; color:#fff; }
+
+.tk-divider{
+  border:none;
+  border-top:1px solid #eee;
+  margin:16px 0;
+}
+
+.tk-sidebar-actions{ display:flex; gap:10px; align-items:center; margin:6px 0 6px; }
+.tk-btn-secondary{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px 14px;
+  border-radius:8px;
+  background:#f3f4f6;
+  font-size:13px;
+  cursor:pointer;
+  transition:0.2s;
+  border:1px solid #e5e7eb;
+  color:#111827;
+  text-decoration:none;
+}
+.tk-btn-secondary:hover{ background:#e5e7eb; }
+
+.tk-inline-update{ margin:16px 0; }
+.tk-inline-update label{ font-size:12px; color:#666; margin-bottom:4px; display:block; }
+.tk-inline-update select{
+  width:100%;
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  font-size:13px;
+}
+
+.tk-comments h4{ font-size:14px; margin-bottom:10px; }
+.tk-comments-list{
+  max-height:150px;
+  overflow-y:auto;
+  margin-bottom:10px;
+}
+.tk-comments-list .comment{
+  background:#f5f5f5;
+  padding:8px;
+  border-radius:6px;
+  margin-bottom:6px;
+  font-size:12px;
+}
+.tk-comment-input{
+  width:100%;
+  padding:8px;
+  border-radius:6px;
+  border:1px solid #ddd;
+  margin-bottom:8px;
+  box-sizing:border-box;
+}
+.tk-input{
+  width:100%;
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  font-size:13px;
+  box-sizing:border-box;
+}
+.tk-upload-wrap{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+.tk-file-input{display:none}
+.tk-file-list{font-size:12px;margin-top:10px}
+.tk-file-item{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;margin-bottom:8px}
+.tk-file-item a{color:#0052cc;text-decoration:none;word-break:break-word}
+.tk-file-item a:hover{text-decoration:underline}
+.tk-file-remove{border:1px solid #fee2e2;background:#fff;color:#b91c1c;border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer}
+.tk-file-remove:hover{background:#fef2f2}
+.tk-file-preview{margin-top:10px;border:1px solid #e5e7eb;border-radius:12px;padding:10px;background:#fff}
+.tk-file-preview img{max-width:100%;border-radius:10px;display:block}
+.tk-file-preview .meta{font-size:12px;color:#6b7280;margin-top:8px}
+.tk-activity-list .comment{font-size:12px;background:#fafafa;padding:6px;border-radius:6px;margin-bottom:6px}
+.tk-labels-actions,.tk-due-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0 10px}
+.tk-due-text{font-size:13px;color:#374151}
+
+@media (max-width: 768px){
+  .tk-sidebar{width:100%;right:-105%;max-width:420px}
+}
+.tk-btn-primary{
+  background:#0052cc;
+  color:#fff;
+  border:none;
+  padding:8px 14px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:13px;
+  transition:0.2s;
+}
+.tk-btn-primary:hover{ background:#0747a6; }
+
+/* ===== MODAL OVERLAY ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+
+/* ===== MODAL BOX ===== */
+.modal-dialog {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 45px rgba(0,0,0,0.15);
+  padding: 20px;
+  animation: modalFade 0.25s ease;
+}
+
+@keyframes modalFade {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ===== HEADER ===== */
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.modal-head h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+/* ===== INPUTS ===== */
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #0052cc;
+  box-shadow: 0 0 0 2px rgba(0,82,204,0.15);
+}
+
+/* ===== ACTIONS ===== */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* ===== ERROR ===== */
+.invite-error {
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 6px;
+}
+</style>
+<script>
+(function () {
+  const sidebar = document.getElementById("taskSidebar");
+  let draggedCard = null;
+
+  function setText(id, v){ const el=document.getElementById(id); if(el) el.innerText = v || ''; }
+  function escapeHtml(text){ const div=document.createElement("div"); div.innerText=text; return div.innerHTML; }
+
+  function openSidebarFromCard(card) {
+    const data = card.dataset;
+    sidebar.dataset.taskId = data.id;
+    setText("sideTitle", data.title);
+    setText("sideDesc", data.desc);
+    setText("sideProject", data.project);
+    setText("sideUser", data.user);
+
+    const p = document.getElementById('sidePriority');
+    p.innerText = data.priority;
+    p.className = 'tk-badge ' + data.priority.toLowerCase();
+
+    const s = document.getElementById('sideStatusText');
+    s.innerText = data.status.replaceAll('_',' ');
+    s.className = 'tk-badge ' + data.status;
+
+    const openLink = document.getElementById('openIssueLink');
+    if (openLink) openLink.href = '/tasks/' + data.id + '/';
+
+    
+    // hydrate all sidebar sections (Jira-style)
+    loadComments(data.id);
+    loadFiles(data.id);
+    loadActivity(data.id);
+    renderLabels(data.labels);
+    renderDueDate(data.due);
+    sidebar.classList.add("open");
+  }
+
+  window.closeSidebar = function () { sidebar.classList.remove("open"); };
+
+  document.querySelectorAll(".task-card").forEach(card => {
+    card.addEventListener("dragstart", () => { draggedCard = card; card.classList.add("dragging"); });
+    card.addEventListener("dragend", () => { card.classList.remove("dragging"); });
+    card.addEventListener("click", () => openSidebarFromCard(card));
+  });
+
+  document.querySelectorAll(".column").forEach(column => {
+    column.addEventListener("dragover", e => e.preventDefault());
+    column.addEventListener("dragenter", () => column.classList.add("drag-over"));
+    column.addEventListener("dragleave", (e) => { if (!column.contains(e.relatedTarget)) column.classList.remove("drag-over"); });
+    column.addEventListener("drop", () => {
+      column.classList.remove("drag-over");
+      if (!draggedCard) return;
+      const previousStatus = draggedCard.dataset.status;
+      const newStatus = column.dataset.status;
+      const taskId = draggedCard.dataset.id;
+      column.appendChild(draggedCard);
+      if (previousStatus === newStatus) return;
+      draggedCard.dataset.status = newStatus;
+      updateTask(taskId, newStatus, previousStatus, draggedCard);
+    });
+  });
+
+  /** Move card into column with a FLIP animation (used when reverting a failed transition). */
+  function flyCardToColumn(card, column) {
+    if (!card || !column) return;
+    const first = card.getBoundingClientRect();
+    column.appendChild(card);
+    const last = card.getBoundingClientRect();
+    const dx = first.left - last.left;
+    const dy = first.top - last.top;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) {
+      card.classList.add("task-card--revert-flash");
+      card.addEventListener("animationend", function onEnd() {
+        card.removeEventListener("animationend", onEnd);
+        card.classList.remove("task-card--revert-flash");
+      });
+      return;
+    }
+    card.style.transition = "none";
+    card.style.transform = "translate(" + dx + "px, " + dy + "px)";
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        card.style.transition = "transform 0.42s cubic-bezier(0.25, 0.82, 0.25, 1)";
+        card.style.transform = "";
+        function cleanup(e) {
+          if (e && e.propertyName !== "transform") return;
+          card.removeEventListener("transitionend", cleanup);
+          card.style.transition = "";
+          card.style.transform = "";
+          card.classList.add("task-card--revert-flash");
+          card.addEventListener("animationend", function onAnim() {
+            card.removeEventListener("animationend", onAnim);
+            card.classList.remove("task-card--revert-flash");
+          });
+        }
+        card.addEventListener("transitionend", cleanup);
+      });
+    });
+  }
+
+  function revertTaskMove(card, previousStatus) {
+    if (!card || !previousStatus) return;
+    const targetCol = document.querySelector('.column[data-status="' + previousStatus + '"]');
+    if (!targetCol) return;
+    flyCardToColumn(card, targetCol);
+    card.dataset.status = previousStatus;
+  }
+
+  function syncSidebarStatusIfOpen(taskId, statusValue) {
+    if (!sidebar || String(sidebar.dataset.taskId) !== String(taskId)) return;
+    var sel = document.getElementById("statusSelect");
+    if (sel) sel.value = statusValue;
+    var st = document.getElementById("sideStatusText");
+    if (st) {
+      st.innerText = statusValue.replace(/_/g, " ");
+      st.className = "tk-badge " + statusValue;
+    }
+  }
+
+  function updateTask(id, newStatus, previousStatus, card) {
+    fetch("/tasks/" + id + "/status/" + newStatus + "/", {
+      method: "POST",
+      headers: { "X-CSRFToken": "{{ csrf_token }}" }
+    })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { res: res, data: data };
+        }).catch(function () {
+          return { res: res, data: {} };
+        });
+      })
+      .then(function (_ref) {
+        var res = _ref.res;
+        var data = _ref.data;
+        var ok = res.ok && (data.status === "success" || data.status === "no_change");
+        if (ok) {
+          if (data && data.status === "success") {
+            updateGlobalNotificationCount(data.notification_count);
+            updateBoardSummary(data.status_counts, data.progress_percent);
+          }
+          return;
+        }
+        revertTaskMove(card, previousStatus);
+        syncSidebarStatusIfOpen(id, previousStatus);
+      })
+      .catch(function () {
+        revertTaskMove(card, previousStatus);
+        syncSidebarStatusIfOpen(id, previousStatus);
+      });
+  }
+
+  function updateBoardSummary(statusCounts, progressPercent) {
+    if (statusCounts) {
+      ["todo", "in_progress", "in_review", "done"].forEach(function (status) {
+        var countEl = document.querySelector('.column[data-status="' + status + '"] .count');
+        if (countEl) {
+          countEl.textContent = statusCounts[status] || 0;
+        }
+      });
+    }
+
+    if (progressPercent !== undefined && progressPercent !== null) {
+      var fill = document.getElementById('boardProgressFill');
+      var text = document.getElementById('boardProgressText');
+      if (fill) fill.style.width = progressPercent + '%';
+      if (text) text.textContent = progressPercent + '%';
+    }
+
+    // Update progress on other pages if the function exists
+    if (typeof updateProgress === 'function') {
+      updateProgress();
+    }
+  }
+
+  function updateGlobalNotificationCount(n) {
+    if (n === undefined || n === null) return;
+    var badge = document.querySelector("#notifBtn .badge");
+    if (badge) badge.textContent = String(n);
+    var sub = document.querySelector("#notifDropdown .dropdown-sub");
+    if (sub) sub.textContent = String(n) + " pending";
+  }
+
+
+  function loadComments(taskId){
+    fetch(`/task/${taskId}/comments/`)
+      .then(res => res.json())
+      .then(data => {
+        const el = document.getElementById('commentsList');
+        if (!data.length) { el.innerHTML = '<div class="empty">No comments</div>'; return; }
+        el.innerHTML = data.map(c => `
+          <div class="comment">
+            <strong>${escapeHtml(c.user)}</strong><br>
+            ${escapeHtml(c.text)}
+          </div>
+        `).join('');
+      });
+  }
+
+  window.addComment = function () {
+    const input = document.getElementById('commentInput');
+    const text = input.value.trim();
+    const taskId = sidebar.dataset.taskId;
+    if (!text) return;
+    fetch(`/task/${taskId}/add-comment/`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'X-CSRFToken':'{{ csrf_token }}' },
+      body: JSON.stringify({text})
+    }).then(()=> { input.value=''; loadComments(taskId); });
+  };
+
+  // -------------------------
+  // Attachments (upload/preview/remove)
+  // -------------------------
+  const fileInput = document.getElementById("fileInput");
+  const filePreview = document.getElementById("filePreview");
+
+  if (fileInput) {
+    fileInput.addEventListener("change", function () {
+      const f = fileInput.files && fileInput.files[0];
+      if (!f) {
+        if (filePreview) { filePreview.hidden = true; filePreview.innerHTML = ""; }
+        return;
+      }
+
+      if (!filePreview) return;
+      const isImg = /^image\//.test(f.type);
+      filePreview.hidden = false;
+      if (isImg) {
+        const url = URL.createObjectURL(f);
+        filePreview.innerHTML = `<img src="${url}" alt="Preview"><div class="meta">${escapeHtml(f.name)} · ${(f.size/1024).toFixed(0)} KB</div>`;
+      } else {
+        filePreview.innerHTML = `<div class="meta">${escapeHtml(f.name)} · ${(f.size/1024).toFixed(0)} KB</div>`;
+      }
+    });
+  }
+
+  function loadFiles(taskId) {
+    fetch(`/task/${taskId}/files/`)
+      .then(res => res.json())
+      .then(data => {
+        const el = document.getElementById("fileList");
+        if (!el) return;
+        if (!Array.isArray(data) || !data.length) {
+          el.classList.add("empty");
+          el.innerHTML = "No files";
+          return;
+        }
+        el.classList.remove("empty");
+        el.innerHTML = data.map(f => {
+          const name = escapeHtml(f.name || "file");
+          const url = f.url || "#";
+          const id = f.id;
+          return `
+            <div class="tk-file-item">
+              <a href="${url}" target="_blank" rel="noopener">${name}</a>
+              <button type="button" class="tk-file-remove" data-file-id="${id}">Remove</button>
+            </div>
+          `;
+        }).join("");
+
+        el.querySelectorAll("button.tk-file-remove[data-file-id]").forEach(btn => {
+          btn.addEventListener("click", function () {
+            const attachmentId = btn.getAttribute("data-file-id");
+            if (!attachmentId) return;
+            fetch(`/task/${taskId}/files/${attachmentId}/delete/`, {
+              method: "POST",
+              headers: { "X-CSRFToken": "{{ csrf_token }}" }
+            })
+              .then(r => r.json())
+              .then(() => { loadFiles(taskId); loadActivity(taskId); })
+              .catch(() => {});
+          });
+        });
+      });
+  }
+
+  window.uploadFile = function () {
+    const taskId = sidebar.dataset.taskId;
+    if (!taskId) return;
+    if (!fileInput || !fileInput.files || !fileInput.files.length) return;
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    const btn = document.getElementById("uploadBtn");
+    if (btn) { btn.disabled = true; btn.textContent = "Uploading..."; }
+
+    fetch(`/task/${taskId}/upload/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": "{{ csrf_token }}" },
+      body: formData
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.status === "ok") {
+          fileInput.value = "";
+          if (filePreview) { filePreview.hidden = true; filePreview.innerHTML = ""; }
+          loadFiles(taskId);
+          loadActivity(taskId);
+        }
+      })
+      .finally(() => {
+        if (btn) { btn.disabled = false; btn.textContent = "Upload"; }
+      });
+  };
+
+  // -------------------------
+  // Activity
+  // -------------------------
+  function loadActivity(taskId){
+    fetch(`/task/${taskId}/activity/`)
+      .then(res => res.json())
+      .then(data => {
+        const el = document.getElementById("activityList");
+        if (!el) return;
+        if (!Array.isArray(data) || !data.length) {
+          el.classList.add("empty");
+          el.textContent = "No activity";
+          return;
+        }
+        el.classList.remove("empty");
+        el.innerHTML = data.map(a => `
+          <div class="comment">
+            <strong>${escapeHtml(a.user)}</strong> ${escapeHtml(a.action)}
+            <div>${escapeHtml(a.time)}</div>
+          </div>
+        `).join("");
+      });
+  }
+
+  // -------------------------
+  // Labels + Due date (inputs)
+  // -------------------------
+  function renderLabels(labelsJson){
+    const container = document.getElementById("sideLabels");
+    if (!container) return;
+    if (!labelsJson) { container.classList.add("empty"); container.textContent = "No labels"; return; }
+    try {
+      const labels = JSON.parse(labelsJson);
+      if (!labels || !labels.length) { container.classList.add("empty"); container.textContent = "No labels"; return; }
+      container.classList.remove("empty");
+      container.innerHTML = labels.map(l => `<span style="background:${l.color}">${escapeHtml(l.name)}</span>`).join("");
+      const ids = labels.map(l => l.id).join(",");
+      const input = document.getElementById("labelsInput");
+      if (input) input.value = ids;
+    } catch {
+      container.classList.add("empty");
+      container.textContent = "No labels";
+    }
+  }
+
+  function renderDueDate(due){
+    const el = document.getElementById("sideDue");
+    const input = document.getElementById("dueDateInput");
+    if (input) input.value = due || "";
+    if (!el) return;
+    el.textContent = due ? due : "Not set";
+  }
+
+  window.saveLabels = function () {
+    const taskId = sidebar.dataset.taskId;
+    const input = document.getElementById("labelsInput");
+    if (!taskId || !input) return;
+    const body = new URLSearchParams();
+    body.set("labels", input.value || "");
+    fetch(`/task/${taskId}/labels/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString()
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.status === "ok") {
+          const card = document.querySelector('[data-id="' + taskId + '"]');
+          if (card) card.dataset.labels = JSON.stringify(data.labels || []);
+          renderLabels(JSON.stringify(data.labels || []));
+          loadActivity(taskId);
+        }
+      });
+  };
+
+  window.saveDueDate = function () {
+    const taskId = sidebar.dataset.taskId;
+    const input = document.getElementById("dueDateInput");
+    if (!taskId || !input) return;
+    const body = new URLSearchParams();
+    body.set("due_date", input.value || "");
+    fetch(`/task/${taskId}/due-date/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString()
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.status === "ok") {
+          const card = document.querySelector('[data-id="' + taskId + '"]');
+          if (card) card.dataset.due = data.due_date || "";
+          renderDueDate(data.due_date || "");
+          loadActivity(taskId);
+        }
+      });
+  };
+
+  window.clearDueDate = function () {
+    const input = document.getElementById("dueDateInput");
+    if (input) input.value = "";
+    window.saveDueDate();
+  };
+
+  // =============================
+  // INVITE MODAL CONTROL
+  // =============================
+  var overlay = document.getElementById('inviteModalOverlay');
+  var openBtn = document.getElementById('openInviteModalBoard');
+  var closeBtn = document.getElementById('closeInviteModal');
+  var cancelBtn = document.getElementById('cancelInviteModal');
+
+  function setOpen(open) {
+    if (!overlay) {
+      console.warn("Modal overlay not found");
+      return;
+    }
+    overlay.hidden = !open;
+  }
+
+  if (openBtn) {
+    openBtn.addEventListener('click', function () {
+      if (!overlay) {
+        console.warn("Modal overlay not found");
+        return;
+      }
+      setOpen(true);
+
+      var em = document.getElementById('inviteEmail');
+      if (em) em.focus();
+    });
+  }
+
+  if (closeBtn) closeBtn.onclick = () => setOpen(false);
+  if (cancelBtn) cancelBtn.onclick = () => setOpen(false);
+
+  if (overlay) {
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) setOpen(false);
+    });
+  }
+
+  // =============================
+  // INVITE FORM SUBMIT
+  // =============================
+  var inviteForm = document.getElementById('inviteForm');
+  var inviteError = document.getElementById('inviteError');
+
+  function showErr(msg) {
+    if (!inviteError) return;
+    inviteError.textContent = msg;
+    inviteError.hidden = !msg;
+  }
+
+  if (inviteForm) {
+    inviteForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      showErr("");
+
+      const submitBtn = inviteForm.querySelector("button[type='submit']");
+      submitBtn.disabled = true;
+      submitBtn.innerText = "Sending...";
+
+      try {
+        const res = await fetch('{% url "core:invite_project_member" project.id %}', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+          body: new FormData(inviteForm)
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.status === 'invited') {
+          location.reload();
+        } else {
+          showErr(data.error || "Invite failed");
+        }
+
+      } catch (err) {
+        showErr("Network error");
+      }
+
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Send invite";
+    });
+  }
+
+})();
+
+// Recheck Board functionality
+function recheckBoard() {
+    const btn = document.getElementById('recheckBoardBtn');
+    const originalText = btn.innerHTML;
+    
+    // Show loading state
+    btn.innerHTML = '<i class="ri-refresh-line ri-spin"></i> Rechecking...';
+    btn.disabled = true;
+    
+    // Reload the page to refresh board state
+    setTimeout(() => {
+        window.location.reload();
+    }, 500);
+}
+
+// Add loading animation for refresh button
+const style = document.createElement('style');
+style.textContent = `
+    .ri-spin {
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}
+

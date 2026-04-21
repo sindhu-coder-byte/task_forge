@@ -1,0 +1,105 @@
+{# Developer kanban (merged into Jira-style home) #}
+<section class="dash-panel">
+  <div class="dash-panel-head">
+    <h3><i class="ri-dashboard-line"></i> My work</h3>
+    <span class="dash-muted">{{ tasks|length }} tasks assigned to you</span>
+  </div>
+
+  <div class="dev-board">
+
+    <div class="dev-column">
+      <div class="dev-col-header">To Do</div>
+      {% for task in tasks %}
+        {% if task.status == 'todo' %}
+          <div class="dev-card">
+            <div class="dev-title"><a href="{% url 'core:task_detail' task.id %}">#{{ task.id }} {{ task.title }}</a></div>
+            <div class="dev-meta">
+              <span class="status-pill status-pill--todo">To Do</span>
+              <span class="priority-tag priority-tag--{{ task.priority|lower }}">{{ task.priority }}</span>
+            </div>
+            <button type="button" class="dev-btn dev-btn--primary js-dash-start" data-task-id="{{ task.id }}">Start</button>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="dev-column">
+      <div class="dev-col-header">In progress</div>
+      {% for task in tasks %}
+        {% if task.status == 'in_progress' %}
+          <div class="dev-card">
+            <div class="dev-title"><a href="{% url 'core:task_detail' task.id %}">#{{ task.id }} {{ task.title }}</a></div>
+            <div class="dev-meta">
+              <span class="status-pill status-pill--in_progress">In progress</span>
+              <span class="priority-tag priority-tag--{{ task.priority|lower }}">{{ task.priority }}</span>
+            </div>
+            <button type="button" class="dev-btn dev-btn--success js-dash-submit" data-task-id="{{ task.id }}">Submit for testing</button>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="dev-column">
+      <div class="dev-col-header">In review</div>
+      {% for task in tasks %}
+        {% if task.status == 'in_review' %}
+          <div class="dev-card dev-card--muted">
+            <div class="dev-title"><a href="{% url 'core:task_detail' task.id %}">#{{ task.id }} {{ task.title }}</a></div>
+            <div class="dev-meta">
+              <span class="status-pill status-pill--in_review">In review</span>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="dev-column">
+      <div class="dev-col-header">Done</div>
+      {% for task in tasks %}
+        {% if task.status == 'done' %}
+          <div class="dev-card dev-card--done">
+            <div class="dev-title"><a href="{% url 'core:task_detail' task.id %}">#{{ task.id }} {{ task.title }}</a></div>
+            <div class="dev-meta">
+              <span class="status-pill status-pill--done">Done</span>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+  </div>
+</section>
+
+<script>
+function dashGetCsrf() {
+  const m = document.cookie.match(/csrftoken=([^;]+)/);
+  return m ? m[1] : '{{ csrf_token }}';
+}
+function dashStartTask(id) {
+  fetch('/task/' + id + '/start/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': dashGetCsrf() }
+  }).then(function () { location.reload(); });
+}
+function dashSubmitTask(id) {
+  fetch('/task/' + id + '/submit/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': dashGetCsrf() }
+  }).then(function () { location.reload(); });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.js-dash-start[data-task-id]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      dashStartTask(btn.getAttribute('data-task-id'));
+    });
+  });
+  document.querySelectorAll('.js-dash-submit[data-task-id]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      dashSubmitTask(btn.getAttribute('data-task-id'));
+    });
+  });
+});
+</script>

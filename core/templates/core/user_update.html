@@ -1,0 +1,103 @@
+{% extends "core/app_shell.html" %}
+{% load static %}
+
+{% block shell_extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/user.css' %}">
+<link href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css" rel="stylesheet">
+{% endblock %}
+
+{% block shell_title %}Users{% endblock %}
+
+{% block shell_page %}
+<div class="user-page">
+
+    <div class="user-preview">
+  <div class="avatar big">
+    {{ user_obj.username|first|upper }}
+  </div>
+  <div>
+    <h3>{{ user_obj.username }}</h3>
+    <p>{{ user_obj.email }}</p>
+  </div>
+</div>
+
+  <!-- HEADER -->
+  <div class="header-row">
+    <div>
+      <h2>Edit User</h2>
+      <p class="sub-text">Update user details</p>
+    </div>
+
+    <a href="{% url 'core:user_list' %}" class="btn-add">
+      <i class="ri-arrow-left-line"></i> Back
+    </a>
+  </div>
+
+  <!-- FORM -->
+  <div class="card form-card">
+
+    <form method="POST" class="user-form">
+      {% csrf_token %}
+
+      <!-- Errors -->
+      {% if form.non_field_errors %}
+        <div class="form-error">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <!-- Username -->
+      <div class="form-group">
+        <label>Username</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+          <small class="error">{{ form.username.errors.0 }}</small>
+        {% endif %}
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label>Email</label>
+        {{ form.email }}
+        {% if form.email.errors %}
+          <small class="error">{{ form.email.errors.0 }}</small>
+        {% endif %}
+      </div>
+
+      <!-- Role -->
+      <div class="form-group">
+        <label>Role</label>
+        {{ form.role }}
+      </div>
+
+      <!-- Assigned Projects -->
+      <div class="form-group">
+        <label>Assigned Projects</label>
+        {{ form.assigned_projects }}
+        <small class="help-text">Hold Ctrl/Cmd to select multiple projects</small>
+        {% if form.assigned_projects.errors %}
+          <small class="error">{{ form.assigned_projects.errors.0 }}</small>
+        {% endif %}
+      </div>
+
+      <!-- Active -->
+      <div class="form-group checkbox">
+        <label>
+          {{ form.is_active }} Active User
+        </label>
+      </div>
+
+      <!-- Submit -->
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">
+          <i class="ri-save-line"></i> Update User
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
+{% endblock shell_page %}

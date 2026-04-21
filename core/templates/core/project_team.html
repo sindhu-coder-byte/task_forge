@@ -1,0 +1,414 @@
+{% extends "core/app_shell.html" %}
+
+{% block shell_title %}
+<span class="issue-shell-title">
+  <i class="ri-user-settings-line"></i>
+  <span>{{ project.name }} · Team</span>
+</span>
+{% endblock %}
+
+
+{% block shell_page %}
+
+<!-- HEADER -->
+<div class="card">
+  <div class="section-title">Team</div>
+  <p class="dash-muted">Members who can access this project.</p>
+</div>
+
+<!-- PROJECT LEAD BANNER -->
+{% if request.user == project.project_lead %}
+<div class="card" style="border-left:4px solid #0052cc;">
+  <div class="card-body">
+    <strong>Project Lead Access</strong><br>
+    ✔ Manage members<br>
+    ✔ View all tasks<br>
+    ✔ Assign tasks to anyone
+  </div>
+</div>
+{% elif request.user.profile.role == 'team_lead' %}
+<div class="card" style="border-left:4px solid #28a745;">
+  <div class="card-body">
+    <strong>Team Lead Access</strong><br>
+    ✔ View team tasks<br>
+    ✔ Review progress<br>
+    ✔ Oversee project workflow
+  </div>
+</div>
+{% endif %}
+
+
+<!-- MEMBERS CARD -->
+<div class="card" style="margin-top:14px;">
+  <div class="card-body">
+
+    <!-- TOP BAR -->
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div style="font-weight:650;color:#111827;">
+        Members ({{ project.members.count }})
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <a class="btn-ghost" href="{% url 'core:project_board' project.id %}">Board</a>
+        <a class="btn-ghost" href="{% url 'core:project_backlog' project.id %}">Backlog</a>
+      </div>
+    </div>
+
+
+    <!-- MEMBER LIST -->
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+      {% for m in project.members.all %}
+        <div class="member-pill" data-user-id="{{ m.id }}">
+
+          <span class="avatar">{{ m.username|slice:":1"|upper }}</span>
+
+          <span class="name">
+            {{ m.username }}
+
+            {% if project.project_lead == m %}
+              <span class="role-badge lead">Lead</span>
+            {% elif m.profile.role == 'developer' %}
+              <span class="role-badge dev">Dev</span>
+            {% elif m.profile.role == 'tester' %}
+              <span class="role-badge tester">QA</span>
+            {% elif m.profile.role == 'admin' %}
+              <span class="role-badge admin">Admin</span>
+            {% else %}
+              <span class="role-badge user">User</span>
+            {% endif %}
+          </span>
+
+          {% if can_manage_members and project.project_lead != m and project.created_by != m %}
+            <button type="button" class="remove" data-user-id="{{ m.id }}" onclick="removeMember({{ m.id }}, '{{ m.username }}')">
+              Remove
+            </button>
+          {% endif %}
+
+        </div>
+      {% endfor %}
+    </div>
+
+
+    <!-- TEAM PROGRESS -->
+{% if request.user == project.project_lead or request.user.profile.role == 'team_lead' %}
+<div class="team-progress" style="margin-top:20px;">
+  <div style="font-weight:600;">Team Progress</div>
+
+  <div style="margin-top:6px;background:#eee;border-radius:8px;">
+    <div class="progress-fill" style="
+      width: {{ progress_percent }}%;
+      background:#0052cc;
+      color:white;
+      padding:6px;
+      border-radius:8px;
+      font-size:12px;
+      transition: width 0.3s ease;">
+      <span class="progress-text">{{ done_tasks }} / {{ total_tasks }} Completed</span>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+
+    <!-- INVITE BUTTON -->
+    {% if can_manage_members %}
+      <div class="team-actions">
+        <button type="button" class="btn-jira" id="openInviteModal">
+          <i class="ri-user-add-line"></i>
+          Invite people
+        </button>
+      </div>
+    {% endif %}
+
+
+    <!-- ADD EXISTING USER -->
+    {% if can_manage_members and users %}
+      <div style="margin-top:16px;border-top:1px solid #eee;padding-top:14px;">
+        <div style="font-weight:650;margin-bottom:8px;">Add existing user</div>
+
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <select id="addMemberSelect" class="input">
+            <option value="">Select user…</option>
+            {% for u in users %}
+              <option value="{{ u.id }}">{{ u.username }}</option>
+            {% endfor %}
+          </select>
+
+          <button type="button" class="btn-jira" id="addMemberBtn">Add</button>
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+
+
+<!-- INVITE MODAL -->
+{% if can_manage_members %}
+<div class="modal-overlay" id="inviteModalOverlay" hidden>
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <h2>Invite people</h2>
+      <button type="button" class="modal-close" id="closeInviteModal">&times;</button>
+    </div>
+
+    <form id="inviteForm">
+<input type="email" id="inviteEmail" name="email" placeholder="Email" required class="input input--full">      
+      <select name="role" class="input input--full">
+        {% for value, label in invite_role_choices %}
+          <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="cancelInviteModal">Cancel</button>
+        <button type="submit" class="btn-jira">Send invite</button>
+      </div>
+
+      <p id="inviteError" class="invite-error" hidden></p>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block shell_extra_css %}
+<style>
+
+.role-badge{
+  font-size:10px;
+  padding:3px 6px;
+  border-radius:6px;
+  margin-left:6px;
+  font-weight:600;
+}
+
+.role-badge.lead{ background:#dbeafe; color:#1e40af; }
+.role-badge.dev{ background:#dcfce7; color:#166534; }
+.role-badge.tester{ background:#fef3c7; color:#92400e; }
+.btn-ghost{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;text-decoration:none;color:#111827;font-size:13px}
+.member-pill{display:inline-flex;align-items:center;gap:10px;border:1px solid #e5e7eb;background:#fff;border-radius:999px;padding:6px 10px}
+.member-pill .avatar{width:26px;height:26px;border-radius:50%;background:#0052cc;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px}
+.member-pill .name{font-size:13px;color:#111827}
+.member-pill .remove{border:1px solid #fee2e2;background:#fff;color:#b91c1c;border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer}
+.member-pill .remove:hover{background:#fef2f2}
+.input{padding:10px 12px;border-radius:10px;border:1px solid #e5e7eb;font-size:13px}
+.input--full{width:100%;box-sizing:border-box}
+.team-actions{margin-top:16px;padding-top:14px;border-top:1px solid #eee}
+.btn-jira{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:none;background:#0052cc;color:#fff;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
+.btn-jira:hover{background:#0747a6}
+.modal-overlay{position:fixed;inset:0;background:rgba(9,30,66,0.54);display:flex;align-items:center;justify-content:center;padding:24px;z-index:1200}
+.modal-overlay[hidden]{display:none}
+.modal-dialog{background:#fff;border-radius:12px;max-width:440px;width:100%;padding:22px 24px 20px;box-shadow:0 8px 24px rgba(9,30,66,0.18)}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
+.modal-head h2{margin:0;font-size:18px;font-weight:700;color:#172b4d}
+.modal-close{border:none;background:transparent;font-size:22px;line-height:1;cursor:pointer;color:#626f86;padding:0 4px}
+.modal-lead{margin:0 0 16px;font-size:13px;color:#626f86;line-height:1.45}
+.invite-form .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.invite-form .field span{font-size:12px;font-weight:600;color:#172b4d}
+.field-hint{font-size:12px;color:#626f86;margin:-6px 0 4px}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
+.invite-error{color:#bf2600;font-size:13px;margin-top:10px}
+</style>
+{% endblock %}
+
+{% block shell_foot_scripts %}
+<script>
+(function () {
+
+  // =============================
+  // ADD MEMBER
+  // =============================
+  var addBtn = document.getElementById('addMemberBtn');
+  var addSelect = document.getElementById('addMemberSelect');
+
+  if (addBtn && addSelect) {
+    addBtn.addEventListener('click', async function () {
+      var userId = addSelect.value;
+
+      if (!userId) {
+        alert("Select a user");
+        return;
+      }
+
+      addBtn.disabled = true;
+      addBtn.innerText = "Adding...";
+
+      try {
+        const res = await fetch('/projects/{{ project.id }}/add-member/', {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: 'user_id=' + encodeURIComponent(userId)
+        });
+
+        const data = await res.json();
+
+        if (data.status === 'added') {
+          location.reload();
+        } else {
+          alert(data.error || "Failed to add member");
+        }
+
+      } catch (err) {
+        alert("Network error");
+      }
+
+      addBtn.disabled = false;
+      addBtn.innerText = "Add";
+    });
+  }
+
+
+  // =============================
+  // UPDATE PROGRESS
+  // =============================
+  async function updateProgress() {
+    try {
+      const res = await fetch('/projects/{{ project.id }}/progress/', {
+        method: 'GET',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+      });
+
+      const data = await res.json();
+
+      if (data.status === 'ok') {
+        // Update progress bar
+        const progressBar = document.querySelector('.team-progress .progress-fill');
+        const progressText = document.querySelector('.team-progress .progress-text');
+
+        if (progressBar && progressText) {
+          progressBar.style.width = data.progress_percent + '%';
+          progressText.textContent = data.done_tasks + ' / ' + data.total_tasks + ' Completed';
+        }
+      }
+    } catch (err) {
+      console.log("Failed to update progress:", err);
+    }
+  }
+
+
+  // =============================
+  // REMOVE MEMBER
+  // =============================
+  document.querySelectorAll('button.remove[data-user-id]').forEach(function (btn) {
+
+    btn.addEventListener('click', async function () {
+
+      if (!confirm("Remove this member?")) return;
+
+      var userId = btn.getAttribute('data-user-id');
+
+      try {
+        const res = await fetch('/projects/{{ project.id }}/remove-member/' + userId + '/', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+
+        const data = await res.json();
+
+        if (data.status === 'removed') {
+          location.reload();
+        } else {
+          alert(data.error || "Failed to remove");
+        }
+
+      } catch (err) {
+        alert("Network error");
+      }
+    });
+  });
+
+
+  // =============================
+  // INVITE MODAL CONTROL
+  // =============================
+  var overlay = document.getElementById('inviteModalOverlay');
+  var openBtn = document.getElementById('openInviteModal');
+  var closeBtn = document.getElementById('closeInviteModal');
+  var cancelBtn = document.getElementById('cancelInviteModal');
+
+  function setOpen(open) {
+    if (!overlay) {
+      console.warn("Modal overlay not found");
+      return;
+    }
+    overlay.hidden = !open;
+  }
+
+if (openBtn) {
+  openBtn.addEventListener('click', function () {
+    if (!overlay) {
+      console.warn("Modal overlay not found");
+      return;
+    }
+    setOpen(true);
+
+    var em = document.getElementById('inviteEmail');
+    if (em) em.focus();
+  });
+}
+
+  if (closeBtn) closeBtn.onclick = () => setOpen(false);
+  if (cancelBtn) cancelBtn.onclick = () => setOpen(false);
+
+  if (overlay) {
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) setOpen(false);
+    });
+  }
+
+
+  // =============================
+  // INVITE FORM SUBMIT
+  // =============================
+  var inviteForm = document.getElementById('inviteForm');
+  var inviteError = document.getElementById('inviteError');
+
+  function showErr(msg) {
+    if (!inviteError) return;
+    inviteError.textContent = msg;
+    inviteError.hidden = !msg;
+  }
+
+  if (inviteForm) {
+    inviteForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      showErr("");
+
+      const submitBtn = inviteForm.querySelector("button[type='submit']");
+      submitBtn.disabled = true;
+      submitBtn.innerText = "Sending...";
+
+      try {
+        const res = await fetch('{% url "core:invite_project_member" project.id %}', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+          body: new FormData(inviteForm)
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.status === 'invited') {
+          location.reload();
+        } else {
+          showErr(data.error || "Invite failed");
+        }
+
+      } catch (err) {
+        showErr("Network error");
+      }
+
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Send invite";
+    });
+  }
+
+})();
+</script>
+{% endblock %}
+

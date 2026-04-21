@@ -1,0 +1,67 @@
+{% extends 'core/app_shell.html' %}
+{% load static %}
+
+{% block shell_extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/workspace.css' %}">
+{% endblock %}
+
+{% block shell_title %}Home{% endblock %}
+
+{% block shell_page %}
+<div class="workspace">
+  <header class="workspace-header">
+    <h1>Your workspace</h1>
+    <p class="workspace-lede">
+      {{ total_projects }} project{{ total_projects|pluralize }} ·
+      {{ total_tasks }} task{{ total_tasks|pluralize }} in your view
+    </p>
+  </header>
+
+  <section class="workspace-section" aria-labelledby="ws-projects-heading">
+    <div class="workspace-section-head">
+      <h2 id="ws-projects-heading" class="workspace-h2">Projects</h2>
+      <a href="{% url 'core:projects' %}" class="ws-link">View all</a>
+    </div>
+    <div class="project-grid">
+      {% for row in workspace_projects %}
+      <a class="project-tile card-elevated" href="{% url 'core:project_detail' row.project.id %}">
+        <div class="project-tile-icon" aria-hidden="true"><i class="ri-folder-3-fill"></i></div>
+        <div class="project-tile-body">
+          <h3>{{ row.project.name }}</h3>
+          <p class="project-tile-meta">{{ row.task_count }} issue{{ row.task_count|pluralize }}</p>
+          <div class="progress workspace-progress"><span data-progress="{{ row.progress }}"></span></div>
+        </div>
+      </a>
+      {% empty %}
+      <p class="workspace-empty">No projects yet.
+        {% if request.user.profile.role == 'admin' %}
+        <a href="{% url 'core:create_project' %}">Create a project</a>
+        {% else %}
+        <a href="{% url 'core:projects' %}">View projects</a>
+        {% endif %}
+        or ask an admin for access.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="workspace-section" aria-labelledby="ws-recent-heading">
+    <div class="workspace-section-head">
+      <h2 id="ws-recent-heading" class="workspace-h2">Recent work</h2>
+      <a href="{% url 'core:tasks' %}" class="ws-link">All tasks</a>
+    </div>
+    <ul class="recent-work-list card-elevated">
+      {% for task in recent_work %}
+      <li>
+        <a href="{% url 'core:task_detail' task.id %}" class="recent-work-key">{{ task.issue_key }}</a>
+        <a href="{% url 'core:task_detail' task.id %}" class="recent-work-title">{{ task.title }}</a>
+        {% if task.project %}
+        <span class="recent-work-proj">{{ task.project.name }}</span>
+        {% endif %}
+      </li>
+      {% empty %}
+      <li class="workspace-empty">No recent tasks in your scope.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

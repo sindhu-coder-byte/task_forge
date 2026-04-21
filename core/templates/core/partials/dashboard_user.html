@@ -1,0 +1,20 @@
+{# Simple assigned list for default "user" role #}
+<section class="dash-panel">
+  <div class="dash-panel-head">
+    <h3><i class="ri-task-line"></i> Your tasks</h3>
+    <span class="dash-muted">{{ tasks|length }} assigned</span>
+  </div>
+
+  <div class="user-task-list card">
+    <div class="card-body">
+      {% for task in tasks %}
+        <div class="dash-list-row">
+          <a href="{% url 'core:task_detail' task.id %}">{{ task.title }}</a>
+          <span class="status-pill status-pill--{{ task.status }}">{{ task.get_status_display }}</span>
+        </div>
+      {% empty %}
+        <div class="empty">No tasks assigned</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>

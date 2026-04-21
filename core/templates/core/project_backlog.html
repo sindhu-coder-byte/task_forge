@@ -1,0 +1,52 @@
+{% extends "core/app_shell.html" %}
+
+{% block shell_title %}
+<span class="issue-shell-title">
+  <i class="ri-list-check-2" aria-hidden="true"></i>
+  <span>{{ project.name }} · Backlog</span>
+</span>
+{% endblock %}
+
+{% block shell_page %}
+<div class="card">
+  <div class="section-title">Backlog</div>
+  <p class="dash-muted">Issues in this project.</p>
+</div>
+
+<div class="card" style="margin-top:14px;">
+  <div class="card-body">
+    {% if tasks %}
+      <div class="table">
+        {% for t in tasks %}
+          <div class="row" style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #eee;">
+            <div>
+              <a href="{% url 'core:task_detail' t.id %}" style="text-decoration:none;color:#111827;font-weight:600;">{{ t.issue_key }} · {{ t.title }}</a>
+              <div style="font-size:12px;color:#6b7280;margin-top:2px;">
+                {% if t.assigned_to %}Assignee: {{ t.assigned_to.username }}{% else %}Unassigned{% endif %}
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="chip chip--{{ t.status }}">{{ t.get_status_display }}</span>
+              <a class="btn-ghost" href="{% url 'core:project_board' project.id %}">Board</a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="dash-muted">No issues yet.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block shell_extra_css %}
+<style>
+.btn-ghost{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;text-decoration:none;color:#111827;font-size:13px}
+.chip{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:650;background:#f4f5f7;color:#172b4d}
+.chip--todo{background:#f4f5f7;color:#42526e}
+.chip--in_progress{background:#deebff;color:#0747a6}
+.chip--in_review{background:#eae6ff;color:#403294}
+.chip--done{background:#e3fcef;color:#006644}
+</style>
+{% endblock %}
+

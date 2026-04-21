@@ -1,0 +1,1676 @@
+{% extends 'core/app_shell.html' %}
+
+
+{% block shell_title %}
+<span class="issue-shell-title">
+  <i class="ri-layout-column-line" aria-hidden="true"></i>
+  <span>Board</span>
+</span>
+{% endblock %}
+
+{% block shell_extra_css %}
+<style>
+.board-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: auto;
+}
+
+.board-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:24px;
+  padding-bottom:10px;
+  border-bottom:1px solid #eee;
+}
+
+.board-title {
+  font-size:22px;
+  font-weight:600;
+}
+
+
+.create-btn1 {
+  background:#1677ff;
+  color:white;
+  border:none;
+  padding:8px 14px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:13px;
+}
+
+.create-btn1:hover {
+  background:#0958d9;
+}
+
+
+form select, form button {
+  padding:8px 12px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  font-size:13px;
+}
+
+.board-header form {
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.board {
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap:20px;
+}
+
+.project-filter select {
+  padding:8px 14px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  background:#fff;
+}
+
+/* BOARD */
+
+.column {
+  background:#f8fafc;
+  border-radius:14px;
+  padding:14px;
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+  border:1px solid #e5e7eb;
+  transition:0.2s;
+}
+
+.column.drag-over {
+  background:#e6f4ff;
+  border:2px dashed #1677ff;
+}
+
+.column-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:12px;
+}
+
+.column:hover {
+  box-shadow:0 4px 14px rgba(0,0,0,0.05);
+}
+
+.column h3 { font-size:16px; }
+.count {
+  font-size:12px;
+  color:#666;
+  background:#e0e0e0;
+  padding:2px 8px;
+  border-radius:10px;
+}
+
+/* TASK CARD */
+.task-card {
+  background:white;
+  padding:12px;
+  border-radius:12px;
+  margin-bottom:12px;
+  border:1px solid #eee;
+  transition:0.2s;
+}
+
+.task-card:hover {
+  transform: translateY(-3px);
+  box-shadow:0 6px 14px rgba(0,0,0,0.12);
+   border-color:#1677ff;
+}
+
+.task-card:active {
+  cursor: grabbing;
+}
+
+.task-card.dragging {
+  opacity:0.5;
+}
+
+.task-title {
+  font-weight:600;
+  font-size:14px;
+  margin-bottom:4px;
+}
+
+.task-project {
+  font-size:11px;
+  color:#888;
+}
+
+.task-labels {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--label-color, #64748b);
+}
+
+.task-footer {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:8px;
+}
+
+/* PRIORITY */
+.priority {
+  font-size:10px;
+  padding:4px 8px;
+  border-radius:20px;
+}
+.priority.high { background:#ff4d4f; color:white; }
+.priority.medium { background:#faad14; color:white; }
+.priority.low { background:#52c41a; color:white; }
+
+/* AVATAR */
+.avatar {
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:#1677ff;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+}
+
+/* EMPTY STATE */
+.empty {
+  text-align:center;
+  font-size:13px;
+  color:#aaa;
+  margin-top:40px;
+  font-style:italic;
+}
+
+/* MODAL */
+
+.modal {
+  position: fixed;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(0,0,0,0.5);
+
+  /* 🔥 HIDE BY DEFAULT */
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+
+  transition: 0.2s;
+}
+
+.modal.show {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+/* MODAL CARD */
+.modal-card {
+  background:#fff;
+  width:500px;
+  max-width:95%;
+  padding:24px;
+  border-radius:16px;
+  box-shadow:0 20px 40px rgba(0,0,0,0.15);
+}
+
+/* HEADER */
+.modal-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+  border-bottom:1px solid #eee;
+  padding-bottom:10px;
+}
+
+/* DESCRIPTION */
+ .modal-desc {
+  color:#555;
+  margin-bottom:15px;
+}
+
+/* GRID INFO */
+.modal-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin:18px 0;
+} 
+
+
+/* LABEL */
+.info-item span {
+  display:block;
+  font-size:11px;
+  color:#888;
+  margin-bottom:4px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+
+/* VALUE */
+.info-item strong {
+  font-size:14px;
+  color:#222;
+}
+
+
+
+<div class="bad"></div>ge.status {
+  background:#e6f4ff;
+} 
+
+/* FORM */
+/* FORM STRUCTURE */
+.form-group {
+  margin-bottom:16px;
+}
+
+.form-group label {
+  display:block;
+  font-size:12px;
+  font-weight:500;
+  margin-bottom:6px;
+  color:#555;
+}
+
+/* INPUTS */
+.form input,
+.form textarea,
+.form select {
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  font-size:13px;
+  transition:0.2s;
+}
+
+.form input:focus,
+.form textarea:focus,
+.form select:focus {
+  border-color:#1677ff;
+  outline:none;
+  box-shadow:0 0 0 2px rgba(22,119,255,0.1);
+}
+
+/* GRID */
+.form-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+/* TEXTAREA */
+textarea {
+  min-height:80px;
+  resize:vertical;
+}
+
+/* FOOTER */
+.modal-footer {
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:20px;
+  border-top:1px solid #eee;
+  padding-top:15px;
+}
+
+/* BUTTONS */
+.btn-primary {
+  padding:10px 16px;
+  background:#1677ff;
+  color:#fff;
+  border:none;
+  border-radius:8px;
+}
+
+.btn-secondary {
+  padding:10px 16px;
+  background:#f5f5f5;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.btn-secondary:hover {
+  background:#e5e5e5;
+}
+.btn-primary:hover {
+  background:#0958d9;
+}
+
+
+/* ACTIONS */
+ .modal-actions {
+  margin-top:15px;
+}
+
+.modal-actions a {
+  display:inline-block;
+  margin-right:8px;
+  padding:6px 12px;
+  border-radius:8px;
+  font-size:13px;
+  background:#f5f5f5;
+  color:#333;
+  text-decoration:none;
+  transition:0.2s;
+}
+
+
+.modal-actions a:hover {
+  background:#1677ff;
+  color:#fff;
+}
+
+/* ANIMATION */
+
+.modal-content {
+  background:white;
+  padding:20px;
+  width:420px;
+  margin:100px auto;
+  border-radius:12px;
+}
+
+.modal-content {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-content {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { transform: scale(0.9); opacity:0; }
+  to { transform: scale(1); opacity:1; }
+}
+
+/* SIDEBAR */
+
+/* =========================
+   🧩 SIDEBAR CONTAINER
+========================= */
+.tk-sidebar {
+  position: fixed;
+  top: 0;
+  right: -420px;
+  width: 400px;
+  height: 100%;
+  background: #ffffff;
+  box-shadow: -6px 0 24px rgba(0,0,0,0.08);
+  transition: right 0.3s ease;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.tk-sidebar.open {
+  right: 0;
+}
+
+/* SCROLLABLE CONTENT */
+.tk-sidebar > * {
+  padding: 0 20px;
+}
+
+.tk-sidebar {
+  overflow-y: auto;
+}
+
+
+/* =========================
+   📌 HEADER
+========================= */
+.tk-sidebar-header {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 10;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.tk-sidebar-header-left h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tk-sidebar-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* CLOSE BUTTON */
+.tk-sidebar-close {
+  font-size: 20px;
+  cursor: pointer;
+  color: #888;
+  padding: 4px;
+  border-radius: 6px;
+  transition: 0.2s;
+}
+
+.tk-sidebar-close:hover {
+  background: #f0f0f0;
+  color: #000;
+}
+
+
+/* =========================
+   📝 DESCRIPTION
+========================= */
+.tk-sidebar-desc {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+  margin: 15px 0;
+}
+
+
+/* =========================
+   📊 GRID INFO
+========================= */
+.tk-sidebar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.tk-sidebar-grid span {
+  font-size: 11px;
+  color: #888;
+  display: block;
+}
+
+.tk-sidebar-grid strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #222;
+}
+
+
+/* =========================
+   🏷️ BADGES
+========================= */
+.tk-badge {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+/* PRIORITY */
+.tk-badge.high { background:#ff4d4f; color:white; }
+.tk-badge.medium { background:#faad14; color:white; }
+.tk-badge.low { background:#52c41a; color:white; }
+
+/* STATUS */
+.tk-badge.pending { background:#f0f0f0; color:#595959; }
+.tk-badge.in_progress { background:#1677ff; color:white; }
+.tk-badge.testing { background:#722ed1; color:white; }
+.tk-badge.done { background:#52c41a; color:white; }
+
+
+/* =========================
+   🔘 ACTION BUTTONS
+========================= */
+.tk-btn-primary {
+  background: #1677ff;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: 0.2s;
+}
+
+.tk-btn-primary:hover {
+  background: #0958d9;
+}
+
+
+/* =========================
+   🔄 INLINE UPDATE
+========================= */
+.tk-inline-update {
+  margin: 16px 0;
+}
+
+.tk-inline-update label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.tk-inline-update select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 13px;
+}
+
+
+/* =========================
+   💬 COMMENTS
+========================= */
+.tk-comments {
+  margin-top: 10px;
+}
+
+.tk-comments h4 {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.tk-comments-list {
+  max-height: 150px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+.tk-comments-list .comment {
+  background: #f5f5f5;
+  padding: 8px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.tk-comment-input {
+  width: 100%;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  margin-bottom: 8px;
+}
+
+
+/* =========================
+   📎 ATTACHMENTS
+========================= */
+.tk-attachments {
+  margin-top: 16px;
+}
+
+.tk-file-input {
+  margin-bottom: 8px;
+}
+
+.tk-file-list {
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.tk-file-list a {
+  display: block;
+  margin-bottom: 4px;
+  color: #1677ff;
+  text-decoration: none;
+}
+
+.tk-file-list a:hover {
+  text-decoration: underline;
+}
+
+
+/* =========================
+    ACTIVITY
+========================= */
+.tk-activity {
+  margin-top: 16px;
+}
+
+.tk-activity-list {
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.tk-activity-list .comment {
+  font-size: 12px;
+  background: #fafafa;
+  padding: 6px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+
+/* =========================
+   🏷️ LABELS
+========================= */
+.tk-labels {
+  margin-top: 16px;
+}
+
+.tk-labels-list span {
+  display: inline-block;
+  padding: 4px 8px;
+  margin: 4px 4px 0 0;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #fff;
+}
+
+
+/* =========================
+   📅 DUE DATE
+========================= */
+.tk-due {
+  margin-top: 16px;
+  margin-bottom: 20px;
+}
+
+.tk-due div {
+  font-size: 13px;
+  color: #333;
+}
+
+
+/* =========================
+    DIVIDER
+========================= */
+.tk-divider {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 16px 0;
+}
+
+
+/* =========================
+    EMPTY STATE
+========================= */
+.empty {
+  color: #aaa;
+  font-size: 12px;
+  font-style: italic;
+  text-align: center;
+  margin-top: 10px;
+}
+
+/* ICON ALIGNMENT */
+.tk-attachments h4,
+.tk-activity h4,
+.tk-labels h4,
+.tk-due h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* ICON STYLE */
+.tk-activity i,
+.tk-labels i,
+.tk-due i {
+  font-size: 16px;
+  color: #6b7280; /* soft gray */
+}
+
+.tk-attachments i{
+  font-size: 16px;
+  color: #ffffff; /* soft gray */
+}
+
+/* EMPTY STATES */
+.tk-file-list.empty,
+.tk-activity-list.empty,
+.tk-labels-list.empty,
+#sideDue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+/* BUTTON ICON */
+.tk-btn-primary i {
+  margin-right: 6px;
+}
+
+/* WRAPPER */
+.tk-upload-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* HIDE DEFAULT INPUT */
+.tk-file-input {
+  display: none;
+}
+
+/* FILE NAME TEXT */
+.tk-file-name {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* SECONDARY BUTTON (CHOOSE FILE) */
+.tk-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s;
+  border: 1px solid #e5e7eb;
+}
+
+.tk-btn-secondary i {
+  color: #6b7280;
+}
+
+.tk-btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+/* PRIMARY BUTTON (UPLOAD) */
+.tk-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.tk-btn-primary:hover {
+  background: #1d4ed8;
+}
+
+/* ICON SIZE */
+.tk-btn-primary i,
+.tk-btn-secondary i {
+  font-size: 16px;
+}
+
+
+@media (max-width: 768px) {
+  .board-container {
+    padding: 14px;
+  }
+}
+
+</style>
+{% endblock %}
+
+{% block shell_page %}
+
+<div class="board-container">
+
+<div class="board-header">
+  <div class="board-title">Kanban Board</div>
+
+  <div style="display:flex; gap:10px;">
+    
+    {% if request.user.profile.role == 'admin' %}
+<button type="button" onclick="openTaskModal()" class="create-btn1">
+  + Create Task
+</button>
+    {% endif %}
+
+  <form method="GET">
+
+  <!-- Project -->
+  <select name="project">
+    <option value="">All Projects</option>
+    {% for p in projects %}
+      <option value="{{ p.id }}" {% if selected_project == p.id|stringformat:"s" %}selected{% endif %}>
+        {{ p.name }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <!-- Status -->
+  <select name="status">
+    <option value="">All Status</option>
+    {% for key, value in status_choices %}
+      <option value="{{ key }}" {% if selected_status == key %}selected{% endif %}>
+        {{ value }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <!-- User (Admin only) -->
+  {% if users %}
+  <select name="user">
+    <option value="">All Users</option>
+    {% for u in users %}
+      <option value="{{ u.id }}" {% if selected_user == u.id|stringformat:"s" %}selected{% endif %}>
+        {{ u.username }}
+      </option>
+    {% endfor %}
+  </select>
+  {% endif %}
+
+  <button type="submit">Filter</button>
+</form>
+
+  </div>
+</div>
+
+<div class="board">
+
+{% for status, label in status_choices %}
+
+<div class="column" data-status="{{ status }}">
+
+  <div class="column-header">
+    <h3>{{ label }}</h3>
+    <span class="count">{% if status == 'todo' %}
+  {{ status_counts.todo|default:0 }}
+{% elif status == 'in_progress' %}
+  {{ status_counts.in_progress|default:0 }}
+{% elif status == 'in_review' %}
+  {{ status_counts.in_review|default:0 }}
+{% elif status == 'done' %}
+  {{ status_counts.done|default:0 }}
+{% endif %}</span>
+  </div>
+
+  {% for task in tasks %}
+    {% if task.status == status %}
+
+<div class="task-card"
+     draggable="true"
+     id="task-{{ task.id }}"
+     data-id="{{ task.id }}"
+     data-title="{{ task.title|escapejs }}"
+     data-desc="{{ task.description|default:''|escapejs }}"
+     data-project="{{ task.project.name|default:'No Project'|escapejs }}"
+     data-priority="{{ task.priority }}"
+     data-user="{{ task.assigned_to.username|default:'Unassigned' }}"
+     data-status="{{ task.status }}"
+     data-due="{{ task.due_date|default:'' }}"
+     data-labels='[
+       {% for l in task.labels.all %}
+         {"name":"{{ l.name|escapejs }}","color":"{{ l.color }}"}{% if not forloop.last %},{% endif %}
+       {% endfor %}
+     ]'>
+
+  <!-- TITLE -->
+  <div class="task-title">{{ task.issue_key }} {{ task.title }}</div>
+
+  <!-- PROJECT -->
+  <div class="task-project">
+    {{ task.project.name|default:"No Project" }}
+  </div>
+
+  <!-- LABELS -->
+  <div class="task-labels">
+    {% for l in task.labels.all %}
+      <span class="label" style="--label-color: {{ l.color }};">
+        {{ l.name }}
+      </span>
+    {% endfor %}
+  </div>
+
+  <!-- DUE DATE -->
+  {% if task.due_date %}
+  <div class="task-due {% if task.due_date < today %}overdue{% endif %}">
+    📅 {{ task.due_date }}
+  </div>
+  {% endif %}
+
+  <!-- FOOTER -->
+  <div class="task-footer">
+    <div class="priority {{ task.priority|lower }}">
+      {{ task.priority }}
+    </div>
+
+    <div class="avatar">
+      {{ task.assigned_to.username|default:"?"|slice:":1"|upper }}
+    </div>
+  </div>
+
+</div>
+
+    {% endif %}
+  {% empty %}
+    <div class="empty">No tasks</div>
+  {% endfor %}
+
+</div>
+{% endfor %}
+
+</div>
+</div>
+
+
+<!-- TASK SIDEBAR PANEL -->
+<div id="taskSidebar" class="tk-sidebar">
+
+  <div class="tk-sidebar-header">
+    <div class="tk-sidebar-header-left">
+      <h3 id="sideTitle"></h3>
+    </div>
+
+    <div class="tk-sidebar-header-right">
+      {% comment %} <span id="sideStatusBadge" class="tk-badge"></span> {% endcomment %}
+      <span onclick="closeSidebar()" class="tk-sidebar-close">&times;</span>
+    </div>
+  </div>
+
+  <p class="tk-sidebar-desc" id="sideDesc"></p>
+
+  <div class="tk-sidebar-grid">
+    <div>
+      <span>Project</span>
+      <strong id="sideProject"></strong>
+    </div>
+
+    <div>
+      <span>Priority</span>
+      <strong id="sidePriority" class="tk-badge"></strong>
+    </div>
+
+    <div>
+      <span>Assigned</span>
+      <strong id="sideUser"></strong>
+    </div>
+
+    <div>
+      <span>Status</span>
+      <strong id="sideStatusText" class="tk-badge"></strong>
+    </div>
+  </div>
+
+  <div class="tk-sidebar-actions" id="sideActions"></div>
+
+
+  <hr class="tk-divider">
+
+  <!-- COMMENTS -->
+  <div class="tk-comments">
+    <h4>Comments</h4>
+
+    <div id="commentsList" class="tk-comments-list">
+      <!-- dynamic -->
+    </div>
+
+    <textarea id="commentInput" class="tk-comment-input" placeholder="Write a comment..."></textarea>
+    <button onclick="addComment()" class="tk-btn-primary">Post</button>
+  </div>
+
+ <!-- ATTACHMENTS -->
+<div class="tk-attachments">
+  <h4><i class="ri-attachment-2"></i> Attachments</h4>
+
+<div class="tk-upload-wrap">
+
+  <!-- Hidden File Input -->
+  <input type="file" id="fileInput" class="tk-file-input">
+
+  <!-- Custom Select Button -->
+  <label for="fileInput" class="tk-btn-secondary">
+    <i class="ri-folder-open-line"></i> Choose File
+  </label>
+
+  <!-- Upload Button -->
+  <button onclick="uploadFile()" class="tk-btn-primary">
+    <i class="ri-upload-2-line"></i> Upload
+  </button>
+
+  <!-- Selected File Name -->
+  <span id="fileName" class="tk-file-name">No file selected</span>
+
+</div>
+
+  <div id="fileList" class="tk-file-list empty">
+    <i class="ri-folder-2-line"></i> No files
+  </div>
+</div>
+
+<hr class="tk-divider">
+
+<!-- ACTIVITY -->
+<div class="tk-activity">
+  <h4><i class="ri-time-line"></i> Activity</h4>
+  <div id="activityList" class="tk-activity-list empty">
+    <i class="ri-history-line"></i> No activity
+  </div>
+</div>
+
+<hr class="tk-divider">
+
+<!-- LABELS -->
+<div class="tk-labels">
+  <h4><i class="ri-price-tag-3-line"></i> Labels</h4>
+  <div id="sideLabels" class="tk-labels-list empty">
+    <i class="ri-price-tag-line"></i> No labels
+  </div>
+</div>
+
+<!-- DUE DATE -->
+<div class="tk-due">
+  <h4><i class="ri-calendar-2-line"></i> Due Date</h4>
+  <div id="sideDue">
+    <i class="ri-calendar-line"></i> Not set
+  </div>
+</div>
+<!-- CREATE TASK MODAL -->
+<div id="taskCreateModal" class="modal" onclick="closeTaskModal()">
+  <div class="modal-card" onclick="event.stopPropagation()">
+
+    <!-- HEADER -->
+    <div class="modal-header">
+      <h3>Create Task</h3>
+        <span onclick="closeTaskModal()" class="modal-close">&times;</span>    </div>
+
+    <!-- BODY -->
+    <form method="POST" action="{% url 'core:create_task' %}" class="form">
+      {% csrf_token %}
+
+      <!-- TITLE -->
+      <div class="form-group">
+        <label>Task Title</label>
+        <input type="text" name="title" placeholder="Enter task title" required>
+      </div>
+
+      <!-- DESCRIPTION -->
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="description" placeholder="Describe task..."></textarea>
+      </div>
+
+      <!-- GRID (2 column layout) -->
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label>Assign User</label>
+          <select name="assigned_to" required>
+            <option value="">Select user</option>
+            {% for user in users %}
+            <option value="{{ user.id }}">{{ user.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Project</label>
+          <select name="project" required>
+            <option value="">Select project</option>
+            {% for project in projects %}
+            <option value="{{ project.id }}">{{ project.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+      </div>
+
+      <!-- PRIORITY -->
+      <div class="form-group">
+        <label>Priority</label>
+        <select name="priority">
+          <option value="High">🔴 High</option>
+          <option value="Medium" selected>🟡 Medium</option>
+          <option value="Low">🟢 Low</option>
+        </select>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeTaskModal()">Cancel</button>
+        <button type="submit" class="btn-primary">Create Task</button>
+      </div>
+
+    </form>
+  </div>
+</div>
+<script>
+(function () {
+
+/* =========================
+   🎯 MODAL
+========================= */
+const modal = document.getElementById("taskCreateModal");
+
+function openTaskModal() {
+  modal?.classList.add("show");
+}
+
+function closeTaskModal() {
+  modal?.classList.remove("show");
+}
+
+modal?.addEventListener("click", (e) => {
+  if (e.target.id === "taskCreateModal") closeTaskModal();
+});
+
+
+/* =========================
+   📑 SIDEBAR
+========================= */
+const sidebar = document.getElementById("taskSidebar");
+
+function openSidebarFromCard(card) {
+  const data = card.dataset;
+
+  sidebar.dataset.taskId = data.id;
+
+  setText("sideTitle", data.title);
+  setText("sideDesc", data.desc);
+  setText("sideProject", data.project);
+  setText("sideUser", data.user);
+
+  // priority
+  const p = document.getElementById('sidePriority');
+  p.innerText = data.priority;
+  p.className = 'tk-badge ' + data.priority.toLowerCase();
+
+  // status
+  const text = data.status.replaceAll('_',' ');
+
+  const s = document.getElementById('sideStatusText');
+  s.innerText = text;
+  s.className = 'tk-badge ' + data.status;
+
+  updateStatusUI(text, data.status);
+
+
+  // 🔥 NEW FEATURES
+  renderLabels(data.labels);
+  renderDueDate(data.due);
+  loadComments(data.id);
+  loadFiles(data.id);
+  loadActivity(data.id);
+
+  sidebar.classList.add("open");
+}
+
+function closeSidebar() {
+  sidebar.classList.remove("open");
+}
+
+
+/* =========================
+   🧲 DRAG & DROP
+========================= */
+let draggedCard = null;
+
+document.querySelectorAll(".task-card").forEach(card => {
+
+  card.addEventListener("dragstart", () => {
+    draggedCard = card;
+    card.classList.add("dragging");
+  });
+
+  card.addEventListener("dragend", () => {
+    card.classList.remove("dragging");
+  });
+
+  card.addEventListener("click", () => {
+    openSidebarFromCard(card);
+  });
+
+});
+
+document.querySelectorAll(".column").forEach(column => {
+
+  column.addEventListener("dragover", e => e.preventDefault());
+
+  column.addEventListener("dragenter", () => {
+    column.classList.add("drag-over");
+  });
+
+  column.addEventListener("dragleave", (e) => {
+    if (!column.contains(e.relatedTarget)) {
+      column.classList.remove("drag-over");
+    }
+  });
+
+  column.addEventListener("drop", () => {
+    column.classList.remove("drag-over");
+
+    if (!draggedCard) return;
+
+    column.appendChild(draggedCard);
+
+    const newStatus = column.dataset.status;
+    const taskId = draggedCard.dataset.id;
+
+    draggedCard.dataset.status = newStatus;
+
+    updateTask(taskId, newStatus);
+
+    if (sidebar.dataset.taskId == taskId) {
+      const text = newStatus.replaceAll('_',' ');
+      updateStatusUI(text, newStatus);
+    }
+
+    refreshEmptyStates();
+  });
+
+});
+
+
+/* =========================
+   🔄 UPDATE STATUS INLINE
+========================= */
+function updateStatusInline() {
+  const status = document.getElementById("statusSelect").value;
+  const taskId = sidebar.dataset.taskId;
+
+  const card = document.querySelector(`[data-id="${taskId}"]`);
+  const column = document.querySelector(`[data-status="${status}"]`);
+
+  if (card && column) {
+    column.appendChild(card);
+    card.dataset.status = status;
+  }
+
+  updateTask(taskId, status);
+
+  const text = status.replaceAll('_',' ');
+  updateStatusUI(text, status);
+
+  refreshEmptyStates();
+}
+
+
+/* =========================
+   🌐 API
+========================= */
+function updateGlobalNotificationCount(n) {
+  if (n === undefined || n === null) return;
+  var badge = document.querySelector("#notifBtn .badge");
+  if (badge) badge.textContent = String(n);
+  var sub = document.querySelector("#notifDropdown .dropdown-sub");
+  if (sub) sub.textContent = String(n) + " pending";
+}
+
+function updateTask(id, status){
+  fetch(`/tasks/${id}/status/${status}/`, {
+    method:'POST',
+    headers:{ 'X-CSRFToken': '{{ csrf_token }}' }
+  })
+  .then(res => res.json().then(data => ({ ok: res.ok, data })).catch(() => ({ ok: res.ok, data: {} })))
+  .then(({ ok, data }) => {
+    if (ok && data && data.status === 'success') updateGlobalNotificationCount(data.notification_count);
+  })
+  .catch(() => console.warn("Status update failed"));
+}
+
+
+/* =========================
+   💬 COMMENTS
+========================= */
+function loadComments(taskId){
+  fetch(`/task/${taskId}/comments/`)
+  .then(res => res.json())
+  .then(data => {
+    const el = document.getElementById('commentsList');
+
+    if (!data.length) {
+      el.innerHTML = '<div class="empty">No comments</div>';
+      return;
+    }
+
+    el.innerHTML = data.map(c => `
+      <div class="comment">
+        <strong>${escapeHtml(c.user)}</strong><br>
+        ${escapeHtml(c.text)}
+      </div>
+    `).join('');
+  });
+}
+
+function addComment(){
+  const input = document.getElementById('commentInput');
+  const text = input.value.trim();
+  const taskId = sidebar.dataset.taskId;
+
+  if (!text) return;
+
+  fetch(`/task/${taskId}/add-comment/`, {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'X-CSRFToken':'{{ csrf_token }}'
+    },
+    body: JSON.stringify({text})
+  })
+  .then(()=> {
+    input.value = '';
+    loadComments(taskId);
+  });
+}
+
+
+/* =========================
+   📎 FILES
+========================= */
+function uploadFile() {
+  const fileInput = document.getElementById("fileInput");
+  const taskId = sidebar.dataset.taskId;
+  const fileNameUI = document.getElementById("fileName");
+
+  if (!fileInput.files.length) {
+    alert("Please select a file");
+    return;
+  }
+
+  const file = fileInput.files[0];
+
+  // ✅ Optional: size validation (5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    alert("File too large (max 5MB)");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  // 🔄 UI Loading State
+  const btn = document.querySelector(".tk-btn-primary");
+  btn.disabled = true;
+  btn.innerHTML = "Uploading...";
+
+  fetch(`/task/${taskId}/upload/`, {
+    method: "POST",
+    headers: {
+      'X-CSRFToken': '{{ csrf_token }}'
+    },
+    body: formData
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Upload failed");
+    return res.json();
+  })
+  .then(() => {
+    // ✅ Reset input
+    fileInput.value = "";
+    fileNameUI.innerText = "No file selected";
+
+    // ✅ Reload file list
+    loadFiles(taskId);
+  })
+  .catch(() => {
+    alert("Upload failed. Try again.");
+  })
+  .finally(() => {
+    // 🔄 Restore button
+    btn.disabled = false;
+    btn.innerHTML = `<i class="ri-upload-2-line"></i> Upload`;
+  });
+}
+
+function loadFiles(taskId) {
+  fetch(`/task/${taskId}/files/`)
+    .then(res => {
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    })
+    .then(data => {
+      const el = document.getElementById("fileList");
+
+      // ✅ Empty state
+      if (!data.length) {
+        el.innerHTML = `
+          <div class="tk-empty">
+            <i class="ri-folder-2-line"></i>
+            <span>No files</span>
+          </div>
+        `;
+        return;
+      }
+
+      // ✅ File list UI
+      el.innerHTML = data.map(f => {
+        const name = escapeHtml(f.name);
+        const ext = name.split('.').pop().toLowerCase();
+
+        // 🎯 File type icon
+        let icon = "ri-file-line";
+        if (["png","jpg","jpeg","gif","webp"].includes(ext)) icon = "ri-image-line";
+        else if (["pdf"].includes(ext)) icon = "ri-file-pdf-line";
+        else if (["zip","rar"].includes(ext)) icon = "ri-file-zip-line";
+        else if (["doc","docx"].includes(ext)) icon = "ri-file-word-line";
+        else if (["xls","xlsx"].includes(ext)) icon = "ri-file-excel-line";
+
+        return `
+          <div class="tk-file-item">
+            <i class="${icon}"></i>
+            <a href="${f.url}" target="_blank">${name}</a>
+          </div>
+        `;
+      }).join('');
+    })
+    .catch(() => {
+      document.getElementById("fileList").innerHTML = `
+        <div class="tk-empty error">
+          Failed to load files
+        </div>
+      `;
+    });
+}
+
+/* =========================
+   📜 ACTIVITY
+========================= */
+function loadActivity(taskId){
+  fetch(`/task/${taskId}/activity/`)
+  .then(res => res.json())
+  .then(data => {
+    const el = document.getElementById("activityList");
+
+    if (!data.length) {
+      el.innerHTML = '<div class="empty">No activity</div>';
+      return;
+    }
+
+    el.innerHTML = data.map(a => `
+      <div class="comment">
+        <strong>${escapeHtml(a.user)}</strong> ${escapeHtml(a.action)}
+        <div>${a.time}</div>
+      </div>
+    `).join('');
+  });
+}
+
+
+/* =========================
+   🏷️ LABELS
+========================= */
+function renderLabels(labelsJson){
+  const container = document.getElementById("sideLabels");
+
+  if (!labelsJson) {
+    container.innerHTML = '<div class="empty">No labels</div>';
+    return;
+  }
+
+  try {
+    const labels = JSON.parse(labelsJson);
+
+    if (!labels.length) {
+      container.innerHTML = '<div class="empty">No labels</div>';
+      return;
+    }
+
+    container.innerHTML = labels.map(l =>
+      `<span style="background:${l.color}">${escapeHtml(l.name)}</span>`
+    ).join('');
+  } catch {
+    container.innerHTML = '<div class="empty">No labels</div>';
+  }
+}
+
+
+/* =========================
+   📅 DUE DATE
+========================= */
+function renderDueDate(date){
+  const el = document.getElementById("sideDue");
+
+  if (!date) {
+    el.innerText = "Not set";
+    return;
+  }
+
+  const d = new Date(date);
+  const now = new Date();
+
+  el.innerText = date;
+
+  if (d < now) {
+    el.style.color = "#ff4d4f";
+  } else {
+    el.style.color = "";
+  }
+}
+
+
+/* =========================
+   🛠 HELPERS
+========================= */
+function setText(id, value){
+  const el = document.getElementById(id);
+  if (el) el.innerText = value || '';
+}
+
+function updateStatusUI(text, status){
+  const s = document.getElementById("sideStatusText");
+  const badge = document.getElementById("sideStatusBadge");
+
+  if (s) {
+    s.innerText = text;
+    s.className = 'tk-badge ' + status;
+  }
+
+  if (badge) {
+    badge.innerText = text;
+    badge.className = 'tk-badge ' + status;
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.innerText = text;
+  return div.innerHTML;
+}
+
+
+/* =========================
+   📭 EMPTY STATES
+========================= */
+function refreshEmptyStates() {
+  document.querySelectorAll(".column").forEach(col => {
+    const hasCard = col.querySelector(".task-card");
+    const empty = col.querySelector(".empty");
+
+    if (!hasCard && !empty) {
+      col.insertAdjacentHTML("beforeend", '<div class="empty">No tasks</div>');
+    } else if (hasCard && empty) {
+      empty.remove();
+    }
+  });
+}
+
+
+/* =========================
+   🚀 INIT
+========================= */
+document.addEventListener("DOMContentLoaded", () => {
+
+  modal?.classList.remove("show");
+
+  // IMPORTANT: scope to the Create Task modal.
+  // There are multiple <select name="project"> on this page (filters + modal).
+  const projectSelect = document.querySelector('#taskCreateModal select[name="project"]');
+  const userSelect = document.querySelector('#taskCreateModal select[name="assigned_to"]');
+
+  if (projectSelect && userSelect) {
+    projectSelect.addEventListener("change", function () {
+
+      const projectId = this.value;
+
+      userSelect.innerHTML = '<option value="">Select user</option>';
+
+      if (!projectId) return;
+
+      fetch(`/projects/${projectId}/members/`)
+        .then(res => res.json())
+        .then(data => {
+          data.forEach(user => {
+            const option = document.createElement("option");
+            option.value = user.id;
+            option.textContent = user.username;
+            userSelect.appendChild(option);
+          });
+        });
+    });
+  }
+
+  refreshEmptyStates();
+});
+
+
+/* =========================
+   🌍 GLOBAL
+========================= */
+window.openTaskModal = openTaskModal;
+window.closeTaskModal = closeTaskModal;
+window.closeSidebar = closeSidebar;
+window.updateStatusInline = updateStatusInline;
+window.addComment = addComment;
+window.uploadFile = uploadFile;
+
+})();
+</script>
+
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/guest_home.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="guest-shell">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="guest-sidebar">
+    <div class="guest-sidebar-top">
+      <div class="guest-logo">
+        <i class="ri-rocket-2-line"></i>
+      </div>
+      <div class="guest-appname">TaskForge</div>
+    </div>
+
+    {% comment %} <div class="guest-sidebar-actions">
+      <button class="guest-btn guest-btn--primary" onclick="openAuth('login')">Login</button>
+      <button class="guest-btn guest-btn--ghost" onclick="openAuth('register')">Register</button>
+    </div> {% endcomment %}
+
+    <div class="guest-sidebar-foot">
+      <div class="guest-muted">Built for modern product teams.</div>
+    </div>
+  </aside>
+
+
+  <!-- ===== MAIN ===== -->
+  <main class="guest-main">
+
+    <!-- HERO -->
+    <section class="guest-hero">
+      <div class="guest-badge">✨ New • Smarter workflow system</div>
+
+      <h1 class="guest-title">
+        Plan. Track. Ship — <span class="guest-gradient">Without Chaos</span>
+      </h1>
+
+      <p class="guest-tagline">
+        A Jira-inspired workspace with modern UX. Manage tasks, teams, and timelines — all in one clean interface.
+      </p>
+
+      <div class="guest-cta-row">
+        <button class="guest-btn guest-btn--primary" onclick="openAuth('register')">
+          Start for free
+        </button>
+        <button class="guest-btn guest-btn--ghost" onclick="openAuth('login')">
+          Login
+        </button>
+      </div>
+    </section>
+
+
+    <!-- ===== PRODUCT PREVIEW ===== -->
+    <!-- ===== INTERACTIVE WORKFLOW (JIRA STYLE) ===== -->
+<section class="guest-workflow">
+
+  <div class="workflow-intro">
+    <h2>Everything your team needs — in one place</h2>
+    <p>From planning to delivery, manage your entire workflow with clarity and control.</p>
+  </div>
+
+  <div class="workflow-steps">
+
+    <!-- STEP 1 -->
+    <div class="workflow-step">
+      <div class="step-badge">01</div>
+      <h3>Plan your work</h3>
+      <p>Create tasks, set priorities, and organize projects effortlessly.</p>
+
+      <div class="step-preview">
+        <div class="mini-card">+ Create Task</div>
+        <div class="mini-card">Set Priority</div>
+        <div class="mini-card">Assign Team</div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="workflow-step">
+      <div class="step-badge">02</div>
+      <h3>Track progress</h3>
+      <p>Visualize work with boards and keep everyone aligned in real time.</p>
+
+      <div class="step-preview">
+        <div class="mini-column">
+          <span>To Do</span>
+        </div>
+        <div class="mini-column active">
+          <span>In Progress</span>
+        </div>
+        <div class="mini-column done">
+          <span>Done</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="workflow-step">
+      <div class="step-badge">03</div>
+      <h3>Deliver faster</h3>
+      <p>Analyze performance and remove blockers to ship on time.</p>
+
+      <div class="step-preview">
+        <div class="mini-stat">
+          <strong>85%</strong>
+          <span>Completion</span>
+        </div>
+        <div class="mini-stat">
+          <strong>12</strong>
+          <span>Tasks Done</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</section>
+
+
+    <!-- ===== FEATURES ===== -->
+    <section class="guest-features">
+
+      <div class="guest-feature-card">
+        <i class="ri-layout-grid-line"></i>
+        <h3>Kanban Boards</h3>
+        <p>Visual workflows with smooth drag-and-drop experience.</p>
+      </div>
+
+      <div class="guest-feature-card">
+        <i class="ri-flashlight-line"></i>
+        <h3>Smart Workflow</h3>
+        <p>Automate progress tracking and reduce manual updates.</p>
+      </div>
+
+      <div class="guest-feature-card">
+        <i class="ri-team-line"></i>
+        <h3>Team Sync</h3>
+        <p>Collaborate in real time with roles & permissions.</p>
+      </div>
+
+      <div class="guest-feature-card">
+        <i class="ri-bar-chart-line"></i>
+        <h3>Insights</h3>
+        <p>Track productivity, blockers, and delivery speed.</p>
+      </div>
+
+    </section>
+
+
+    <!-- ===== TRUST STRIP ===== -->
+    <section class="guest-trust">
+      <p>Trusted by developers, testers, and product teams</p>
+    </section>
+
+
+    <!-- ===== CTA ===== -->
+    <section class="guest-bottom-cta">
+      <h2>Start managing projects like a pro</h2>
+      <p>No credit card required • Free forever plan</p>
+
+      <button class="guest-btn guest-btn--primary" onclick="openAuth('register')">
+        Create your workspace
+      </button>
+    </section>
+
+  </main>
+</div>
+{% endblock %}

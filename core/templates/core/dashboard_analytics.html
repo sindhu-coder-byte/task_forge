@@ -1,0 +1,157 @@
+{% extends 'core/app_shell.html' %}
+{% load static %}
+
+{% block shell_extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/dashboard_analytics.css' %}">
+{% endblock %}
+
+{% block shell_title %}Dashboard{% endblock %}
+
+{% block shell_page %}
+<div class="analytics-page">
+  <header class="analytics-page-header">
+    <div>
+      <h1 class="analytics-page-title">System Dashboard</h1>
+      <p class="analytics-page-sub">Gadgets for status distribution, filtered work, and activity.</p>
+    </div>
+    <div class="analytics-page-actions">
+      <button type="button" class="btn-atlassian-ghost" onclick="alert('Share link can be wired to your backend.');">Share</button>
+      <button type="button" class="btn-atlassian-primary" onclick="alert('Edit mode can toggle layout later.');">Edit</button>
+    </div>
+  </header>
+
+  <div class="analytics-masonry">
+    <div class="analytics-col analytics-col--left">
+      <section class="gadget card-gadget">
+        <div class="gadget-header">
+          <h2>Issue status</h2>
+        </div>
+        <div class="gadget-body gadget-body--chart">
+          <canvas id="statusPieChart" width="280" height="240"
+            data-pie="{{ chart_pending|default:0 }},{{ chart_in_progress|default:0 }},{{ chart_testing|default:0 }},{{ chart_done|default:0 }}"></canvas>
+        </div>
+      </section>
+
+      <section class="gadget card-gadget">
+        <div class="gadget-header">
+          <h2>Filter results</h2>
+          <span class="gadget-caption">{{ filter_tasks|length }} issues</span>
+        </div>
+        <div class="gadget-body gadget-body--table">
+          <table class="filter-table">
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Summary</th>
+                <th>Status</th>
+                <th>Project</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for task in filter_tasks %}
+              <tr>
+                <td><a href="{% url 'core:task_detail' task.id %}" class="issue-key">{{ task.issue_key }}</a></td>
+                <td class="filter-summary">{{ task.title|truncatechars:42 }}</td>
+                <td><span class="status-chip status-chip--{{ task.status }}">{{ task.get_status_display }}</span></td>
+                <td>{% if task.project %}<a href="{% url 'core:project_detail' task.project.id %}">{{ task.project.name }}</a>{% else %}—{% endif %}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="gadget-empty">No issues in this filter.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <div class="analytics-col analytics-col--right">
+      <section class="gadget card-gadget">
+        <div class="gadget-header">
+          <h2>Assigned to me</h2>
+        </div>
+        <div class="gadget-body">
+          <ul class="assigned-list">
+            {% for task in assigned_preview %}
+            <li>
+              <a href="{% url 'core:task_detail' task.id %}" class="issue-key">{{ task.issue_key }}</a>
+              <span class="assigned-title">{{ task.title|truncatechars:48 }}</span>
+              <span class="status-chip status-chip--{{ task.status }}">{{ task.get_status_display }}</span>
+            </li>
+            {% empty %}
+            <li class="gadget-empty">Nothing assigned.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </section>
+
+      <section class="gadget card-gadget">
+        <div class="gadget-header">
+          <h2>Project activity</h2>
+        </div>
+        <div class="gadget-body gadget-body--stream">
+          {% for act in activities %}
+          <div class="activity-stream-item">
+            <p><strong>{{ act.user.username }}</strong> {{ act.action }}</p>
+            <time>{{ act.created_at|timesince }} ago</time>
+          </div>
+          {% empty %}
+          <p class="gadget-empty">No recent activity.</p>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+  </div>
+
+  {% if show_role_dashboard %}
+  <div class="dashboard-role-panels">
+    {% if role == 'admin' %}
+      {% include 'core/partials/dashboard_admin.html' %}
+    {% elif role == 'developer' %}
+      {% include 'core/partials/dashboard_developer.html' %}
+    {% elif role == 'tester' %}
+      {% include 'core/partials/dashboard_tester.html' %}
+    {% else %}
+      {% include 'core/partials/dashboard_user.html' %}
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block shell_foot_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function () {
+  document.querySelectorAll('.progress span[data-progress]').forEach(function (el) {
+    var pct = parseFloat(el.getAttribute('data-progress'), 10);
+    if (!isNaN(pct)) el.style.width = Math.min(100, Math.max(0, pct)) + '%';
+  });
+  var pieEl = document.getElementById('statusPieChart');
+  if (!pieEl || typeof Chart === 'undefined') return;
+  var raw = (pieEl.dataset.pie || '0,0,0,0').split(',');
+  var vals = raw.map(function (s) { var n = parseInt(s.trim(), 10); return isNaN(n) ? 0 : n; });
+  var sum = vals.reduce(function (a, b) { return a + b; }, 0);
+  if (!sum) {
+    pieEl.parentElement.innerHTML = '<p class="gadget-empty">No issue data in this view yet.</p>';
+    return;
+  }
+  new Chart(pieEl, {
+    type: 'pie',
+    data: {
+      labels: ['To Do', 'In Progress', 'Testing', 'Done'],
+      datasets: [{
+        data: vals,
+        backgroundColor: ['#42526E', '#0052CC', '#6554C0', '#36B37E'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } }
+      },
+      maintainAspectRatio: true
+    }
+  });
+})();
+</script>
+{% endblock %}

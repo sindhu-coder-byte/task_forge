@@ -1,0 +1,136 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/reports.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="reports-wrap">
+
+  <!-- ===== HEADER ===== -->
+  <div class="reports-header">
+    <h1>Reports & Insights</h1>
+
+    <div class="reports-actions">
+      <a href="?export=csv" class="reports-btn reports-btn--primary">
+        <i class="ri-download-line"></i> Export CSV
+      </a>
+    </div>
+  </div>
+
+  <!-- ===== FILTERS ===== -->
+  <form method="get" class="reports-filters">
+
+    <select name="project">
+      <option value="">All Projects</option>
+      {% for p in projects %}
+        <option value="{{ p.id }}" {% if p.id|stringformat:"s" == selected_project %}selected{% endif %}>
+          {{ p.name }}
+        </option>
+      {% endfor %}
+    </select>
+
+    <select name="status">
+      <option value="">All Status</option>
+      <option value="todo" {% if selected_status == 'todo' %}selected{% endif %}>To Do</option>
+      <option value="in_progress" {% if selected_status == 'in_progress' %}selected{% endif %}>In Progress</option>
+      <option value="in_review" {% if selected_status == 'in_review' %}selected{% endif %}>Testing</option>
+      <option value="done" {% if selected_status == 'done' %}selected{% endif %}>Done</option>
+    </select>
+
+    {% if users %}
+    <select name="user">
+      <option value="">All Users</option>
+      {% for u in users %}
+        <option value="{{ u.id }}" {% if u.id|stringformat:"s" == selected_user %}selected{% endif %}>
+          {{ u.username }}
+        </option>
+      {% endfor %}
+    </select>
+    {% endif %}
+
+    <button type="submit" class="reports-btn reports-btn--ghost">
+      Apply Filters
+    </button>
+
+  </form>
+
+  <!-- ===== SUMMARY CARDS ===== -->
+  <div class="reports-stats">
+
+    <div class="reports-card">
+      <span>To Do</span>
+      <h2>{{ status_summary.todo }}</h2>
+    </div>
+
+    <div class="reports-card">
+      <span>In Progress</span>
+      <h2>{{ status_summary.in_progress }}</h2>
+    </div>
+
+    <div class="reports-card">
+      <span>Testing</span>
+      <h2>{{ status_summary.in_review }}</h2>
+    </div>
+
+    <div class="reports-card">
+      <span>Done</span>
+      <h2>{{ status_summary.done }}</h2>
+    </div>
+
+  </div>
+
+  <!-- ===== PROJECT PROGRESS ===== -->
+  {% comment %} <div class="reports-section">
+    <h3>Project Progress</h3>
+
+    {% for p in project_summary %}
+      <div class="reports-progress-row">
+        <div class="reports-progress-title">
+          {{ p.project.name }}
+        </div>
+
+        <div class="reports-progress-bar">
+          <div style="width: {{ p.progress }}%"></div>
+        </div>
+
+        <span class="reports-progress-text">{{ p.progress }}%</span>
+      </div>
+    {% endfor %}
+  </div> {% endcomment %}
+
+  <!-- ===== TASK TABLE ===== -->
+  <div class="reports-section">
+    <h3>Tasks Overview</h3>
+
+    <table class="reports-table">
+      <thead>
+        <tr>
+          <th>Task</th>
+          <th>Project</th>
+          <th>User</th>
+          <th>Status</th>
+          <th>Priority</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for t in tasks %}
+        <tr>
+          <td>{{ t.title }}</td>
+          <td>{{ t.project.name }}</td>
+          <td>{{ t.assigned_to.username }}</td>
+          <td>
+            <span class="status {{ t.status }}">{{ t.status }}</span>
+          </td>
+          <td>{{ t.priority }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  </div>
+
+</div>
+{% endblock %}

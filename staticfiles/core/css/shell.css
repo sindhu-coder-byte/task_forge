@@ -1,0 +1,539 @@
+/* Logged-in app shell: deep navy sidebar + topbar (scoped, does not replace global style.css) */
+
+.app--shell {
+  min-height: 100vh;
+}
+
+.app--shell .sidebar--navy {
+  background: #0c1a2e;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+.app--shell .sidebar--navy nav a,
+.app--shell .sidebar--navy .sidebar-bottom a,
+.app--shell .sidebar--navy .sb-link {
+  color: #a8b8d0;
+}
+
+.app--shell .sidebar--navy nav a:hover,
+.app--shell .sidebar--navy .sidebar-bottom a:hover,
+.app--shell .sidebar--navy .sb-link:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.app--shell .sidebar--navy nav a.active {
+  background: rgba(0, 82, 204, 0.35);
+  color: #fff;
+  box-shadow: none;
+}
+
+.app--shell .sidebar--navy nav a.active::before {
+  background: #4c9aff;
+}
+
+.app--shell .sidebar--navy nav a.active i,
+.app--shell .sidebar--navy nav a:hover i {
+  color: inherit;
+}
+
+.app--shell .forge-logo--navy,
+.app--shell .sidebar--navy .forge-logo {
+  background: linear-gradient(135deg, #0052cc, #2684ff);
+  box-shadow: 0 8px 24px rgba(0, 82, 204, 0.35);
+}
+
+.app--shell .sidebar--navy a i,
+.app--shell .sidebar--navy .sb-link i {
+  color: #7a8ca3;
+}
+
+.app--shell .sidebar--navy nav a.active i,
+.app--shell .sidebar--navy .sb-link.active i {
+  color: #fff;
+}
+
+.app--shell .sidebar--navy .sb-bottom {
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.main--shell {
+  background: #f4f5f7;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar--shell {
+  background: #fff;
+  border-bottom: 1px solid #dfe1e6;
+  box-shadow: none;
+}
+
+.page-content--shell {
+  flex: 1;
+  padding: 28px 32px 40px;
+}
+
+.shell-layout {
+  display: block;
+}
+
+.shell-layout.has-right {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 16px;
+  align-items: start;
+}
+
+.shell-right {
+  min-width: 0;
+}
+
+.shell-right:empty {
+  display: none;
+}
+
+.shell-layout.has-right .shell-right {
+  position: sticky;
+  top: 88px; /* below topbar */
+}
+
+/* @media (max-width: 1024px) {
+  .shell-layout.has-right {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shell-layout.has-right .shell-right {
+    position: static;
+  }
+} */
+
+.create-btn--secondary {
+  background: #fff !important;
+  color: #0052cc !important;
+  border: 1px solid #dfe1e6;
+}
+
+.create-btn--secondary:hover {
+  background: #f4f5f7 !important;
+}
+
+/* Notification dropdown (lightweight UI) */
+.icon-btn--dropdown {
+  position: relative;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 320px;
+  max-width: min(86vw, 360px);
+  background: #fff;
+  border: 1px solid #dfe1e6;
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(9, 30, 66, 0.18);
+  overflow: hidden;
+  display: none;
+  z-index: 300;
+}
+
+.dropdown.open {
+  display: block;
+}
+
+.dropdown-head {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0f1f3;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dropdown-sub {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.dropdown-body {
+  padding: 12px 14px;
+}
+
+.dropdown-item-title {
+  font-weight: 650;
+  color: #172b4d;
+  font-size: 13px;
+}
+
+.dropdown-item-sub {
+  margin-top: 6px;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dropdown-link {
+  display: inline-flex;
+  margin-top: 10px;
+  color: #0052cc;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.dropdown-link:hover {
+  text-decoration: underline;
+}
+
+.dropdown-empty {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* Search dropdown */
+.search-box{
+  position: relative;
+}
+.search-results{
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #dfe1e6;
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(9, 30, 66, 0.18);
+  overflow: hidden;
+  display: none;
+  z-index: 400;
+}
+.search-results.open{
+  display: block;
+}
+.search-item{
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #172b4d;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.search-item:hover{
+  background: #f4f5f7;
+}
+.search-empty{
+  padding: 12px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* ========================= */
+/* ✅ FLEX UTIL */
+/* ========================= */
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ========================= */
+/* ✅ STATS ROW */
+/* ========================= */
+.stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ========================= */
+/* ✅ PROGRESS */
+/* ========================= */
+.progress-box {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.progress-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.progress-bar {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #10b981;
+  transition: width 0.4s ease;
+}
+
+.progress-text {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 6px;
+}
+
+/* ========================= */
+/* ✅ TASK LIST */
+/* ========================= */
+.task-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.task-title {
+  text-decoration: none;
+  color: #111827;
+  font-weight: 600;
+}
+
+.task-title:hover {
+  color: #4f46e5;
+}
+
+.task-meta {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+/* ========================= */
+/* ✅ TEAM CARD ACTIVE */
+/* ========================= */
+.team-card.active {
+  border: 2px solid #4f46e5;
+  background: #eef2ff;
+}
+
+/* ========================= */
+/* ✅ TEAM FILTER */
+/* ========================= */
+.team-filter {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 13px;
+}
+
+/* ========================= */
+/* ✅ MODAL IMPROVEMENT */
+/* ========================= */
+.modal-content {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ========================= */
+/* ✅ SMALL IMPROVEMENTS */
+/* ========================= */
+.section-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.dash-muted {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* ============================================================
+   RESPONSIVE SYSTEM (App Shell)
+   ============================================================ */
+
+/* ---------- LARGE DESKTOP (>=1400px) ---------- */
+@media (min-width: 1400px) {
+  .page-content--shell {
+    padding: 32px 48px 48px;
+  }
+
+  .shell-layout.has-right {
+    grid-template-columns: minmax(0, 1fr) 400px;
+    gap: 20px;
+  }
+}
+
+/* ---------- DESKTOP (>=1200px) ---------- */
+@media (min-width: 1200px) {
+  .page-content--shell {
+    padding: 28px 36px 40px;
+  }
+}
+
+/* ---------- LAPTOP (<=1024px) ---------- */
+@media (max-width: 1024px) {
+
+  /* Right panel collapses */
+  .shell-layout.has-right {
+    grid-template-columns: 1fr;
+  }
+
+  .shell-layout.has-right .shell-right {
+    position: static;
+    margin-top: 16px;
+  }
+
+  /* Reduce spacing */
+  .page-content--shell {
+    padding: 24px 20px 32px;
+  }
+}
+
+/* ---------- TABLET (<=768px) ---------- */
+@media (max-width: 768px) {
+
+  /* Sidebar → collapsed */
+  .app--shell .sidebar--navy {
+    position: fixed;
+    left: -260px;
+    top: 0;
+    height: 100%;
+    width: 260px;
+    z-index: 1200;
+    transition: left 0.3s ease;
+  }
+
+  .app--shell.sidebar-open .sidebar--navy {
+    left: 0;
+  }
+
+  /* Overlay when sidebar open */
+  .app--shell::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: 0.3s;
+    z-index: 1100;
+  }
+
+  .app--shell.sidebar-open::after {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Main takes full width */
+  .main--shell {
+    width: 100%;
+  }
+
+  /* Topbar tighter */
+  .topbar--shell {
+    padding: 0 14px;
+  }
+
+  /* Page spacing */
+  .page-content--shell {
+    padding: 20px 16px 28px;
+  }
+
+  /* Dropdown full width */
+  .dropdown {
+    right: 10px;
+    left: 10px;
+    width: auto;
+  }
+
+  .search-results {
+    left: 0;
+    right: 0;
+  }
+}
+
+/* ---------- MOBILE (<=480px) ---------- */
+@media (max-width: 480px) {
+
+  /* Even tighter layout */
+  .page-content--shell {
+    padding: 16px 12px 24px;
+  }
+
+  /* Sidebar width smaller */
+  .app--shell .sidebar--navy {
+    width: 230px;
+  }
+
+  /* Topbar elements stack if needed */
+  .topbar--shell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  /* Buttons shrink */
+  .create-btn--secondary {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  /* Dropdown compact */
+  .dropdown {
+    border-radius: 10px;
+  }
+
+  .dropdown-item-title {
+    font-size: 12px;
+  }
+
+  .dropdown-item-sub {
+    font-size: 11px;
+  }
+
+  /* Search items */
+  .search-item {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+}
+
+/* ---------- SMALL MOBILE (<=360px) ---------- */
+@media (max-width: 360px) {
+
+  .page-content--shell {
+    padding: 14px 10px 20px;
+  }
+
+  .topbar--shell {
+    gap: 6px;
+  }
+
+  .create-btn--secondary {
+    font-size: 12px;
+    padding: 7px 8px;
+  }
+
+  .dropdown-head {
+    padding: 10px;
+  }
+
+  .dropdown-body {
+    padding: 10px;
+  }
+}

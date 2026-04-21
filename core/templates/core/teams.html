@@ -1,0 +1,324 @@
+{% extends "core/app_shell.html" %}
+
+{% block shell_title %}Teams{% endblock %}
+
+{% block shell_page %}
+
+<!-- HEADER -->
+<div class="card">
+  <div class="section-header">
+    <div>
+      <div class="section-title">
+        {% if role == 'project_lead' %}
+          Project Dashboard
+        {% elif role == 'team_lead' %}
+          Team Dashboard
+        {% else %}
+          My Dashboard
+        {% endif %}
+      </div>
+
+      <p class="dash-muted">
+        {% if role == 'admin' %}
+          Overview of all projects and system-wide progress.
+        {% elif role == 'project_lead' %}
+          Manage projects, teams, and overall progress.
+        {% elif role == 'team_lead' %}
+          Monitor your team's tasks and track progress within your team.
+        {% else %}
+          Track your assigned tasks and personal progress.
+        {% endif %}
+      </p>
+    </div>
+
+    <span class="scope-badge">
+      {% if role == 'project_lead' %}
+        Project Scope
+      {% elif role == 'team_lead' %}
+        Team Scope
+      {% else %}
+        Personal
+      {% endif %}
+    </span>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="card" style="margin-top:14px;">
+  <div class="card-body grid-stats">
+    <div class="stat">Projects: <strong>{{ project_count }}</strong></div>
+    <div class="stat">Team members: <strong>{{ team_member_count }}</strong></div>
+    <div class="stat">Open: <strong>{{ status_counts.todo|default:0 }}</strong></div>
+    <div class="stat">In Progress: <strong>{{ status_counts.in_progress|default:0 }}</strong></div>
+    <div class="stat">Review: <strong>{{ status_counts.in_review|default:0 }}</strong></div>
+    <div class="stat">Done: <strong>{{ status_counts.done|default:0 }}</strong></div>
+  </div>
+</div>
+
+<!-- REVIEW -->
+{% if role == 'project_lead' or role == 'team_lead' %}
+<div class="card" style="margin-top:14px;">
+  <div class="section-title">Review Actions</div>
+  <div class="card-body">
+    <p class="dash-muted">
+      As a {{ role|title }}, you can review progress and approve transitions
+      {% if role == 'project_lead' %}
+        across your projects.
+      {% else %}
+        within your team.
+      {% endif %}
+    </p>
+
+    {% if can_approve %}
+      <div class="approval-box">Approval scope enabled</div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- PROJECTS -->
+<div class="card" style="margin-top:14px;">
+  <div class="section-title">Active Projects</div>
+  <div class="card-body">
+    {% if projects %}
+      <div class="project-grid">
+        {% for project in projects %}
+          <a href="{% url 'core:project_detail' project.id %}" class="project-card">
+            <strong>{{ project.name }}</strong>
+            <div class="dash-muted">Members: {{ project.members.count }}</div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="dash-muted">No projects available.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- TASKS -->
+<div class="card" style="margin-top:14px;">
+  <div class="section-title">
+    {% if role == 'project_lead' %}
+      All Project Tasks
+    {% elif role == 'team_lead' %}
+      My Team Tasks
+    {% else %}
+      My Tasks
+    {% endif %}
+  </div>
+
+  <div class="card-body">
+    {% if tasks %}
+      <div class="task-list">
+        {% for task in tasks|slice:":12" %}
+          <div class="task-row">
+            <div>
+              <a href="{% url 'core:task_detail' task.id %}">
+                {{ task.issue_key }} · {{ task.title }}
+              </a>
+
+              <div class="task-meta">
+                {{ task.project.name }} • 
+                {{ task.assigned_to.username|default:"Unassigned" }}
+                {% if role == 'team_lead' %}
+                  • Team Scope
+                {% endif %}
+              </div>
+            </div>
+
+            <span class="chip chip--{{ task.status }}">
+              {{ task.get_status_display }}
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="dash-muted">No tasks available.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- MEMBERS -->
+{% if role == 'project_lead' or role == 'team_lead' %}
+<div class="card" style="margin-top:14px;">
+  <div class="section-title">Team Members</div>
+
+  <div class="card-body member-grid">
+    {% for member in members %}
+      <div class="member-pill">
+        <span class="avatar">{{ member.username|slice:":1"|upper }}</span>
+        <div>
+          <div>{{ member.username }}</div>
+          <div class="dash-muted small">
+            {{ member.profile.role|title }}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-head">
+    <h3>Pending Invites</h3>
+  </div>
+
+  <div class="card-body">
+    {% if pending_invites %}
+      <div class="invite-list">
+        {% for inv in pending_invites %}
+          <div class="invite-item">
+            <div>
+              <strong>{{ inv.email }}</strong>
+              <div class="invite-meta">
+                Role: {{ inv.role }} · Invited {{ inv.created_at|timesince }} ago
+              </div>
+            </div>
+
+            <div class="invite-actions">
+              <button class="btn-danger" onclick="cancelInvite('{{ inv.id }}')">
+                Cancel
+              </button>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted">No pending invites</p>
+    {% endif %}
+  </div>
+</div>
+
+
+{% endblock %}
+
+{% block shell_extra_css %}
+<style>
+.btn-ghost{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;text-decoration:none;color:#111827;font-size:13px}
+.stat{padding:14px 16px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;font-size:13px;color:#111827}
+.project-card{display:block;padding:14px;border:1px solid #e5e7eb;border-radius:12px;text-decoration:none;color:#111827;background:#fff;transition:background .2s}
+.project-card:hover{background:#f8fafc}
+.task-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border:1px solid #e5e7eb;border-radius:12px;background:#fff}
+.member-pill{display:inline-flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff}
+.member-pill .avatar{width:30px;height:30px;border-radius:50%;background:#0052cc;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+.chip{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:650;background:#f4f5f7;color:#172b4d}
+.chip--todo{background:#f4f5f7;color:#42526e}
+.chip--in_progress{background:#deebff;color:#0747a6}
+.chip--in_review{background:#eae6ff;color:#403294}
+.chip--done{background:#e3fcef;color:#006644}
+
+.section-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+}
+
+.scope-badge{
+  padding:6px 10px;
+  background:#e3f2fd;
+  color:#0b5ed7;
+  border-radius:999px;
+  font-size:12px;
+}
+
+.grid-stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:12px;
+}
+
+.project-grid{
+  display:grid;
+  gap:10px;
+}
+
+.task-list{
+  display:grid;
+  gap:10px;
+}
+
+.task-row{
+  display:flex;
+  justify-content:space-between;
+  padding:12px;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+}
+.task-row a{
+  display: inline-block;
+  font-size: 15px;
+  color: #5e3ea1;              /* purple like screenshot */
+  text-decoration: none;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.task-meta{
+  font-size:12px;
+  color:#6b7280;
+}
+
+.member-grid{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.member-pill{
+  display:flex;
+  gap:10px;
+  padding:10px;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+}
+
+.avatar{
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  background:#0052cc;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.approval-box{
+  padding:10px;
+  border-left:4px solid #0052cc;
+  background:#f4f8ff;
+  margin-top:8px;
+}
+
+.invite-list {
+  display: grid;
+  gap: 10px;
+}
+
+.invite-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+
+.invite-meta {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+</style>
+{% endblock %}
+

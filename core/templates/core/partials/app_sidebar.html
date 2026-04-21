@@ -1,0 +1,110 @@
+<aside class="sidebar sidebar--navy" id="sidebar">
+
+  <div class="sidebar-top">
+
+    <div class="forge-logo forge-logo--navy">
+      <i class="ri-rocket-2-line"></i>
+    </div>
+
+    <nav>
+      {% with url_name=request.resolver_match.url_name project_id=request.resolver_match.kwargs.project_id %}
+
+      <!-- ================= GLOBAL ================= -->
+      <div class="sidebar-section-label">Global</div>
+
+      <a href="{% url 'core:home' %}"
+         class="{% if url_name == 'home' %}active{% endif %}">
+        <i class="ri-home-5-line"></i>
+        <span class="nav-label">Home</span>
+      </a>
+
+      <a href="{% url 'core:dashboard' %}"
+         class="{% if url_name == 'dashboard' %}active{% endif %}">
+        <i class="ri-dashboard-2-line"></i>
+        <span class="nav-label">Dashboard</span>
+      </a>
+
+      <a href="{% url 'core:projects' %}"
+         class="{% if 'project' in url_name %}active{% endif %}">
+        <i class="ri-folder-3-line"></i>
+        <span class="nav-label">Projects</span>
+      </a>
+
+
+      <!-- ================= PROJECT ================= -->
+      {% if project_id %}
+      <div class="sidebar-section-label">Project</div>
+
+      <!-- Board -->
+      <a href="{% url 'core:project_board' project_id %}"
+         class="{% if url_name == 'project_board' %}active{% endif %}">
+        <i class="ri-kanban-view"></i>
+        <span class="nav-label">Project Board</span>
+      </a>
+
+      <!-- Backlog -->
+      <a href="{% url 'core:project_backlog' project_id %}"
+         class="{% if url_name == 'project_backlog' %}active{% endif %}">
+        <i class="ri-list-check-2"></i>
+        <span class="nav-label">Backlog</span>
+      </a>
+
+      <!-- ONLY LEADS / ADMIN -->
+      {% if request.user.profile.role == 'project_lead' or request.user.profile.role == 'admin' %}
+      <a href="{% url 'core:project_team' project_id %}"
+         class="{% if url_name == 'project_team' %}active{% endif %}">
+        <i class="ri-user-settings-line"></i>
+        <span class="nav-label">Team</span>
+      </a>
+
+      <a href="{% url 'core:reports' %}"
+         class="{% if url_name == 'reports' %}active{% endif %}">
+        <i class="ri-bar-chart-2-line"></i>
+        <span class="nav-label">Reports</span>
+      </a>
+      {% endif %}
+
+      {% endif %}
+
+
+      <!-- ================= TEAMS ================= -->
+      {% if request.user.profile.role != 'user' %}
+      <div class="sidebar-section-label">Teams</div>
+
+      <a href="{% url 'core:teams' %}"
+         class="{% if url_name == 'teams' %}active{% endif %}">
+        <i class="ri-group-line"></i>
+        <span class="nav-label">Teams</span>
+      </a>
+      {% endif %}
+
+
+      <!-- ================= ADMIN ================= -->
+      {% if request.user.profile.role == 'admin' %}
+      <div class="sidebar-section-label">Admin</div>
+
+      <a href="{% url 'core:user_list' %}"
+         class="{% if 'user_' in url_name %}active{% endif %}">
+        <i class="ri-group-line"></i>
+        <span class="nav-label">Users</span>
+      </a>
+      {% endif %}
+
+      {% endwith %}
+    </nav>
+  </div>
+
+  <!-- ================= USER FOOTER ================= -->
+  <div class="sb-bottom">
+    <a href="#" class="sb-link">
+      <i class="ri-user-3-line"></i>
+      <span class="sb-text">{{ request.user.username }}</span>
+    </a>
+
+    <a href="{% url 'core:logout' %}" class="sb-link">
+      <i class="ri-logout-box-r-line"></i>
+      <span class="sb-text">Logout</span>
+    </a>
+  </div>
+
+</aside>
