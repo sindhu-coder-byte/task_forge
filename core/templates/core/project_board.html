@@ -496,532 +496,275 @@
 }
 </style>
 <script>
+document.addEventListener("DOMContentLoaded", function () {
+
 (function () {
+
+  // =============================
+  // SAFE DOM REFERENCES
+  // =============================
   const sidebar = document.getElementById("taskSidebar");
+  const overlay = document.getElementById('inviteModalOverlay');
+
+  if (!sidebar) {
+    console.warn("Sidebar not found - script safely stopped");
+  }
+
   let draggedCard = null;
 
-  function setText(id, v){ const el=document.getElementById(id); if(el) el.innerText = v || ''; }
-  function escapeHtml(text){ const div=document.createElement("div"); div.innerText=text; return div.innerHTML; }
+  function setText(id, v){
+    const el = document.getElementById(id);
+    if (el) el.innerText = v || '';
+  }
 
+  function escapeHtml(text){
+    const div = document.createElement("div");
+    div.innerText = text;
+    return div.innerHTML;
+  }
+
+  // =============================
+  // SIDEBAR CONTROL
+  // =============================
   function openSidebarFromCard(card) {
-     if (!sidebar) return; 
+    if (!sidebar || !card) return;
+
     const data = card.dataset;
+
     sidebar.dataset.taskId = data.id;
+
     setText("sideTitle", data.title);
     setText("sideDesc", data.desc);
     setText("sideProject", data.project);
     setText("sideUser", data.user);
 
-const p = document.getElementById('sidePriority');
-if (p) {
-  p.innerText = data.priority;
-  p.className = 'tk-badge ' + data.priority.toLowerCase();
-}
+    const p = document.getElementById('sidePriority');
+    if (p) {
+      p.innerText = data.priority;
+      p.className = 'tk-badge ' + data.priority?.toLowerCase();
+    }
 
-const s = document.getElementById('sideStatusText');
-if (s) {
-  s.innerText = data.status.replaceAll('_',' ');
-  s.className = 'tk-badge ' + data.status;
-}
+    const s = document.getElementById('sideStatusText');
+    if (s) {
+      s.innerText = data.status?.replaceAll('_',' ');
+      s.className = 'tk-badge ' + data.status;
+    }
 
     const openLink = document.getElementById('openIssueLink');
     if (openLink) openLink.href = '/tasks/' + data.id + '/';
 
-    
-    // hydrate all sidebar sections (Jira-style)
+    // Load dynamic sections
     loadComments(data.id);
     loadFiles(data.id);
     loadActivity(data.id);
     renderLabels(data.labels);
     renderDueDate(data.due);
+
     sidebar.classList.add("open");
   }
 
-  window.closeSidebar = function () { sidebar.classList.remove("open"); };
+  window.closeSidebar = function () {
+    if (!sidebar) return;
+    sidebar.classList.remove("open");
+  };
 
+  // ESC key support
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape") {
+      if (sidebar?.classList.contains("open")) closeSidebar();
+      if (overlay && !overlay.hidden) overlay.hidden = true;
+    }
+  });
+
+  // =============================
+  // CARD EVENTS
+  // =============================
   document.querySelectorAll(".task-card").forEach(card => {
-    card.addEventListener("dragstart", () => { draggedCard = card; card.classList.add("dragging"); });
-    card.addEventListener("dragend", () => { card.classList.remove("dragging"); });
+
+    card.addEventListener("dragstart", () => {
+      draggedCard = card;
+      card.classList.add("dragging");
+    });
+
+    card.addEventListener("dragend", () => {
+      card.classList.remove("dragging");
+    });
+
     card.addEventListener("click", () => openSidebarFromCard(card));
   });
 
+  // =============================
+  // DRAG DROP
+  // =============================
   document.querySelectorAll(".column").forEach(column => {
+
     column.addEventListener("dragover", e => e.preventDefault());
-    column.addEventListener("dragenter", () => column.classList.add("drag-over"));
-    column.addEventListener("dragleave", (e) => { if (!column.contains(e.relatedTarget)) column.classList.remove("drag-over"); });
+
+    column.addEventListener("dragenter", () => {
+      column.classList.add("drag-over");
+    });
+
+    column.addEventListener("dragleave", (e) => {
+      if (!column.contains(e.relatedTarget)) {
+        column.classList.remove("drag-over");
+      }
+    });
+
     column.addEventListener("drop", () => {
       column.classList.remove("drag-over");
+
       if (!draggedCard) return;
+
       const previousStatus = draggedCard.dataset.status;
       const newStatus = column.dataset.status;
       const taskId = draggedCard.dataset.id;
+
       column.appendChild(draggedCard);
+
       if (previousStatus === newStatus) return;
+
       draggedCard.dataset.status = newStatus;
+
       updateTask(taskId, newStatus, previousStatus, draggedCard);
     });
   });
 
-  /** Move card into column with a FLIP animation (used when reverting a failed transition). */
-  function flyCardToColumn(card, column) {
-    if (!card || !column) return;
-    const first = card.getBoundingClientRect();
-    column.appendChild(card);
-    const last = card.getBoundingClientRect();
-    const dx = first.left - last.left;
-    const dy = first.top - last.top;
-    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) {
-      card.classList.add("task-card--revert-flash");
-      card.addEventListener("animationend", function onEnd() {
-        card.removeEventListener("animationend", onEnd);
-        card.classList.remove("task-card--revert-flash");
-      });
-      return;
-    }
-    card.style.transition = "none";
-    card.style.transform = "translate(" + dx + "px, " + dy + "px)";
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        card.style.transition = "transform 0.42s cubic-bezier(0.25, 0.82, 0.25, 1)";
-        card.style.transform = "";
-        function cleanup(e) {
-          if (e && e.propertyName !== "transform") return;
-          card.removeEventListener("transitionend", cleanup);
-          card.style.transition = "";
-          card.style.transform = "";
-          card.classList.add("task-card--revert-flash");
-          card.addEventListener("animationend", function onAnim() {
-            card.removeEventListener("animationend", onAnim);
-            card.classList.remove("task-card--revert-flash");
-          });
-        }
-        card.addEventListener("transitionend", cleanup);
-      });
-    });
-  }
-
-  function revertTaskMove(card, previousStatus) {
-    if (!card || !previousStatus) return;
-    const targetCol = document.querySelector('.column[data-status="' + previousStatus + '"]');
-    if (!targetCol) return;
-    flyCardToColumn(card, targetCol);
-    card.dataset.status = previousStatus;
-  }
-
-  function syncSidebarStatusIfOpen(taskId, statusValue) {
-    if (!sidebar || String(sidebar.dataset.taskId) !== String(taskId)) return;
-    var sel = document.getElementById("statusSelect");
-    if (sel) sel.value = statusValue;
-    var st = document.getElementById("sideStatusText");
-    if (st) {
-      st.innerText = statusValue.replace(/_/g, " ");
-      st.className = "tk-badge " + statusValue;
-    }
-  }
-
+  // =============================
+  // TASK UPDATE
+  // =============================
   function updateTask(id, newStatus, previousStatus, card) {
-    fetch("/tasks/" + id + "/status/" + newStatus + "/", {
+
+    fetch(`/tasks/${id}/status/${newStatus}/`, {
       method: "POST",
       headers: { "X-CSRFToken": "{{ csrf_token }}" }
     })
-      .then(function (res) {
-        return res.json().then(function (data) {
-          return { res: res, data: data };
-        }).catch(function () {
-          return { res: res, data: {} };
-        });
-      })
-      .then(function (_ref) {
-        var res = _ref.res;
-        var data = _ref.data;
-        var ok = res.ok && (data.status === "success" || data.status === "no_change");
-        if (ok) {
-          if (data && data.status === "success") {
-            updateGlobalNotificationCount(data.notification_count);
-            updateBoardSummary(data.status_counts, data.progress_percent);
-          }
-          return;
-        }
+    .then(res => res.json().then(data => ({res, data})))
+    .then(({res, data}) => {
+
+      const ok = res.ok && (data.status === "success" || data.status === "no_change");
+
+      if (!ok) {
         revertTaskMove(card, previousStatus);
-        syncSidebarStatusIfOpen(id, previousStatus);
-      })
-      .catch(function () {
-        revertTaskMove(card, previousStatus);
-        syncSidebarStatusIfOpen(id, previousStatus);
-      });
-  }
-
-  function updateBoardSummary(statusCounts, progressPercent) {
-    if (statusCounts) {
-      ["todo", "in_progress", "in_review", "done"].forEach(function (status) {
-        var countEl = document.querySelector('.column[data-status="' + status + '"] .count');
-        if (countEl) {
-          countEl.textContent = statusCounts[status] || 0;
-        }
-      });
-    }
-
-    if (progressPercent !== undefined && progressPercent !== null) {
-      var fill = document.getElementById('boardProgressFill');
-      var text = document.getElementById('boardProgressText');
-      if (fill) fill.style.width = progressPercent + '%';
-      if (text) text.textContent = progressPercent + '%';
-    }
-
-    // Update progress on other pages if the function exists
-    if (typeof updateProgress === 'function') {
-      updateProgress();
-    }
-  }
-
-  function updateGlobalNotificationCount(n) {
-    if (n === undefined || n === null) return;
-    var badge = document.querySelector("#notifBtn .badge");
-    if (badge) badge.textContent = String(n);
-    var sub = document.querySelector("#notifDropdown .dropdown-sub");
-    if (sub) sub.textContent = String(n) + " pending";
-  }
-
-
-  function loadComments(taskId){
-    fetch(`/task/${taskId}/comments/`)
-      .then(res => res.json())
-      .then(data => {
-        const el = document.getElementById('commentsList');
-        if (!data.length) { el.innerHTML = '<div class="empty">No comments</div>'; return; }
-        el.innerHTML = data.map(c => `
-          <div class="comment">
-            <strong>${escapeHtml(c.user)}</strong><br>
-            ${escapeHtml(c.text)}
-          </div>
-        `).join('');
-      });
-  }
-
-  window.addComment = function () {
-    const input = document.getElementById('commentInput');
-    const text = input.value.trim();
-    const taskId = sidebar.dataset.taskId;
-    if (!text) return;
-    fetch(`/task/${taskId}/add-comment/`, {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json', 'X-CSRFToken':'{{ csrf_token }}' },
-      body: JSON.stringify({text})
-    }).then(()=> { input.value=''; loadComments(taskId); });
-  };
-
-  // -------------------------
-  // Attachments (upload/preview/remove)
-  // -------------------------
-  const fileInput = document.getElementById("fileInput");
-  const filePreview = document.getElementById("filePreview");
-
-  if (fileInput) {
-    fileInput.addEventListener("change", function () {
-      const f = fileInput.files && fileInput.files[0];
-      if (!f) {
-        if (filePreview) { filePreview.hidden = true; filePreview.innerHTML = ""; }
         return;
       }
 
-      if (!filePreview) return;
-      const isImg = /^image\//.test(f.type);
-      filePreview.hidden = false;
-      if (isImg) {
-        const url = URL.createObjectURL(f);
-        filePreview.innerHTML = `<img src="${url}" alt="Preview"><div class="meta">${escapeHtml(f.name)} · ${(f.size/1024).toFixed(0)} KB</div>`;
-      } else {
-        filePreview.innerHTML = `<div class="meta">${escapeHtml(f.name)} · ${(f.size/1024).toFixed(0)} KB</div>`;
-      }
-    });
-  }
-
-  function loadFiles(taskId) {
-    fetch(`/task/${taskId}/files/`)
-      .then(res => res.json())
-      .then(data => {
-        const el = document.getElementById("fileList");
-        if (!el) return;
-        if (!Array.isArray(data) || !data.length) {
-          el.classList.add("empty");
-          el.innerHTML = "No files";
-          return;
-        }
-        el.classList.remove("empty");
-        el.innerHTML = data.map(f => {
-          const name = escapeHtml(f.name || "file");
-          const url = f.url || "#";
-          const id = f.id;
-          return `
-            <div class="tk-file-item">
-              <a href="${url}" target="_blank" rel="noopener">${name}</a>
-              <button type="button" class="tk-file-remove" data-file-id="${id}">Remove</button>
-            </div>
-          `;
-        }).join("");
-
-        el.querySelectorAll("button.tk-file-remove[data-file-id]").forEach(btn => {
-          btn.addEventListener("click", function () {
-            const attachmentId = btn.getAttribute("data-file-id");
-            if (!attachmentId) return;
-            fetch(`/task/${taskId}/files/${attachmentId}/delete/`, {
-              method: "POST",
-              headers: { "X-CSRFToken": "{{ csrf_token }}" }
-            })
-              .then(r => r.json())
-              .then(() => { loadFiles(taskId); loadActivity(taskId); })
-              .catch(() => {});
-          });
-        });
-      });
-  }
-
-  window.uploadFile = function () {
-    const taskId = sidebar.dataset.taskId;
-    if (!taskId) return;
-    if (!fileInput || !fileInput.files || !fileInput.files.length) return;
-    const formData = new FormData();
-    formData.append("file", fileInput.files[0]);
-
-    const btn = document.getElementById("uploadBtn");
-    if (btn) { btn.disabled = true; btn.textContent = "Uploading..."; }
-
-    fetch(`/task/${taskId}/upload/`, {
-      method: "POST",
-      headers: { "X-CSRFToken": "{{ csrf_token }}" },
-      body: formData
+      updateBoardSummary(data.status_counts, data.progress_percent);
+      updateGlobalNotificationCount(data.notification_count);
     })
-      .then(r => r.json())
-      .then(data => {
-        if (data && data.status === "ok") {
-          fileInput.value = "";
-          if (filePreview) { filePreview.hidden = true; filePreview.innerHTML = ""; }
-          loadFiles(taskId);
-          loadActivity(taskId);
-        }
-      })
-      .finally(() => {
-        if (btn) { btn.disabled = false; btn.textContent = "Upload"; }
-      });
-  };
-
-  // -------------------------
-  // Activity
-  // -------------------------
-  function loadActivity(taskId){
-    fetch(`/task/${taskId}/activity/`)
-      .then(res => res.json())
-      .then(data => {
-        const el = document.getElementById("activityList");
-        if (!el) return;
-        if (!Array.isArray(data) || !data.length) {
-          el.classList.add("empty");
-          el.textContent = "No activity";
-          return;
-        }
-        el.classList.remove("empty");
-        el.innerHTML = data.map(a => `
-          <div class="comment">
-            <strong>${escapeHtml(a.user)}</strong> ${escapeHtml(a.action)}
-            <div>${escapeHtml(a.time)}</div>
-          </div>
-        `).join("");
-      });
+    .catch(() => revertTaskMove(card, previousStatus));
   }
 
-  // -------------------------
-  // Labels + Due date (inputs)
-  // -------------------------
-  function renderLabels(labelsJson){
-    const container = document.getElementById("sideLabels");
-    if (!container) return;
-    if (!labelsJson) { container.classList.add("empty"); container.textContent = "No labels"; return; }
-    try {
-      const labels = JSON.parse(labelsJson);
-      if (!labels || !labels.length) { container.classList.add("empty"); container.textContent = "No labels"; return; }
-      container.classList.remove("empty");
-      container.innerHTML = labels.map(l => `<span style="background:${l.color}">${escapeHtml(l.name)}</span>`).join("");
-      const ids = labels.map(l => l.id).join(",");
-      const input = document.getElementById("labelsInput");
-      if (input) input.value = ids;
-    } catch {
-      container.classList.add("empty");
-      container.textContent = "No labels";
-    }
+  function revertTaskMove(card, previousStatus) {
+    if (!card) return;
+
+    const targetCol = document.querySelector(`.column[data-status="${previousStatus}"]`);
+    if (!targetCol) return;
+
+    targetCol.appendChild(card);
+    card.dataset.status = previousStatus;
   }
-
-  function renderDueDate(due){
-    const el = document.getElementById("sideDue");
-    const input = document.getElementById("dueDateInput");
-    if (input) input.value = due || "";
-    if (!el) return;
-    el.textContent = due ? due : "Not set";
-  }
-
-  window.saveLabels = function () {
-    const taskId = sidebar.dataset.taskId;
-    const input = document.getElementById("labelsInput");
-    if (!taskId || !input) return;
-    const body = new URLSearchParams();
-    body.set("labels", input.value || "");
-    fetch(`/task/${taskId}/labels/`, {
-      method: "POST",
-      headers: { "X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString()
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data && data.status === "ok") {
-          const card = document.querySelector('[data-id="' + taskId + '"]');
-          if (card) card.dataset.labels = JSON.stringify(data.labels || []);
-          renderLabels(JSON.stringify(data.labels || []));
-          loadActivity(taskId);
-        }
-      });
-  };
-
-  window.saveDueDate = function () {
-    const taskId = sidebar.dataset.taskId;
-    const input = document.getElementById("dueDateInput");
-    if (!taskId || !input) return;
-    const body = new URLSearchParams();
-    body.set("due_date", input.value || "");
-    fetch(`/task/${taskId}/due-date/`, {
-      method: "POST",
-      headers: { "X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString()
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data && data.status === "ok") {
-          const card = document.querySelector('[data-id="' + taskId + '"]');
-          if (card) card.dataset.due = data.due_date || "";
-          renderDueDate(data.due_date || "");
-          loadActivity(taskId);
-        }
-      });
-  };
-
-  window.clearDueDate = function () {
-    const input = document.getElementById("dueDateInput");
-    if (input) input.value = "";
-    window.saveDueDate();
-  };
 
   // =============================
-  // INVITE MODAL CONTROL
+  // MODAL CONTROL (CLEAN)
   // =============================
-  var overlay = document.getElementById('inviteModalOverlay');
-  var openBtn = document.getElementById('openInviteModalBoard');
-  var closeBtn = document.getElementById('closeInviteModal');
-  var cancelBtn = document.getElementById('cancelInviteModal');
+  const openBtn = document.getElementById('openInviteModalBoard');
+  const closeBtn = document.getElementById('closeInviteModal');
+  const cancelBtn = document.getElementById('cancelInviteModal');
 
-  function setOpen(open) {
-    if (!overlay) {
-      console.warn("Modal overlay not found");
-      return;
-    }
+  function setModal(open) {
+    if (!overlay) return;
     overlay.hidden = !open;
   }
 
-  if (openBtn) {
-    openBtn.addEventListener('click', function () {
-      if (!overlay) {
-        console.warn("Modal overlay not found");
-        return;
-      }
-      setOpen(true);
+  openBtn?.addEventListener("click", () => {
+    setModal(true);
+    document.getElementById("inviteEmail")?.focus();
+  });
 
-      var em = document.getElementById('inviteEmail');
-      if (em) em.focus();
-    });
-  }
+  closeBtn?.addEventListener("click", () => setModal(false));
+  cancelBtn?.addEventListener("click", () => setModal(false));
 
-  if (closeBtn) closeBtn.onclick = () => setOpen(false);
-  if (cancelBtn) cancelBtn.onclick = () => setOpen(false);
-
-  if (overlay) {
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) setOpen(false);
-    });
-  }
+  overlay?.addEventListener("click", (e) => {
+    if (e.target === overlay) setModal(false);
+  });
 
   // =============================
-  // INVITE FORM SUBMIT
+  // INVITE FORM
   // =============================
-  var inviteForm = document.getElementById('inviteForm');
-  var inviteError = document.getElementById('inviteError');
+  const inviteForm = document.getElementById('inviteForm');
+  const inviteError = document.getElementById('inviteError');
 
-  function showErr(msg) {
+  function showErr(msg){
     if (!inviteError) return;
     inviteError.textContent = msg;
     inviteError.hidden = !msg;
   }
 
-  if (inviteForm) {
-    inviteForm.addEventListener('submit', async function (e) {
-      e.preventDefault();
+  inviteForm?.addEventListener("submit", async function(e){
 
-      showErr("");
+    e.preventDefault();
+    showErr("");
 
-      const submitBtn = inviteForm.querySelector("button[type='submit']");
-      submitBtn.disabled = true;
-      submitBtn.innerText = "Sending...";
+    const btn = inviteForm.querySelector("button[type='submit']");
+    btn.disabled = true;
+    btn.innerText = "Sending...";
 
-      try {
-        const res = await fetch('{% url "core:invite_project_member" project.id %}', {
-          method: 'POST',
-          headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-          body: new FormData(inviteForm)
-        });
+    try {
+      const res = await fetch('{% url "core:invite_project_member" project.id %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        body: new FormData(inviteForm)
+      });
 
-        const data = await res.json();
+      const data = await res.json();
 
-        if (res.ok && data.status === 'invited') {
-          location.reload();
-        } else {
-          showErr(data.error || "Invite failed");
-        }
-
-      } catch (err) {
-        showErr("Network error");
+      if (res.ok && data.status === 'invited') {
+        location.reload();
+      } else {
+        showErr(data.error || "Invite failed");
       }
 
-      submitBtn.disabled = false;
-      submitBtn.innerText = "Send invite";
-    });
-  }
+    } catch {
+      showErr("Network error");
+    }
 
-})();
+    btn.disabled = false;
+    btn.innerText = "Send invite";
+  });
 
-// Recheck Board functionality
+})(); // END IIFE
+
+
+// =============================
+// RECHECK BUTTON (SAFE)
+// =============================
 function recheckBoard() {
-    const btn = document.getElementById('recheckBoardBtn');
+  const btn = document.getElementById('recheckBoardBtn');
+  if (!btn) return;
 
-    if (!btn) return;   // ✅ FIX (important)
+  btn.innerHTML = '<i class="ri-refresh-line ri-spin"></i> Rechecking...';
+  btn.disabled = true;
 
-    const originalText = btn.innerHTML;
-
-    btn.innerHTML = '<i class="ri-refresh-line ri-spin"></i> Rechecking...';
-    btn.disabled = true;
-
-    setTimeout(() => {
-        window.location.reload();
-    }, 500);
+  setTimeout(() => location.reload(), 500);
 }
 
-// Add loading animation for refresh button
-const style = document.createElement('style');
-style.textContent = `
-    .ri-spin {
-        animation: spin 1s linear infinite;
-    }
+// =============================
+// SPIN STYLE (ONCE)
+// =============================
+if (!document.getElementById("spinStyle")) {
+  const style = document.createElement('style');
+  style.id = "spinStyle";
+  style.textContent = `
+    .ri-spin { animation: spin 1s linear infinite; }
     @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
-`;
-document.head.appendChild(style);
+  `;
+  document.head.appendChild(style);
+}
+
+});
 </script>
 {% endblock %}
 
