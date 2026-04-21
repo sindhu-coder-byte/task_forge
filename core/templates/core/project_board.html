@@ -26,12 +26,12 @@
         <i class="ri-refresh-line"></i>
         Recheck Board
       </button>
-      {% if can_manage_members %}
+      {% comment %} {% if can_manage_members %}
       <button type="button" class="btn-jira" id="openInviteModalBoard">
         <i class="ri-user-add-line"></i>
         Invite
       </button>
-      {% endif %}
+      {% endif %} {% endcomment %}
     </div>
   </div>
 
@@ -403,6 +403,11 @@
 @media (max-width: 768px){
   .tk-sidebar{width:100%;right:-105%;max-width:420px}
 }
+
+.btn-jira{
+  padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;text-decoration:none;color:#111827;font-size:13px
+
+}
 .tk-btn-primary{
   background:#0052cc;
   color:#fff;
@@ -425,6 +430,11 @@
   align-items: center;
   justify-content: center;
   z-index: 1200;
+}
+
+.btn-jira
+{
+
 }
 
 /* ===== MODAL BOX ===== */
