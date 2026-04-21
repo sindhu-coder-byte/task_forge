@@ -1116,26 +1116,34 @@ def update_task_labels(request, task_id):
     
 from .models import Profile
 
+import time
+from datetime import timedelta
+
 def _check_login_attempts(request):
     """Rate limiting: max 5 attempts per 15 minutes"""
-    ip = request.META.get('REMOTE_ADDR', '')
+    ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', ''))
     key = f'login_attempts_{ip}'
+    
     attempts = request.session.get(key, 0)
     last_attempt = request.session.get(f'{key}_time')
-    
+
     if last_attempt:
-        elapsed = timezone.now() - last_attempt
-        if elapsed > timedelta(minutes=15):
-            attempts = 0
-    
+        elapsed = time.time() - last_attempt   # ✅ FIX
+        if elapsed > 900:  # 15 minutes = 900 seconds
+            request.session[key] = 0
+            request.session.pop(f'{key}_time', None)
+            return False
+
     return attempts >= 5
+
 
 def _increment_login_attempts(request):
     """Increment login attempt counter"""
-    ip = request.META.get('REMOTE_ADDR', '')
+    ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', ''))
     key = f'login_attempts_{ip}'
+    
     request.session[key] = request.session.get(key, 0) + 1
-    request.session[f'{key}_time'] = timezone.now()
+    request.session[f'{key}_time'] = time.time()   # ✅ FIX
 
 def login_view(request):
     if request.method == "POST":
@@ -1253,7 +1261,6 @@ def is_project_lead(user, project):
 #             messages.error(request, f"An error occurred during registration. Please try again.")
             
 #     return render(request, "core/auth.html", {"initialTab": "register"})
-
 
 def logout_view(request):
     logout(request)
