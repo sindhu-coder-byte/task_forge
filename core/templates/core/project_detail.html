@@ -211,7 +211,7 @@
 
       <div class="form-group">
         <label>Team Lead</label>
-        <select name="lead">
+        <select name="lead" id="leadSelect">
           <option value="">Select Lead</option>
           {% for member in lead_candidates %}
             <option value="{{ member.id }}">{{ member.username }}</option>
@@ -221,7 +221,7 @@
 
       <div class="form-group">
         <label>Team Members</label>
-        <select name="members" multiple>
+        <select name="members" id="membersSelect" multiple>
           {% for member in valid_members %}
             <option value="{{ member.id }}">{{ member.username }}</option>
           {% endfor %}
@@ -409,6 +409,8 @@
 
 {% block shell_foot_scripts %}
 <script>
+document.addEventListener("DOMContentLoaded", function () {
+
   // ===== Progress Update =====
   async function updateProgress() {
     try {
@@ -439,28 +441,65 @@
     }
   }
 
+  // OPTIONAL: auto refresh progress every 10 sec
+  setInterval(updateProgress, 10000);
+
+
   // ===== Team Modal =====
   const modal = document.getElementById("teamModal");
   const openBtn = document.getElementById("openTeamModal");
   const closeBtn = document.getElementById("closeTeamModal");
+  const form = modal ? modal.querySelector("form") : null;
 
-  if (openBtn) {
+  if (openBtn && modal) {
     openBtn.addEventListener("click", (e) => {
       e.preventDefault();
       modal.style.display = "block";
     });
   }
 
-  if (closeBtn) {
+  if (closeBtn && modal) {
     closeBtn.addEventListener("click", () => {
       modal.style.display = "none";
+      if (form) form.reset(); // reset form on close
     });
   }
 
   window.addEventListener("click", (e) => {
-    if (e.target === modal) {
+    if (modal && e.target === modal) {
       modal.style.display = "none";
+      if (form) form.reset();
     }
   });
+
+  // Close with ESC key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal) {
+      modal.style.display = "none";
+      if (form) form.reset();
+    }
+  });
+
+
+  // ===== Lead vs Members Logic =====
+  const leadSelect = document.getElementById("leadSelect");
+  const membersSelect = document.getElementById("membersSelect");
+
+  if (leadSelect && membersSelect) {
+    leadSelect.addEventListener("change", function () {
+      let leadId = this.value;
+
+      for (let opt of membersSelect.options) {
+        if (opt.value === leadId) {
+          opt.disabled = true;
+          opt.selected = false; // remove if already selected
+        } else {
+          opt.disabled = false;
+        }
+      }
+    });
+  }
+
+});
 </script>
 {% endblock %}

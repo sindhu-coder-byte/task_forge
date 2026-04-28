@@ -13,6 +13,7 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.core.paginator import Paginator
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from requests import request
@@ -83,8 +84,8 @@ def _task_can_view(user, task: Task) -> bool:
     if task.project and task.project.project_lead == user:
         return True
 
-    # Team Lead → all project tasks
-    if role == 'team_lead' and task.project and task.project.members.filter(id=user.id).exists():
+    # Delivery Team → all project tasks
+    if role == 'delivery_team' and task.project and task.project.members.filter(id=user.id).exists():
         return True
 
     # Team Member → ONLY assigned tasks
@@ -102,9 +103,9 @@ def _allowed_transitions(role: str, old_status: str) -> set[str]:
         },
         "developer": {
             "todo": {"in_progress"},
+            "in_progress": {"in_review"},
         },
         "tester": {
-            "in_progress": {"in_review"},
             "in_review": {"done", "in_progress"},  # approve / reject
         },
         "user": {},
@@ -112,8 +113,15 @@ def _allowed_transitions(role: str, old_status: str) -> set[str]:
         "project_lead": {
              "*": {k for (k, _) in Task.STATUS_CHOICES},
         },
-        "team_lead": {
-           "*": {k for (k, _) in Task.STATUS_CHOICES},
+        "ui_ux_designer": {
+            "todo": {"in_progress"},
+            "in_progress": {"in_review"},
+        },
+        "deployment_team": {
+            "in_review": {"done"},
+        },
+        "delivery_team": {
+            "*": {k for (k, _) in Task.STATUS_CHOICES},
         },
         
     }
@@ -124,13 +132,74 @@ def _allowed_transitions(role: str, old_status: str) -> set[str]:
     return role_map.get(old_status, set())
 
 
+def _status_label(status: str) -> str:
+    return dict(Task.STATUS_CHOICES).get(status, status.replace("_", " ").title())
+
+
+def _role_label(role: str) -> str:
+    return dict(Profile.ROLE_CHOICES).get(role, role.replace("_", " ").title())
+
+
+def _workflow_transition_rows():
+    ordered_roles = ["developer", "ui_ux_designer", "tester", "deployment_team", "delivery_team", "project_lead", "admin"]
+    rows = []
+
+    for from_status, _ in Task.STATUS_CHOICES:
+        for to_status, _ in Task.STATUS_CHOICES:
+            if from_status == to_status:
+                continue
+
+            allowed_roles = [
+                role for role in ordered_roles
+                if to_status in _allowed_transitions(role, from_status)
+            ]
+            if not allowed_roles:
+                continue
+
+            rows.append({
+                "from_status": from_status,
+                "from_label": _status_label(from_status),
+                "to_status": to_status,
+                "to_label": _status_label(to_status),
+                "roles": allowed_roles,
+                "role_labels": [_role_label(role) for role in allowed_roles],
+                "policy": (
+                    "Visible task and assignee move only"
+                    if allowed_roles == ["developer"] or allowed_roles == ["tester"]
+                    else "Leads and admins can override within visible tasks"
+                ),
+            })
+
+    return rows
+
+
+def _log_task_activity(task: Task, user, action: str, old_value: str = "", new_value: str = ""):
+    TaskActivity.objects.create(
+        task=task,
+        user=user,
+        action=action,
+        old_value=old_value or None,
+        new_value=new_value or None,
+    )
+
+
+def _project_progress_snapshot(project: Project) -> tuple[dict, int]:
+    status_counts = get_status_counts(Task.objects.filter(project=project))
+    total_tasks = sum(status_counts.values())
+    progress_percent = 0
+    if total_tasks > 0:
+        completed = status_counts.get('done', 0) + status_counts.get('in_review', 0)
+        progress_percent = int((completed / total_tasks) * 100)
+    return status_counts, progress_percent
+
+
 def _task_can_transition(user, task: Task, new_status: str) -> bool:
     """Team-centric visibility, assignee-restricted actions (except admin)."""
     if not _task_can_view(user, task):
         return False
 
     role = user.profile.role
-    if role in ["admin", "project_lead", "team_lead"]:
+    if role in ["admin", "project_lead", "delivery_team"]:
         return new_status in _allowed_transitions(role, task.status)
 
     # Only assignee can move the issue in the workflow.
@@ -138,6 +207,14 @@ def _task_can_transition(user, task: Task, new_status: str) -> bool:
         return False
 
     return new_status in _allowed_transitions(role, task.status)
+
+
+def _task_allowed_next_statuses(user, task: Task) -> list[str]:
+    allowed = []
+    for status, _ in Task.STATUS_CHOICES:
+        if status != task.status and _task_can_transition(user, task, status):
+            allowed.append(status)
+    return allowed
 
 
 def _guest_home_context():
@@ -205,7 +282,7 @@ def _user_workspace_scope(request):
             status='in_review'
         ).select_related('project', 'assigned_to')
 
-    elif role in ['project_lead', 'team_lead']:
+    elif role in ['project_lead', 'delivery_team']:
         # ✅ Leads can see full project scope
         tasks_qs = Task.objects.filter(
             Q(project__members=request.user) | Q(project__project_lead=request.user)
@@ -357,7 +434,7 @@ def post_login_handler(request, user):
     # ✅ Role-based redirect
     if profile.role == 'admin':
         return redirect('core:dashboard')
-    elif profile.role in ['project_lead', 'team_lead']:
+    elif profile.role in ['project_lead', 'delivery_team']:
         return redirect('core:projects')
     else:
         return redirect('core:home')  
@@ -366,6 +443,11 @@ def post_login_handler(request, user):
 def teams(request):
     profile = getattr(request.user, 'profile', None)
     role = profile.role if profile else 'user'
+
+    # For team_lead, get only teams they lead
+    my_teams = None
+    if role == 'delivery_team':
+        my_teams = Team.objects.filter(lead=request.user).prefetch_related('members', 'project')
 
     if role == 'admin':
         projects = Project.objects.prefetch_related('members')
@@ -377,7 +459,7 @@ def teams(request):
         tasks = Task.objects.filter(project__project_lead=request.user).select_related('project', 'assigned_to')
         members = User.objects.filter(project_members__in=projects).distinct()
         can_approve = True
-    elif role == 'team_lead':
+    elif role == 'delivery_team':
        teams = Team.objects.filter(lead=request.user)
 
        team_members = User.objects.filter(teams__in=teams).distinct()
@@ -403,7 +485,7 @@ def teams(request):
     project_count = projects.count()
     team_member_count = members.exclude(id=request.user.id).count() if role != 'admin' else members.count()
 
-    return render(request, 'core/teams.html', {
+    context = {
         'projects': projects,
         'tasks': tasks,
         'members': members,
@@ -412,7 +494,13 @@ def teams(request):
         'team_member_count': team_member_count,
         'role': role,
         'can_approve': can_approve,
-    })
+    }
+    
+    # Add my_teams for team_lead
+    if my_teams:
+        context['my_teams'] = my_teams
+    
+    return render(request, 'core/teams.html', context)
     
 @login_required
 def update_member_role(request, project_id, user_id):
@@ -424,7 +512,7 @@ def update_member_role(request, project_id, user_id):
     user = get_object_or_404(User, id=user_id)
     new_role = request.POST.get("role")
 
-    if new_role in ['team_lead', 'developer', 'tester']:
+    if new_role in ['developer', 'tester', 'ui_ux_designer', 'deployment_team', 'delivery_team']:
         user.profile.role = new_role
         user.profile.save()
 
@@ -435,39 +523,118 @@ from django.shortcuts import redirect, get_object_or_404
 from .models import Team, Project
 from django.contrib.auth.models import User
 
+from django.db import transaction
+
 @login_required
 def create_team(request, project_id):
     project = get_object_or_404(Project, id=project_id)
 
-    # Only Project Lead can create team
     if request.user != project.project_lead:
         messages.error(request, "Not allowed")
         return redirect('core:project_detail', project.id)
 
     if request.method == "POST":
-        name = request.POST.get("name")
+        name = request.POST.get("name", "").strip()
         lead_id = request.POST.get("lead")
         member_ids = request.POST.getlist("members")
 
-        team = Team.objects.create(
-            name=name,
-            project=project
-        )
+        if not name:
+            messages.error(request, "Team name is required")
+            return redirect('core:project_detail', project.id)
 
-        # Assign lead
-        if lead_id:
-            lead = User.objects.get(id=lead_id)
-            team.lead = lead
-            team.save()
+        try:
+            with transaction.atomic():
 
-        # Assign members
-        if member_ids:
-            members = User.objects.filter(id__in=member_ids)
-            team.members.set(members)
+                team = Team.objects.create(
+                    name=name,
+                    project=project
+                )
 
-        messages.success(request, "Team created successfully")
+                # ✅ Assign Lead (only valid project user)
+                if lead_id:
+                    lead = User.objects.filter(id=lead_id).first()
+                    if lead:
+                        team.lead = lead
+
+                # ✅ Assign Members (exclude lead)
+                members = User.objects.filter(id__in=member_ids)
+
+                if lead_id:
+                    members = members.exclude(id=lead_id)
+
+                team.members.set(members)
+                team.save()
+
+                messages.success(request, "Team created successfully")
+
+        except Exception as e:
+            messages.error(request, f"Error: {str(e)}")
 
     return redirect('core:project_detail', project.id)
+@login_required
+def edit_team(request, team_id):
+    team = get_object_or_404(Team, id=team_id)
+    project = team.project
+
+    if request.user != project.project_lead and request.user != team.lead:
+        messages.error(request, "Not allowed")
+        return redirect('core:teams')
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        lead_id = request.POST.get("lead")
+        member_ids = request.POST.getlist("members")
+
+        if not name:
+            messages.error(request, "Team name is required")
+            return redirect('core:teams')
+
+        try:
+            with transaction.atomic():
+
+                team.name = name
+
+                # ✅ Assign Lead
+                lead = None
+                if lead_id:
+                    lead = User.objects.filter(id=lead_id).first()
+                    team.lead = lead
+
+                # ✅ Assign Members (exclude lead)
+                members = User.objects.filter(id__in=member_ids)
+
+                if lead:
+                    members = members.exclude(id=lead.id)
+
+                team.members.set(members)
+                team.save()
+
+                messages.success(request, "Team updated successfully")
+
+        except Exception as e:
+            messages.error(request, f"Error: {str(e)}")
+
+    return redirect('core:teams')
+
+@login_required
+def delete_team(request, team_id):
+    team = get_object_or_404(Team, id=team_id)
+    project = team.project
+
+    if request.user != project.project_lead:
+        messages.error(request, "Not allowed")
+        return redirect('core:teams')
+
+    if request.method == "POST":
+        team_name = team.name
+
+        try:
+            team.delete()
+            messages.success(request, f"Team '{team_name}' deleted")
+        except Exception as e:
+            messages.error(request, f"Error: {str(e)}")
+
+    return redirect('core:teams')
 
 def get_status_counts(tasks):
     return {
@@ -485,14 +652,18 @@ def project_board(request, project_id):
     if not _project_accessible_by(user, project):
         return redirect('core:projects')
 
-    if project.project_lead == user:
+    role = user.profile.role
+    
+    # Role-Based Task Filtering
+    if role == 'admin' or project.project_lead == user:
+        # Admin & Project Lead → all tasks
         tasks = Task.objects.filter(project=project)
     
-    elif user.profile.role == 'team_lead':
-        # Team Lead sees tasks of their team members (developers, testers, users)
+    elif role == 'delivery_team':
+        # Delivery Team sees tasks of their team members (developers, testers, users)
         tasks = Task.objects.filter(
             project=project,
-            assigned_to__profile__role__in=['developer', 'tester', 'user']
+            assigned_to__profile__role__in=['developer', 'tester', 'ui_ux_designer', 'user']
         )
           
     else:  # regular team member
@@ -501,6 +672,7 @@ def project_board(request, project_id):
             assigned_to=user
         )
 
+    tasks = tasks.select_related('project', 'assigned_to').prefetch_related('labels').distinct()
     status_counts = get_status_counts(tasks)
     total_tasks = sum(status_counts.values())
     progress_percent = 0
@@ -508,14 +680,21 @@ def project_board(request, project_id):
         completed = status_counts.get('done', 0) + status_counts.get('in_review', 0)
         progress_percent = int((completed / total_tasks) * 100)
 
+    board_tasks = list(tasks)
+    for task in board_tasks:
+        task.allowed_next_statuses = _task_allowed_next_statuses(user, task)
+        task.allowed_next_status_labels = [_status_label(status) for status in task.allowed_next_statuses]
+
     context = {
         'project': project,
-        'tasks': tasks,
+        'tasks': board_tasks,
         'status_choices': Task.STATUS_CHOICES,
         'status_counts': status_counts,
         'progress_percent': progress_percent,
         'can_manage_members': _can_manage_project_members(request.user, project),
-        'invite_role_choices': Profile.ROLE_CHOICES
+        'invite_role_choices': Profile.ROLE_CHOICES,
+        'workflow_rows': _workflow_transition_rows(),
+        'role_label': _role_label(role),
     }
     return render(request, 'core/project_board.html', context)
 
@@ -527,8 +706,8 @@ def project_backlog(request, project_id):
         return redirect('core:projects')
 
     qs = Task.objects.select_related('assigned_to').filter(project=project).order_by('status', '-id')
-    if request.user.profile.role == 'team_lead':
-        qs = qs.filter(assigned_to__profile__role__in=['developer', 'tester', 'user'])
+    if request.user.profile.role == 'delivery_team':
+        qs = qs.filter(assigned_to__profile__role__in=['developer', 'tester', 'ui_ux_designer', 'user'])
     elif request.user.profile.role not in ['admin', 'project_lead']:
         qs = qs.filter(assigned_to=request.user)
 
@@ -603,7 +782,7 @@ def tasks(request):
         projects = Project.objects.all()
         users = User.objects.all()
 
-    elif role in ['project_lead', 'team_lead']:
+    elif role in ['project_lead', 'delivery_team']:
         # ✅ Leads see all project tasks
         tasks = Task.objects.select_related('project', 'assigned_to').filter(
                   Q(project__members=request.user) |
@@ -657,12 +836,13 @@ from django.views.decorators.csrf import csrf_exempt
 @role_required(['developer'])
 def start_task(request, task_id):
     # Backward-compatible endpoint (use unified transition)
-    if not _task_can_transition(request.user, get_object_or_404(Task, id=task_id), 'in_progress'):
+    task = get_object_or_404(Task, id=task_id)
+    if not _task_can_transition(request.user, task, 'in_progress'):
         return redirect('core:dashboard')
-    task = Task.objects.get(id=task_id)
+    old_status = task.status
     task.status = 'in_progress'
     task.save()
-    TaskActivity.objects.create(task=task, user=request.user, action="Status changed", old_value='todo', new_value='in_progress')
+    _log_task_activity(task, request.user, "Status changed", _status_label(old_status), _status_label('in_progress'))
     return redirect('core:dashboard')
 
 
@@ -670,26 +850,26 @@ def start_task(request, task_id):
 @role_required(['developer'])
 def submit_task(request, task_id):
     # Backward-compatible endpoint (use unified transition)
-    if not _task_can_transition(request.user, get_object_or_404(Task, id=task_id), 'in_review'):
+    task = get_object_or_404(Task, id=task_id)
+    if not _task_can_transition(request.user, task, 'in_review'):
         return redirect('core:dashboard')
-    task = Task.objects.get(id=task_id)
     old = task.status
     task.status = 'in_review'
     task.save()
-    TaskActivity.objects.create(task=task, user=request.user, action="Status changed", old_value=old, new_value='in_review')
+    _log_task_activity(task, request.user, "Status changed", _status_label(old), _status_label('in_review'))
     return redirect('core:dashboard')
 
 @login_required
 @role_required(['tester'])
 def approve_task(request, task_id):
     # Backward-compatible endpoint (use unified transition)
-    if not _task_can_transition(request.user, get_object_or_404(Task, id=task_id), 'done'):
+    task = get_object_or_404(Task, id=task_id)
+    if not _task_can_transition(request.user, task, 'done'):
         return redirect('core:dashboard')
-    task = Task.objects.get(id=task_id)
     old = task.status
     task.status = 'done'
     task.save()
-    TaskActivity.objects.create(task=task, user=request.user, action="Status changed", old_value=old, new_value='done')
+    _log_task_activity(task, request.user, "Status changed", _status_label(old), _status_label('done'))
     return redirect('core:dashboard')
 
 @login_required
@@ -737,6 +917,8 @@ def create_task(request):
         project_id = request.POST.get('project')
         priority = request.POST.get('priority')
         due_date_raw = (request.POST.get('due_date') or '').strip()
+        start_date_raw = (request.POST.get('start_date') or '').strip()
+        delivery_date_raw = (request.POST.get('delivery_date') or '').strip()
         label_ids = request.POST.getlist('labels')
 
         # ❌ basic validation
@@ -770,6 +952,22 @@ def create_task(request):
                 messages.error(request, "Invalid due date")
                 return redirect('core:create_task')
 
+        start_dt = None
+        if start_date_raw:
+            try:
+                y, m, d = [int(x) for x in start_date_raw.split("-")]
+                start_dt = date(y, m, d)
+            except Exception:
+                pass  # Ignore invalid start date
+
+        delivery_dt = None
+        if delivery_date_raw:
+            try:
+                y, m, d = [int(x) for x in delivery_date_raw.split("-")]
+                delivery_dt = date(y, m, d)
+            except Exception:
+                pass  # Ignore invalid delivery date
+
         task = Task.objects.create(
             title=title,
             description=description,
@@ -778,7 +976,9 @@ def create_task(request):
             project=project,
             priority=priority,
             issue_number=issue_number,
+            start_date=start_dt,
             due_date=due_dt,
+            delivery_date=delivery_dt,
         )
 
         # Labels (optional)
@@ -796,10 +996,6 @@ def create_task(request):
         'selected_assignee': selected_assignee.id if selected_assignee else '',
         'labels': labels_qs,
     })
-    
-
-
-@login_required
 @login_required
 def update_task_status(request, task_id, new_status):
     if request.method != 'POST':
@@ -810,48 +1006,89 @@ def update_task_status(request, task_id, new_status):
     # 🔐 Permission checks
     if not _task_can_view(request.user, task):
         return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
-
-    if not _task_can_transition(request.user, task, new_status):
-        return JsonResponse({'status': 'error', 'message': 'Invalid transition'}, status=403)
+     
+    # ✅ Soft rule (NOT strict workflow)
+    if new_status == 'done' and request.user.profile.role != 'tester':
+       return JsonResponse({
+        'status': 'error',
+        'message': 'Only testers can mark task as Done'
+    }, status=403)
 
     # ⛔ No change
     if task.status == new_status:
+        project_counts, progress_percent = _project_progress_snapshot(task.project)
         return JsonResponse({
             'status': 'no_change',
-            'notification_count': _get_notification_count(request.user)
+            'notification_count': _get_notification_count(request.user),
+            'status_counts': project_counts,
+            'progress_percent': progress_percent,
+            'allowed_next_statuses': _task_allowed_next_statuses(request.user, task),
         })
 
     try:
         with transaction.atomic():
             old_status = task.status
-            task.status = new_status
-            task.save(update_fields=['status'])
 
-            # 🧾 Activity log
-            TaskActivity.objects.create(
+            # 🔥 AUTO-ASSIGN TESTER WHEN MOVED TO IN_REVIEW
+            assigned_old = task.assigned_to
+
+            if new_status == 'in_review':
+                testers = User.objects.filter(
+                    profile__role='tester',
+                    team_members__project=task.project
+                ).distinct()
+
+                if testers.exists():
+                    # 👉 simple: assign first tester
+                    task.assigned_to = testers.first()
+                else:
+                    # fallback
+                    task.assigned_to = task.project.project_lead
+
+            # 🔥 RESTRICT DONE → ONLY TESTER
+            if new_status == 'done' and request.user.profile.role != 'tester':
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Only tester can mark task as Done'
+                }, status=403)
+
+            # ✅ Update status
+            task.status = new_status
+            task.save(update_fields=['status', 'assigned_to'])
+
+            # 📝 Activity: status change
+            _log_task_activity(
                 task=task,
                 user=request.user,
                 action="Status changed",
-                old_value=old_status,
-                new_value=new_status
+                old_value=_status_label(old_status),
+                new_value=_status_label(new_status),
             )
 
-        # 🔥 IMPORTANT: role-based notification logic
+            # 📝 Activity: assignment change (only if changed)
+            if assigned_old != task.assigned_to:
+                _log_task_activity(
+                    task=task,
+                    user=request.user,
+                    action="Assigned changed",
+                    old_value=getattr(assigned_old, 'username', 'Unassigned'),
+                    new_value=getattr(task.assigned_to, 'username', 'Unassigned'),
+                )
+
         notification_count = _get_notification_count(request.user)
-        project_counts = get_status_counts(Task.objects.filter(project=task.project))
-        total_tasks = sum(project_counts.values())
-        progress_percent = 0
-        if total_tasks > 0:
-            progress_percent = int((project_counts.get('done', 0) + project_counts.get('in_review', 0)) / total_tasks * 100)
+        project_counts, progress_percent = _project_progress_snapshot(task.project)
 
         return JsonResponse({
             'status': 'success',
             'old': old_status,
             'new': new_status,
+            'assigned_to': task.assigned_to.username if task.assigned_to else None,
             'notification_count': notification_count,
             'status_counts': project_counts,
             'progress_percent': progress_percent,
+            'allowed_next_statuses': _task_allowed_next_statuses(request.user, task),
         })
+
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
@@ -863,11 +1100,18 @@ def task_detail(request, task_id):
         return redirect('core:tasks')
 
     role = request.user.profile.role
-    next_statuses = sorted(_allowed_transitions(role, task.status))
+    next_statuses = _task_allowed_next_statuses(request.user, task)
+    workflow_rows = [
+        row for row in _workflow_transition_rows()
+        if row["from_status"] == task.status
+    ]
 
     return render(request, 'core/task_detail.html', {
         'task': task,
         'next_statuses': next_statuses,
+        'role_label': _role_label(role),
+        'workflow_rows': workflow_rows,
+        'today': timezone.now().date(),
     })
 
 
@@ -875,19 +1119,17 @@ def task_detail(request, task_id):
 @login_required
 @role_required(['tester'])
 def reject_task(request, task_id):
-    task = Task.objects.get(id=task_id)
+    task = get_object_or_404(Task, id=task_id)
     # Backward-compatible endpoint (use unified transition)
     if not _task_can_transition(request.user, task, 'in_progress'):
         return redirect('core:dashboard')
     old = task.status
     task.status = 'in_progress'
     task.save()
-    TaskActivity.objects.create(task=task, user=request.user, action="Status changed", old_value=old, new_value='in_progress')
+    _log_task_activity(task, request.user, "Status changed", _status_label(old), _status_label('in_progress'))
     return redirect('core:dashboard')
 
 
-from django.http import JsonResponse
-import json
 @login_required
 def get_comments(request, task_id):
     task = get_object_or_404(Task, id=task_id)
@@ -915,30 +1157,39 @@ def add_comment(request, task_id):
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid request'}, status=400)
 
-    body = json.loads(request.body)
+    task = get_object_or_404(Task, id=task_id)
+    if not _task_can_view(request.user, task):
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    try:
+        body = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid payload'}, status=400)
+
     text = body.get('text', '').strip()
 
     if not text:
         return JsonResponse({'error': 'Empty comment'}, status=400)
 
     comment = Comment.objects.create(
-        task_id=task_id,
+        task=task,
         user=request.user,
         text=text
     )
 
-    # ✅ Activity log
-    TaskActivity.objects.create(
-        task_id=task_id,
+    _log_task_activity(
+        task=task,
         user=request.user,
-        action="Comment added"
+        action="Comment added",
+        new_value=text[:100],
     )
 
     return JsonResponse({
         "status": "ok",
         "comment": {
             "user": comment.user.username,
-            "text": comment.text
+            "text": comment.text,
+            "time": comment.created.strftime("%d %b %H:%M"),
         }
     })
 
@@ -962,12 +1213,7 @@ def upload_attachment(request, task_id):
         uploaded_by=request.user
     )
 
-    # ✅ Activity log
-    TaskActivity.objects.create(
-        task=task,
-        user=request.user,
-        action="File uploaded"
-    )
+    _log_task_activity(task, request.user, "File uploaded", new_value=attachment.file.name.split('/')[-1])
 
     return JsonResponse({
         "status": "ok",
@@ -1033,12 +1279,7 @@ def delete_attachment(request, task_id, attachment_id):
     name = attachment.file.name.split('/')[-1] if attachment.file else "file"
     attachment.delete()
 
-    TaskActivity.objects.create(
-        task=task,
-        user=request.user,
-        action="File removed",
-        old_value=name,
-    )
+    _log_task_activity(task, request.user, "File removed", old_value=name)
 
     return JsonResponse({"status": "deleted"})
 
@@ -1054,9 +1295,10 @@ def update_task_due_date(request, task_id):
 
     due_raw = (request.POST.get("due_date") or "").strip()
     if not due_raw:
+        old_due = task.due_date.isoformat() if task.due_date else ""
         task.due_date = None
         task.save(update_fields=["due_date"])
-        TaskActivity.objects.create(task=task, user=request.user, action="Due date cleared")
+        _log_task_activity(task, request.user, "Due date cleared", old_value=old_due)
         return JsonResponse({"status": "ok", "due_date": ""})
 
     try:
@@ -1069,13 +1311,7 @@ def update_task_due_date(request, task_id):
     old = task.due_date.isoformat() if task.due_date else ""
     task.due_date = new_due
     task.save(update_fields=["due_date"])
-    TaskActivity.objects.create(
-        task=task,
-        user=request.user,
-        action="Due date changed",
-        old_value=old,
-        new_value=new_due.isoformat(),
-    )
+    _log_task_activity(task, request.user, "Due date changed", old, new_due.isoformat())
     return JsonResponse({"status": "ok", "due_date": new_due.isoformat()})
 
 
@@ -1101,21 +1337,13 @@ def update_task_labels(request, task_id):
     task.labels.set(ids)
     new_names = ", ".join(task.labels.values_list("name", flat=True))
 
-    TaskActivity.objects.create(
-        task=task,
-        user=request.user,
-        action="Labels updated",
-        old_value=old_names,
-        new_value=new_names,
-    )
+    _log_task_activity(task, request.user, "Labels updated", old_names, new_names)
     return JsonResponse({
         "status": "ok",
         "labels": [{"id": l.id, "name": l.name, "color": l.color} for l in task.labels.all()],
     })
     
     
-from .models import Profile
-
 import time
 from datetime import timedelta
 
@@ -1310,31 +1538,99 @@ from django.db.models import Q
 
 @login_required(login_url='core:login')
 def search_view(request):
-    query = request.GET.get('q')
+    query = request.GET.get('q', '').strip()
     profile, _ = Profile.objects.get_or_create(user=request.user)
     role = profile.role
 
     results = []
 
     if query:
+        # Build base queryset based on role
         if role == 'admin':
-            tasks = Task.objects.filter(
-                title__icontains=query
-            )
-
+            base_tasks = Task.objects.all()
+            base_projects = Project.objects.all()
         elif role == 'project_lead':
-            tasks = Task.objects.filter(
-                Q(project__project_lead=request.user) | Q(assigned_to=request.user),
-                title__icontains=query
+            base_tasks = Task.objects.filter(
+                Q(project__project_lead=request.user) | Q(assigned_to=request.user)
             )
-
+            base_projects = Project.objects.filter(project_lead=request.user)
         else:
-            tasks = Task.objects.filter(
-                assigned_to=request.user,
-                title__icontains=query
-            )
+            base_tasks = Task.objects.filter(assigned_to=request.user)
+            base_projects = Project.objects.filter(members=request.user)
 
-        results = list(tasks.values('id', 'title')[:5])
+        combined_ids = set()
+        combined_results = []
+
+        # Search by exact ID if query is numeric
+        if query.isdigit():
+            tasks_by_id = base_tasks.filter(id=int(query))
+            for task in tasks_by_id:
+                if task.id not in combined_ids:
+                    combined_ids.add(task.id)
+                    combined_results.append({
+                        'id': task.id,
+                        'title': task.title,
+                        'issue_key': task.issue_key,
+                        'project_name': task.project.name,
+                        'status': task.status,
+                        'type': 'task'
+                    })
+
+        # Search by issue_key prefix (e.g., "TF-1" or "TF")
+        tasks_by_key = base_tasks.filter(issue_key__icontains=query)
+        for task in tasks_by_key:
+            if task.id not in combined_ids:
+                combined_ids.add(task.id)
+                combined_results.append({
+                    'id': task.id,
+                    'title': task.title,
+                    'issue_key': task.issue_key,
+                    'project_name': task.project.name,
+                    'status': task.status,
+                    'type': 'task'
+                })
+
+        # Search by task title
+        tasks_by_title = base_tasks.filter(title__icontains=query)
+        for task in tasks_by_title:
+            if task.id not in combined_ids:
+                combined_ids.add(task.id)
+                combined_results.append({
+                    'id': task.id,
+                    'title': task.title,
+                    'issue_key': task.issue_key,
+                    'project_name': task.project.name,
+                    'status': task.status,
+                    'type': 'task'
+                })
+
+        # Search by project name
+        tasks_by_project = base_tasks.filter(project__name__icontains=query)
+        for task in tasks_by_project:
+            if task.id not in combined_ids:
+                combined_ids.add(task.id)
+                combined_results.append({
+                    'id': task.id,
+                    'title': task.title,
+                    'issue_key': task.issue_key,
+                    'project_name': task.project.name,
+                    'status': task.status,
+                    'type': 'task'
+                })
+
+        # Also search projects by name
+        projects = base_projects.filter(name__icontains=query)
+        for project in projects[:5]:
+            combined_results.append({
+                'id': project.id,
+                'title': project.name,
+                'issue_key': None,
+                'project_name': project.name,
+                'status': None,
+                'type': 'project'
+            })
+
+        results = combined_results[:10]
 
     return JsonResponse({'results': results})
 
@@ -1816,7 +2112,7 @@ def project_detail(request, project_id):
         # 🔹 Full access
         tasks = Task.objects.filter(project=project)
 
-    elif role == 'team_lead':
+    elif role == 'delivery_team':
         # 🔹 Only teams led by this user
         my_teams = teams.filter(lead=user)
 
@@ -1967,9 +2263,6 @@ def user_list(request):
 #  CREATE USER
 
 from django.contrib import messages
-from django.db import transaction
-
-
 @login_required
 @role_required(['admin'])
 def user_create(request):

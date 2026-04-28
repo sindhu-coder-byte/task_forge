@@ -42,17 +42,24 @@
           <option value="Low">Low</option>
         </select>
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+          <input type="date" name="start_date"
+                 style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;"
+                 placeholder="Start Date">
           <input type="date" name="due_date"
-                 style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
-
-          <select name="labels" multiple
-                  style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px; min-height:44px;">
-            {% for l in labels %}
-              <option value="{{ l.id }}">{{ l.name }}</option>
-            {% endfor %}
-          </select>
+                 style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;"
+                 placeholder="Due Date">
+          <input type="date" name="delivery_date"
+                 style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;"
+                 placeholder="Delivery Date">
         </div>
+
+        <select name="labels" multiple
+                style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px; min-height:44px;">
+          {% for l in labels %}
+            <option value="{{ l.id }}">{{ l.name }}</option>
+          {% endfor %}
+        </select>
 
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top: 4px;">
           <a href="{% url 'core:tasks' %}" style="text-decoration:none; padding: 9px 12px; border: 1px solid #dfe1e6; border-radius: 10px; color:#172b4d; background:#fff;">Cancel</a>

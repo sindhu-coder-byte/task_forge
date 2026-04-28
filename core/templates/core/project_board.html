@@ -16,22 +16,14 @@
       <a class="btn-ghost" href="{% url 'core:project_backlog' project.id %}">Backlog</a>
       <a class="btn-ghost" href="{% url 'core:project_team' project.id %}">Team</a>
       <a class="btn-ghost" href="{% url 'core:project_detail' project.id %}">Overview</a>
-      {% if can_manage_members %}
+      {% comment %} {% if can_manage_members %}
       <a class="btn-jira" href="{% url 'core:create_task' %}?project_id={{ project.id }}">
         <i class="ri-add-line"></i>
         Create Task
       </a>
-      {% endif %}
-      <button type="button" class="btn-ghost" id="recheckBoardBtn" onclick="recheckBoard()">
-        <i class="ri-refresh-line"></i>
-        Recheck Board
-      </button>
-      {% comment %} {% if can_manage_members %}
-      <button type="button" class="btn-jira" id="openInviteModalBoard">
-        <i class="ri-user-add-line"></i>
-        Invite
-      </button>
       {% endif %} {% endcomment %}
+
+
     </div>
   </div>
 
@@ -42,6 +34,48 @@
     </div>
     <div class="board-progress-text"><span id="boardProgressText">{{ progress_percent }}%</span> complete</div>
   </div>
+
+  {% comment %} <div class="workflow-card">
+    <div class="workflow-card-head">
+      <div>
+        <div class="board-progress-label">Workflow engine</div>
+        <h3>Status transitions and role ownership</h3>
+      </div>
+      <div class="workflow-role-pill">Your role: {{ role_label }}</div>
+    </div>
+    <div class="workflow-note">
+      Developers move work from <strong>To Do</strong> to <strong>In Progress</strong> and then <strong>In Review</strong>.
+      Testers approve or send reviewed work back. Leads and admins can move any task they can see.
+    </div>
+    <div class="workflow-table-wrap">
+      <table class="workflow-table">
+        <thead>
+          <tr>
+            <th>From</th>
+            <th>To</th>
+            <th>Who can move</th>
+            <th>Policy</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in workflow_rows %}
+          <tr>
+            <td>{{ row.from_label }}</td>
+            <td>{{ row.to_label }}</td>
+            <td>
+              <div class="workflow-role-list">
+                {% for role_label in row.role_labels %}
+                <span class="workflow-chip">{{ role_label }}</span>
+                {% endfor %}
+              </div>
+            </td>
+            <td>{{ row.policy }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div> {% endcomment %}
 
   <div class="board">
     {% for status, label in status_choices %}
@@ -69,6 +103,8 @@
                data-user="{{ task.assigned_to.username|default:'Unassigned' }}"
                data-status="{{ task.status }}"
                data-due="{{ task.due_date|default:'' }}"
+               data-allowed-statuses='[{% for allowed in task.allowed_next_statuses %}"{{ allowed }}"{% if not forloop.last %},{% endif %}{% endfor %}]'
+               data-allowed-status-labels='[{% for allowed in task.allowed_next_status_labels %}"{{ allowed|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}]'
                data-labels='[
                  {% for l in task.labels.all %}
                    {"name":"{{ l.name|escapejs }}","color":"{{ l.color }}"}{% if not forloop.last %},{% endif %}
@@ -110,6 +146,12 @@
   <div class="tk-sidebar-actions" id="sideActions">
     <a class="tk-btn-secondary" href="#" id="openIssueLink">Open issue</a>
   </div>
+
+  {% comment %} <div class="tk-transition-panel">
+    <h4>Allowed next statuses</h4>
+    <div id="allowedTransitionsList" class="tk-transition-list empty">No transitions available</div>
+    <div class="tk-transition-hint">Workflow is enforced by role and task visibility. Activity logging is mandatory for every board update.</div>
+  </div> {% endcomment %}
 
   <hr class="tk-divider">
   <div class="tk-comments">
@@ -233,6 +275,17 @@
 .board-progress-bar{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden}
 .board-progress-fill{height:100%;background:#10b981;transition:width .3s ease}
 .board-progress-text{margin-top:10px;font-size:13px;color:#111827;font-weight:600}
+.workflow-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin:0 0 18px;box-shadow:0 1px 3px rgba(15,23,42,.06)}
+.workflow-card-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:10px}
+.workflow-card-head h3{margin:4px 0 0;font-size:18px}
+.workflow-role-pill{padding:8px 12px;border-radius:999px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-size:12px;font-weight:700;white-space:nowrap}
+.workflow-note{font-size:13px;line-height:1.6;color:#475569;margin-bottom:14px}
+.workflow-table-wrap{overflow:auto}
+.workflow-table{width:100%;border-collapse:collapse;font-size:13px}
+.workflow-table th,.workflow-table td{padding:10px 12px;border-top:1px solid #e5e7eb;text-align:left;vertical-align:top}
+.workflow-table th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#64748b;background:#f8fafc}
+.workflow-role-list{display:flex;gap:6px;flex-wrap:wrap}
+.workflow-chip{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:#f1f5f9;color:#0f172a;font-size:11px;font-weight:700}
 
 .task-project{font-size:11px;color:#888}
 .task-labels{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
@@ -330,6 +383,10 @@
 }
 
 .tk-sidebar-actions{ display:flex; gap:10px; align-items:center; margin:6px 0 6px; }
+.tk-transition-panel h4{font-size:14px;margin:0 0 10px}
+.tk-transition-list{display:flex;gap:8px;flex-wrap:wrap}
+.tk-transition-hint{margin-top:10px;font-size:12px;color:#64748b;line-height:1.5}
+.tk-transition-chip{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#e0f2fe;color:#075985;font-size:12px;font-weight:700}
 .tk-btn-secondary{
   display:inline-flex;
   align-items:center;
@@ -402,6 +459,7 @@
 
 @media (max-width: 768px){
   .tk-sidebar{width:100%;right:-105%;max-width:420px}
+  .workflow-card-head{flex-direction:column}
 }
 
 .btn-jira{
@@ -430,11 +488,6 @@
   align-items: center;
   justify-content: center;
   z-index: 1200;
-}
-
-.btn-jira
-{
-
 }
 
 /* ===== MODAL BOX ===== */
@@ -507,89 +560,388 @@
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-
-(function () {
-
-  // =============================
-  // SAFE DOM REFERENCES
-  // =============================
   const sidebar = document.getElementById("taskSidebar");
-
-  if (!sidebar) {
-    console.warn("Sidebar not found - script safely stopped");
-  }
-
   let draggedCard = null;
 
-  function setText(id, v){
+  function setText(id, value) {
     const el = document.getElementById(id);
-    if (el) el.innerText = v || '';
+    if (el) el.innerText = value || "";
   }
 
-  function escapeHtml(text){
+  function escapeHtml(text) {
     const div = document.createElement("div");
-    div.innerText = text;
+    div.innerText = text || "";
     return div.innerHTML;
   }
 
-  // =============================
-  // SIDEBAR CONTROL
-  // =============================
+  function parseJsonArray(raw) {
+    if (!raw) return [];
+    try {
+      return JSON.parse(raw);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function refreshEmptyStates() {
+    document.querySelectorAll(".column").forEach(column => {
+      const hasCard = !!column.querySelector(".task-card");
+      const empty = column.querySelector(".empty");
+
+      if (!hasCard && !empty) {
+        column.insertAdjacentHTML("beforeend", '<div class="empty">No tasks</div>');
+      } else if (hasCard && empty) {
+        empty.remove();
+      }
+    });
+  }
+
+  function updateColumnCounts(statusCounts) {
+    if (!statusCounts) return;
+    Object.entries(statusCounts).forEach(([status, count]) => {
+      const el = document.querySelector(`.column[data-status="${status}"] .count`);
+      if (el) el.innerText = count;
+    });
+  }
+
+  function updateBoardSummary(statusCounts, progressPercent) {
+    updateColumnCounts(statusCounts);
+    const fill = document.getElementById("boardProgressFill");
+    const text = document.getElementById("boardProgressText");
+    if (fill) fill.style.width = `${progressPercent || 0}%`;
+    if (text) text.innerText = `${progressPercent || 0}%`;
+    refreshEmptyStates();
+  }
+
+  function updateGlobalNotificationCount(count) {
+    if (count === undefined || count === null) return;
+    const badge = document.querySelector("#notifBtn .badge");
+    if (badge) badge.textContent = String(count);
+    const sub = document.querySelector("#notifDropdown .dropdown-sub");
+    if (sub) sub.textContent = `${count} pending`;
+  }
+
+  function showAllowedTransitions(card) {
+    const list = document.getElementById("allowedTransitionsList");
+    if (!list) return;
+
+    const labels = parseJsonArray(card?.dataset.allowedStatusLabels);
+    if (!labels.length) {
+      list.className = "tk-transition-list empty";
+      list.innerHTML = "No transitions available";
+      return;
+    }
+
+    list.className = "tk-transition-list";
+    list.innerHTML = labels.map(label => `<span class="tk-transition-chip">${escapeHtml(label)}</span>`).join("");
+  }
+
+  function renderLabels(labelsJson) {
+    const container = document.getElementById("sideLabels");
+    const labels = parseJsonArray(labelsJson);
+
+    if (!labels.length) {
+      container.innerHTML = '<div class="empty">No labels</div>';
+      return;
+    }
+
+    container.innerHTML = labels.map(label =>
+      `<span class="label" style="--label-color:${escapeHtml(label.color)};">${escapeHtml(label.name)}</span>`
+    ).join("");
+  }
+
+  function renderDueDate(value) {
+    const due = document.getElementById("sideDue");
+    const input = document.getElementById("dueDateInput");
+    if (input) input.value = value || "";
+
+    if (!value) {
+      due.innerText = "Not set";
+      due.style.color = "";
+      return;
+    }
+
+    due.innerText = value;
+    due.style.color = new Date(value) < new Date() ? "#dc2626" : "";
+  }
+
+  function loadComments(taskId) {
+    fetch(`/task/${taskId}/comments/`)
+      .then(res => res.json())
+      .then(data => {
+        const el = document.getElementById("commentsList");
+        if (!Array.isArray(data) || !data.length) {
+          el.innerHTML = '<div class="empty">No comments</div>';
+          return;
+        }
+
+        el.innerHTML = data.map(comment => `
+          <div class="comment">
+            <strong>${escapeHtml(comment.user)}</strong><br>
+            ${escapeHtml(comment.text)}
+            <div>${escapeHtml(comment.time || "")}</div>
+          </div>
+        `).join("");
+      });
+  }
+
+  function addComment() {
+    const taskId = sidebar?.dataset.taskId;
+    const input = document.getElementById("commentInput");
+    const text = input?.value.trim();
+    if (!taskId || !text) return;
+
+    fetch(`/task/${taskId}/add-comment/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      body: JSON.stringify({ text })
+    })
+    .then(res => res.json().then(data => ({ ok: res.ok, data })).catch(() => ({ ok: res.ok, data: {} })))
+    .then(({ ok }) => {
+      if (!ok) return;
+      input.value = "";
+      loadComments(taskId);
+      loadActivity(taskId);
+    });
+  }
+
+  function loadFiles(taskId) {
+    fetch(`/task/${taskId}/files/`)
+      .then(res => res.json())
+      .then(data => {
+        const el = document.getElementById("fileList");
+        if (!Array.isArray(data) || !data.length) {
+          el.className = "tk-file-list empty";
+          el.innerHTML = "No files";
+          return;
+        }
+
+        el.className = "tk-file-list";
+        el.innerHTML = data.map(file => `
+          <div class="tk-file-item">
+            <a href="${file.url}" target="_blank" rel="noopener noreferrer">${escapeHtml(file.name)}</a>
+            <button type="button" class="tk-file-remove" onclick="deleteFile(${file.id})">Remove</button>
+          </div>
+        `).join("");
+      });
+  }
+
+  function uploadFile() {
+    const taskId = sidebar?.dataset.taskId;
+    const fileInput = document.getElementById("fileInput");
+    const preview = document.getElementById("filePreview");
+    const uploadBtn = document.getElementById("uploadBtn");
+    if (!taskId || !fileInput?.files?.length) return;
+
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+    uploadBtn.disabled = true;
+    uploadBtn.innerText = "Uploading...";
+
+    fetch(`/task/${taskId}/upload/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": "{{ csrf_token }}" },
+      body: formData
+    })
+    .then(res => res.json().then(data => ({ ok: res.ok, data })).catch(() => ({ ok: res.ok, data: {} })))
+    .then(({ ok }) => {
+      if (!ok) return;
+      fileInput.value = "";
+      if (preview) {
+        preview.hidden = true;
+        preview.innerHTML = "";
+      }
+      loadFiles(taskId);
+      loadActivity(taskId);
+    })
+    .finally(() => {
+      uploadBtn.disabled = false;
+      uploadBtn.innerText = "Upload";
+    });
+  }
+
+  function deleteFile(attachmentId) {
+    const taskId = sidebar?.dataset.taskId;
+    if (!taskId) return;
+
+    fetch(`/task/${taskId}/files/${attachmentId}/delete/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": "{{ csrf_token }}" }
+    })
+    .then(res => res.json().then(data => ({ ok: res.ok, data })).catch(() => ({ ok: res.ok, data: {} })))
+    .then(({ ok }) => {
+      if (!ok) return;
+      loadFiles(taskId);
+      loadActivity(taskId);
+    });
+  }
+
+  function loadActivity(taskId) {
+    fetch(`/task/${taskId}/activity/`)
+      .then(res => res.json())
+      .then(data => {
+        const el = document.getElementById("activityList");
+        if (!Array.isArray(data) || !data.length) {
+          el.className = "tk-activity-list empty";
+          el.innerHTML = "No activity";
+          return;
+        }
+
+        el.className = "tk-activity-list";
+        el.innerHTML = data.map(item => `
+          <div class="comment">
+            <strong>${escapeHtml(item.user)}</strong> ${escapeHtml(item.action)}
+            ${item.old ? `<div>From: ${escapeHtml(item.old)}</div>` : ""}
+            ${item.new ? `<div>To: ${escapeHtml(item.new)}</div>` : ""}
+            <div>${escapeHtml(item.time)}</div>
+          </div>
+        `).join("");
+      });
+  }
+
+  function saveLabels() {
+    const taskId = sidebar?.dataset.taskId;
+    const labels = document.getElementById("labelsInput")?.value || "";
+    if (!taskId) return;
+
+    fetch(`/task/${taskId}/labels/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      body: new URLSearchParams({ labels }).toString()
+    })
+    .then(res => res.json().then(data => ({ ok: res.ok, data })).catch(() => ({ ok: res.ok, data: {} })))
+    .then(({ ok, data }) => {
+      if (!ok || !data.labels) return;
+      const card = document.querySelector(`.task-card[data-id="${taskId}"]`);
+      if (card) {
+        card.dataset.labels = JSON.stringify(data.labels);
+        const wrap = card.querySelector(".task-labels");
+        if (wrap) {
+          wrap.innerHTML = data.labels.map(label =>
+            `<span class="label" style="--label-color: ${escapeHtml(label.color)};">${escapeHtml(label.name)}</span>`
+          ).join("");
+        }
+      }
+      renderLabels(JSON.stringify(data.labels));
+      loadActivity(taskId);
+    });
+  }
+
+  function saveDueDate() {
+    const taskId = sidebar?.dataset.taskId;
+    const dueDate = document.getElementById("dueDateInput")?.value || "";
+    if (!taskId) return;
+
+    fetch(`/task/${taskId}/due-date/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": "{{ csrf_token }}" },
+      body: new URLSearchParams({ due_date: dueDate })
+    })
+    .then(res => res.json().then(data => ({ ok: res.ok, data })).catch(() => ({ ok: res.ok, data: {} })))
+    .then(({ ok, data }) => {
+      if (!ok) return;
+      const card = document.querySelector(`.task-card[data-id="${taskId}"]`);
+      if (card) card.dataset.due = data.due_date || "";
+      renderDueDate(data.due_date);
+      loadActivity(taskId);
+    });
+  }
+
+  function clearDueDate() {
+    const input = document.getElementById("dueDateInput");
+    if (input) input.value = "";
+    saveDueDate();
+  }
+
   function openSidebarFromCard(card) {
     if (!sidebar || !card) return;
-
     const data = card.dataset;
 
     sidebar.dataset.taskId = data.id;
-
     setText("sideTitle", data.title);
     setText("sideDesc", data.desc);
     setText("sideProject", data.project);
     setText("sideUser", data.user);
 
-    const p = document.getElementById('sidePriority');
-    if (p) {
-      p.innerText = data.priority;
-      p.className = 'tk-badge ' + data.priority?.toLowerCase();
+    const priority = document.getElementById("sidePriority");
+    if (priority) {
+      priority.innerText = data.priority;
+      priority.className = `tk-badge ${data.priority?.toLowerCase()}`;
     }
 
-    const s = document.getElementById('sideStatusText');
-    if (s) {
-      s.innerText = data.status?.replaceAll('_',' ');
-      s.className = 'tk-badge ' + data.status;
+    const status = document.getElementById("sideStatusText");
+    if (status) {
+      status.innerText = data.status?.replaceAll("_", " ");
+      status.className = `tk-badge ${data.status}`;
     }
 
-    const openLink = document.getElementById('openIssueLink');
-    if (openLink) openLink.href = '/tasks/' + data.id + '/';
+    const openLink = document.getElementById("openIssueLink");
+    if (openLink) openLink.href = `/tasks/${data.id}/`;
 
-    // Load dynamic sections
+    showAllowedTransitions(card);
+    renderLabels(data.labels);
+    renderDueDate(data.due);
     loadComments(data.id);
     loadFiles(data.id);
     loadActivity(data.id);
-    renderLabels(data.labels);
-    renderDueDate(data.due);
-
     sidebar.classList.add("open");
   }
 
-  window.closeSidebar = function () {
-    if (!sidebar) return;
-    sidebar.classList.remove("open");
-  };
-
-  // ESC key support
-  document.addEventListener("keydown", function(e){
-    if (e.key === "Escape") {
-      if (sidebar?.classList.contains("open")) closeSidebar();
-      if (overlay && !overlay.hidden) overlay.hidden = true;
+  function updateCardTransitionState(card, statuses) {
+    const labels = (statuses || []).map(status =>
+      status.replaceAll("_", " ").replace(/\b\w/g, char => char.toUpperCase())
+    );
+    card.dataset.allowedStatuses = JSON.stringify(statuses || []);
+    card.dataset.allowedStatusLabels = JSON.stringify(labels);
+    if (sidebar?.dataset.taskId === card.dataset.id) {
+      showAllowedTransitions(card);
     }
-  });
+  }
 
-  // =============================
-  // CARD EVENTS
-  // =============================
+  function revertTaskMove(card, previousStatus) {
+    const target = document.querySelector(`.column[data-status="${previousStatus}"]`);
+    if (!card || !target) return;
+    target.appendChild(card);
+    card.dataset.status = previousStatus;
+    refreshEmptyStates();
+  }
+
+  function updateTask(taskId, newStatus, previousStatus, card) {
+    fetch(`/tasks/${taskId}/status/${newStatus}/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": "{{ csrf_token }}" }
+    })
+    .then(res => res.json().then(data => ({ ok: res.ok, data })).catch(() => ({ ok: res.ok, data: {} })))
+    .then(({ ok, data }) => {
+      const success = ok && (data.status === "success" || data.status === "no_change");
+      if (!success) {
+        revertTaskMove(card, previousStatus);
+        showAllowedTransitions(card);
+        return;
+      }
+
+      card.dataset.status = newStatus;
+      const sidebarStatus = document.getElementById("sideStatusText");
+      if (sidebar?.dataset.taskId === taskId && sidebarStatus) {
+        sidebarStatus.innerText = newStatus.replaceAll("_", " ");
+        sidebarStatus.className = `tk-badge ${newStatus}`;
+      }
+
+      updateCardTransitionState(card, data.allowed_next_statuses || []);
+      updateBoardSummary(data.status_counts, data.progress_percent);
+      updateGlobalNotificationCount(data.notification_count);
+      loadActivity(taskId);
+    })
+    .catch(() => revertTaskMove(card, previousStatus));
+  }
+
   document.querySelectorAll(".task-card").forEach(card => {
-
     card.addEventListener("dragstart", () => {
       draggedCard = card;
       card.classList.add("dragging");
@@ -602,105 +954,84 @@ document.addEventListener("DOMContentLoaded", function () {
     card.addEventListener("click", () => openSidebarFromCard(card));
   });
 
-  // =============================
-  // DRAG DROP
-  // =============================
-  document.querySelectorAll(".column").forEach(column => {
+document.querySelectorAll(".column").forEach(column => {
+  column.addEventListener("dragover", e => e.preventDefault());
 
-    column.addEventListener("dragover", e => e.preventDefault());
+  column.addEventListener("dragenter", () => column.classList.add("drag-over"));
 
-    column.addEventListener("dragenter", () => {
-      column.classList.add("drag-over");
-    });
-
-    column.addEventListener("dragleave", (e) => {
-      if (!column.contains(e.relatedTarget)) {
-        column.classList.remove("drag-over");
-      }
-    });
-
-    column.addEventListener("drop", () => {
+  column.addEventListener("dragleave", e => {
+    if (!column.contains(e.relatedTarget)) {
       column.classList.remove("drag-over");
-
-      if (!draggedCard) return;
-
-      const previousStatus = draggedCard.dataset.status;
-      const newStatus = column.dataset.status;
-      const taskId = draggedCard.dataset.id;
-
-      column.appendChild(draggedCard);
-
-      if (previousStatus === newStatus) return;
-
-      draggedCard.dataset.status = newStatus;
-
-      updateTask(taskId, newStatus, previousStatus, draggedCard);
-    });
-  });
-  // =============================
-  // TASK UPDATE
-  // =============================
-  function updateTask(id, newStatus, previousStatus, card) {
-
-    fetch(`/tasks/${id}/status/${newStatus}/`, {
-      method: "POST",
-      headers: { "X-CSRFToken": "{{ csrf_token }}" }
-    })
-    .then(res => res.json().then(data => ({res, data})))
-    .then(({res, data}) => {
-
-      const ok = res.ok && (data.status === "success" || data.status === "no_change");
-
-      if (!ok) {
-        revertTaskMove(card, previousStatus);
-        return;
-      }
-
-      updateBoardSummary(data.status_counts, data.progress_percent);
-      updateGlobalNotificationCount(data.notification_count);
-    })
-    .catch(() => revertTaskMove(card, previousStatus));
-  }
-
-  function revertTaskMove(card, previousStatus) {
-    if (!card) return;
-
-    const targetCol = document.querySelector(`.column[data-status="${previousStatus}"]`);
-    if (!targetCol) return;
-
-    targetCol.appendChild(card);
-    card.dataset.status = previousStatus;
-  }
-
-// =============================
-// RECHECK BUTTON (SAFE)
-// =============================
-function recheckBoard() {
-  const btn = document.getElementById('recheckBoardBtn');
-  if (!btn) return;
-
-  btn.innerHTML = '<i class="ri-refresh-line ri-spin"></i> Rechecking...';
-  btn.disabled = true;
-
-  setTimeout(() => location.reload(), 500);
-}
-
-// =============================
-// SPIN STYLE (ONCE)
-// =============================
-if (!document.getElementById("spinStyle")) {
-  const style = document.createElement('style');
-  style.id = "spinStyle";
-  style.textContent = `
-    .ri-spin { animation: spin 1s linear infinite; }
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
     }
-  `;
-  document.head.appendChild(style);
-}
+  });
 
+  column.addEventListener("drop", () => {
+    column.classList.remove("drag-over");
+
+    if (!draggedCard) return;
+
+    const previousStatus = draggedCard.dataset.status;
+    const newStatus = column.dataset.status;
+
+    if (previousStatus === newStatus) return;
+
+    column.appendChild(draggedCard);
+    updateTask(draggedCard.dataset.id, newStatus, previousStatus, draggedCard);
+  });
+});
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && sidebar?.classList.contains("open")) {
+      closeSidebar();
+    }
+  });
+
+  document.getElementById("fileInput")?.addEventListener("change", function () {
+    const preview = document.getElementById("filePreview");
+    const file = this.files?.[0];
+    if (!preview) return;
+
+    if (!file) {
+      preview.hidden = true;
+      preview.innerHTML = "";
+      return;
+    }
+
+    preview.hidden = false;
+    preview.innerHTML = `<div class="meta">${escapeHtml(file.name)} (${Math.ceil(file.size / 1024)} KB)</div>`;
+  });
+
+  window.closeSidebar = function () {
+    if (sidebar) sidebar.classList.remove("open");
+  };
+  window.addComment = addComment;
+  window.uploadFile = uploadFile;
+  window.deleteFile = deleteFile;
+  window.saveLabels = saveLabels;
+  window.saveDueDate = saveDueDate;
+  window.clearDueDate = clearDueDate;
+  window.recheckBoard = function () {
+    const btn = document.getElementById("recheckBoardBtn");
+    if (!btn) return;
+    btn.innerHTML = '<i class="ri-refresh-line ri-spin"></i> Rechecking...';
+    btn.disabled = true;
+    setTimeout(() => location.reload(), 500);
+  };
+
+  refreshEmptyStates();
+
+  if (!document.getElementById("spinStyle")) {
+    const style = document.createElement("style");
+    style.id = "spinStyle";
+    style.textContent = `
+      .ri-spin { animation: spin 1s linear infinite; }
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
 });
 </script>
 {% endblock %}

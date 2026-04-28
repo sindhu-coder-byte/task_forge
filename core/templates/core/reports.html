@@ -1,11 +1,13 @@
-{% extends 'core/base.html' %}
+{% extends 'core/app_shell.html' %}
 {% load static %}
 
-{% block extra_css %}
+{% block shell_title %}Reports{% endblock %}
+
+{% block shell_extra_css %}
 <link rel="stylesheet" href="{% static 'core/css/reports.css' %}">
 {% endblock %}
 
-{% block content %}
+{% block shell_page %}
 <div class="reports-wrap">
 
   <!-- ===== HEADER ===== -->
@@ -133,4 +135,4 @@
   </div>
 
 </div>
-{% endblock %}
+{% endblock shell_page %}

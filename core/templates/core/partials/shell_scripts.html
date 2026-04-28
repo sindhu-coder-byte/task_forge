@@ -112,9 +112,17 @@ if (searchInput && searchRoot) {
             return;
           }
           resultsBox.innerHTML = data.results.map(function (r) {
+            var icon = r.type === 'project' ? 'ri-folder-line' : 'ri-task-line';
+            var href = r.type === 'project' 
+              ? "/projects/" + r.id + "/" 
+              : "/tasks/" + r.id + "/";
+            var keyInfo = r.issue_key 
+              ? "<span class=\"search-key\">" + r.issue_key + "</span> · " 
+              : "";
             return (
-              "<div class=\"search-item\" data-href=\"" + tasksBase + "?q=" + String(r.id) + "\">" +
-              "<i class=\"ri-task-line\"></i> " + escHtml(r.title) +
+              "<div class=\"search-item\" data-href=\"" + href + "\">" +
+              "<i class=\"" + icon + "\"></i> " + escHtml(r.title) +
+              "<div class=\"search-meta\">" + keyInfo + escHtml(r.project_name) + "</div>" +
               "</div>"
             );
           }).join("");

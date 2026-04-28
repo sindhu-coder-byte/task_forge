@@ -1,0 +1,56 @@
+<div style="font-family: Arial, sans-serif; background:#f4f5f7; padding:20px;">
+  <div style="max-width:500px;margin:auto;background:#fff;border-radius:10px;padding:20px;border:1px solid #e5e7eb;">
+
+    <h2 style="color:#172b4d;margin-bottom:10px;">
+      Task Status Changed: {{ task.issue_key }}
+    </h2>
+
+    <p style="color:#44546f;font-size:14px;">
+      Hello {{ recipient.username }},
+    </p>
+
+    <p style="font-size:14px;">
+      The status of task <strong>{{ task.title }}</strong> has been changed.
+    </p>
+
+    <div style="background:#f8f9fa;padding:15px;border-radius:6px;margin:15px 0;">
+      <p style="margin:5px 0;font-size:14px;">
+        <strong>Project:</strong> {{ task.project.name }}
+      </p>
+      <p style="margin:5px 0;font-size:14px;">
+        <strong>Old Status:</strong> {{ old_status }}
+      </p>
+      <p style="margin:5px 0;font-size:14px;">
+        <strong>New Status:</strong> <span style="color:#0052cc;">{{ new_status }}</span>
+      </p>
+      <p style="margin:5px 0;font-size:14px;">
+        <strong>Updated by:</strong> {{ updated_by.username }}
+      </p>
+    </div>
+
+    <p style="font-size:14px;">
+      {% if new_status == 'In Review' %}
+      This task is now ready for testing. Please review the task and provide feedback.
+      {% elif new_status == 'Done' %}
+      This task has been completed. Thank you for your work on this.
+      {% elif new_status == 'In Progress' %}
+      This task is now in progress. Please proceed with the work.
+      {% else %}
+      Please review the task details and take any necessary action.
+      {% endif %}
+    </p>
+
+    <div style="margin:20px 0;text-align:center;">
+      <a href="{{ task_url }}"
+         style="background:#0052cc;color:#fff;padding:10px 18px;border-radius:6px;
+                text-decoration:none;font-size:14px;display:inline-block;">
+        View Task
+      </a>
+    </div>
+
+    <p style="font-size:12px;color:#6b7280;">
+      This is an automated notification from TaskForge.
+    </p>
+
+  </div>
+</div>

@@ -21,11 +21,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = os.getenv('SECRET_KEY','django-insecure-k7x%c$_i_s1&0@8&%!i%6_=gbm5qvbqrrk#p#s5rvb1yg=hos8')
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = "True"
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*', '127.0.0.1:8000']
 
 
 # Application definition
@@ -182,8 +182,20 @@ ACCOUNT_USERNAME_REQUIRED = True
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
     }
 }
+
+# Google OAuth 2.0 Client ID and Secret
+# These should be set as environment variables in production
+GOOGLE_OAUTH2_CLIENT_ID = os.environ.get('GOOGLE_OAUTH2_CLIENT_ID', '')
+GOOGLE_OAUTH2_CLIENT_SECRET = os.environ.get('GOOGLE_OAUTH2_CLIENT_SECRET', '')
+
+# Social authentication settings
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = GOOGLE_OAUTH2_CLIENT_ID
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = GOOGLE_OAUTH2_CLIENT_SECRET
 
 # Skip the intermediate "Continue" confirmation page and redirect to the provider immediately.
 SOCIALACCOUNT_LOGIN_ON_GET = True
@@ -197,13 +209,6 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
-        },
-    }
 
 
 # settings.py

@@ -220,11 +220,20 @@
   color: #172b4d;
   cursor: pointer;
   display: flex;
-  gap: 10px;
-  align-items: center;
+  flex-direction: column;
+  gap: 4px;
 }
 .search-item:hover{
   background: #f4f5f7;
+}
+.search-key{
+  font-weight: 600;
+  color: #0052cc;
+  font-size: 12px;
+}
+.search-meta{
+  font-size: 11px;
+  color: #6b7280;
 }
 .search-empty{
   padding: 12px;

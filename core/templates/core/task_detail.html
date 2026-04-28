@@ -3,6 +3,7 @@
 
 {% block shell_extra_css %}
 <link rel="stylesheet" href="{% static 'core/css/task_detail.css' %}">
+
 {% endblock %}
 
 {% block shell_title %}
@@ -73,51 +74,169 @@
       </div>
     </section>
 
-    <aside class="issue-right">
-      <div class="card card--right">
-        <div class="card-head">
-          <h2>Details</h2>
+<aside class="issue-right">
+  <div class="card card--right">
+    <div class="card-body meta">
+
+      <!-- STATUS SECTION -->
+      <div class="meta-section">
+        <div class="meta-section-header">
+          <i class="ri-checkbox-circle-line"></i>
+          <span>Status</span>
         </div>
-        <div class="card-body meta">
-          <div class="meta-row">
-            <span>Status</span>
-            <div class="meta-inline">
-              <strong id="issueStatusChip" class="chip chip--{{ task.status }}">{{ task.get_status_display }}</strong>
-              {% if next_statuses %}
-                <select id="issueStatusSelect" class="input input--sm" aria-label="Change status">
-                  <option value="">Change…</option>
-                  {% for s in next_statuses %}
-                    <option value="{{ s }}">{{ s|capfirst|cut:"_" }}</option>
-                  {% endfor %}
-                </select>
-              {% endif %}
-            </div>
+        <div class="meta-row meta-row--stack">
+          <div class="status-badge" data-status="{{ task.status }}">
+            <span class="status-indicator"></span>
+            <span id="issueStatusChip">{{ task.get_status_display }}</span>
           </div>
-          <div class="meta-row">
-            <span>Priority</span>
-            <strong>{{ task.priority }}</strong>
+        </div>
+        
+      <!-- PEOPLE SECTION -->
+      <div class="meta-section">
+        <div class="meta-section-header">
+          <i class="ri-user-line"></i>
+          <span>People</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Assignee</span>
+          <div class="meta-value">
+            {% if task.assigned_to %}
+              <div class="user-badge">
+                <div class="user-avatar">{{ task.assigned_to.username.0|upper }}</div>
+                <span>{{ task.assigned_to.username }}</span>
+              </div>
+            {% else %}
+              <span class="muted">Unassigned</span>
+            {% endif %}
           </div>
-          <div class="meta-row">
-            <span>Assignee</span>
-            <strong>{% if task.assigned_to %}{{ task.assigned_to.username }}{% else %}<span class="muted">Unassigned</span>{% endif %}</strong>
-          </div>
-          <div class="meta-row">
-            <span>Due date</span>
-            <strong>{% if task.due_date %}{{ task.due_date }}{% else %}<span class="muted">Not set</span>{% endif %}</strong>
-          </div>
-          <div class="meta-row meta-row--labels">
-            <span>Labels</span>
-            <div class="labels">
-              {% for l in task.labels.all %}
-                <span class="label" style="--label-color: {{ l.color }};">{{ l.name }}</span>
-              {% empty %}
-                <span class="muted">None</span>
-              {% endfor %}
-            </div>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Reporter</span>
+          <div class="meta-value">
+            {% if task.created_by %}
+              <div class="user-badge">
+                <div class="user-avatar">{{ task.created_by.username.0|upper }}</div>
+                <span>{{ task.created_by.username }}</span>
+              </div>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
           </div>
         </div>
       </div>
-    </aside>
+
+      <!-- DATES SECTION -->
+      <div class="meta-section">
+        <div class="meta-section-header">
+          <i class="ri-calendar-line"></i>
+          <span>Timeline</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Start Date</span>
+          <div class="meta-value">
+            {% if task.start_date %}
+              <span class="date-value">
+                <i class="ri-play-line"></i>
+                {{ task.start_date|date:"M d, Y" }}
+              </span>
+            {% else %}
+              <span class="muted">Not set</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Due Date</span>
+          <div class="meta-value">
+            {% if task.due_date %}
+              <span class="date-value {% if task.due_date < today %}overdue{% endif %}">
+                <i class="ri-calendar-event-line"></i>
+                {{ task.due_date|date:"M d, Y" }}
+              </span>
+            {% else %}
+              <span class="muted">Not set</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Delivery Date</span>
+          <div class="meta-value">
+            {% if task.delivery_date %}
+              <span class="date-value">
+                <i class="ri-check-line"></i>
+                {{ task.delivery_date|date:"M d, Y" }}
+              </span>
+            {% else %}
+              <span class="muted">Not set</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Created</span>
+          <div class="meta-value">
+            {% if task.created_at %}
+              <span class="date-value">
+                <i class="ri-time-line"></i>
+                {{ task.created_at|date:"M d, Y" }}
+              </span>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- FIELDS SECTION -->
+      <div class="meta-section">
+        <div class="meta-section-header">
+          <i class="ri-stack-line"></i>
+          <span>Fields</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Priority</span>
+          <div class="meta-value">
+            <span class="priority-badge priority--{{ task.priority|lower }}">
+              {% if task.priority == 'High' %}
+                <i class="ri-arrow-up-line"></i>
+              {% elif task.priority == 'Medium' %}
+                <i class="ri-subtract-line"></i>
+              {% else %}
+                <i class="ri-arrow-down-line"></i>
+              {% endif %}
+              {{ task.priority }}
+            </span>
+          </div>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Issue type</span>
+          <div class="meta-value">
+            <span class="type-badge">
+              <i class="ri-checkbox-multiple-line"></i>
+              Task
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- LABELS SECTION -->
+      <div class="meta-section">
+        <div class="meta-section-header">
+          <i class="ri-price-tag-3-line"></i>
+          <span>Labels</span>
+        </div>
+        <div class="labels-container">
+          {% for l in task.labels.all %}
+            <span class="label-pill" style="--label-color: {{ l.color }};">
+              {{ l.name }}
+            </span>
+          {% empty %}
+            <span class="muted">No labels</span>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</aside>
   </div>
 </div>
 {% endblock %}
@@ -131,6 +250,42 @@
   if (!taskId) return;
   var statusSelect = document.getElementById('issueStatusSelect');
   var statusChip = document.getElementById('issueStatusChip');
+  var transitionToggle = document.getElementById('transitionToggle');
+  var transitionPanel = document.getElementById('transitionPanel');
+  var transitionSummary = document.getElementById('transitionSummary');
+
+  function formatStatus(status) {
+    return String(status || '').replaceAll('_', ' ');
+  }
+
+  function setTransitionPanelState(isOpen) {
+    if (!transitionToggle || !transitionPanel) return;
+    transitionToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    transitionPanel.hidden = !isOpen;
+  }
+
+  function syncTransitionOptions(statuses) {
+    if (!statusSelect) return;
+
+    var allowed = Array.isArray(statuses) ? statuses : [];
+    statusSelect.innerHTML = '';
+
+    var placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = allowed.length ? 'Choose next status…' : 'No transitions available';
+    statusSelect.appendChild(placeholder);
+
+    allowed.forEach(function (status) {
+      var option = document.createElement('option');
+      option.value = status;
+      option.textContent = formatStatus(status);
+      statusSelect.appendChild(option);
+    });
+
+    if (transitionSummary) {
+      transitionSummary.textContent = allowed.length ? (allowed.length + ' available') : 'None available';
+    }
+  }
 
   function escHtml(s) {
     return String(s)
@@ -248,12 +403,20 @@
         if (data && data.status === 'success') {
           if (statusChip) {
             statusChip.className = 'chip chip--' + data.new;
-            statusChip.textContent = data.new.replaceAll('_', ' ');
+            statusChip.textContent = formatStatus(data.new);
           }
+          syncTransitionOptions(data.allowed_next_statuses || []);
+          setTransitionPanelState(false);
           loadActivity();
         }
       })
       .catch(function () {});
+  }
+
+  if (transitionToggle) {
+    transitionToggle.addEventListener('click', function () {
+      setTransitionPanelState(this.getAttribute('aria-expanded') !== 'true');
+    });
   }
 
   if (statusSelect) {
@@ -263,10 +426,13 @@
     });
   }
 
+  setTransitionPanelState(false);
   loadComments();
   loadFiles();
   loadActivity();
 })();
+
+
 </script>
 {% endblock %}
 

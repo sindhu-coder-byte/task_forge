@@ -1,48 +1,42 @@
-import json
-
 from django.db import models
 from django.contrib.auth.models import User
 
 
 # ---------------- PROFILE ----------------
 class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    oauth_provider = models.CharField(max_length=50, blank=True)  # 'google', 'github'
+    oauth_id = models.CharField(max_length=255, blank=True, unique=True)
+    
+    def __str__(self):
+        return self.user.username
+
+
+# ---------------- PROJECT MEMBERSHIP ----------------
+class ProjectMembership(models.Model):
     ROLE_CHOICES = (
-    ('admin', 'Admin'),
-    ('project_lead', 'Project Lead'),
-    ('team_lead', 'Team Lead'),
-    ('developer', 'Developer'),
-    ('tester', 'Tester'),
-    ('user', 'User'),
+        ('admin', 'Admin'),
+        ('project_lead', 'Project Lead'),
+        ('ui_ux_designer', 'UI/UX Designer'),
+        ('developer', 'Developer'),
+        ('tester', 'Tester'),
+        ('qa', 'QA'),
+        ('deployment_team', 'Deployment Team'),
+        ('delivery_team', 'Delivery Team'),
     )
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    project = models.ForeignKey('Project', on_delete=models.CASCADE)  # ✅ FIXED
+    role = models.CharField(max_length=25, choices=ROLE_CHOICES)
+
+    class Meta:
+        unique_together = ('user', 'project')
 
     def __str__(self):
-        return f"{self.user.username} - {self.role}"
+        return f"{self.user.username} - {self.project.name} - {self.role}"
 
 
-# ---------------- SIGNALS ----------------
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-
-
-@receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
-    if created:
-        Profile.objects.create(user=instance)
-
-
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    # ✅ Prevent error if profile doesn't exist
-    if hasattr(instance, 'profile'):
-        instance.profile.save()
-        
-
-
-# models.py
-
+# ---------------- PROJECT ----------------
 class Project(models.Model):
     PROJECT_TYPE_CHOICES = (
         ('kanban', 'Kanban'),
@@ -53,7 +47,6 @@ class Project(models.Model):
     description = models.TextField()
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
 
-    # ✅ NEW FIELD
     project_lead = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -67,16 +60,20 @@ class Project(models.Model):
         choices=PROJECT_TYPE_CHOICES,
         default='kanban',
     )
+
     key_prefix = models.CharField(max_length=10, default='TF')
     next_issue_number = models.PositiveIntegerField(default=1)
 
-    members = models.ManyToManyField(User, related_name='project_members', blank=True)
+    members = models.ManyToManyField(
+        User,
+        through='ProjectMembership',
+        related_name='projects'
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
-
 # ---------------- LABEL ----------------
 class Label(models.Model):
     name = models.CharField(max_length=50)
@@ -184,7 +181,10 @@ class Task(models.Model):
     # ✅ FIXED
     labels = models.ManyToManyField('Label', blank=True)
 
-    due_date = models.DateField(null=True, blank=True)
+    # Timeline Metadata
+    start_date = models.DateField(null=True, blank=True, help_text="Initiated Date (Start)")
+    due_date = models.DateField(null=True, blank=True, help_text="Due Date (Deadline)")
+    delivery_date = models.DateField(null=True, blank=True, help_text="Delivery Date (Actual Completion)")
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -310,6 +310,10 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.title}"
+    
+class RolePermission(models.Model):
+    role = models.CharField(max_length=25, choices=ProjectMembership.ROLE_CHOICES)
+    permission = models.CharField(max_length=100)  # 'can_create_task', 'can_delete_user', etc.
     
     
 

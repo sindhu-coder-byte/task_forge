@@ -1,23 +1,24 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Project, Profile
+from .models import Project, Profile, ProjectMembership
 
 
 # ============================================================
 # USER CREATE FORM
 # ============================================================
 class UserCreateForm(forms.ModelForm):
-    password = forms.CharField(
-        widget=forms.PasswordInput(attrs={
-            'class': 'form-control pw-input',
-            'placeholder': 'Enter password'
-        })
+
+    assigned_project = forms.ModelChoiceField(
+        queryset=Project.objects.all(),
+        required=True
     )
 
     role = forms.ChoiceField(
-        choices=Profile.ROLE_CHOICES,
+        choices=ProjectMembership.ROLE_CHOICES,
         widget=forms.Select(attrs={'class': 'form-control'})
     )
+    
+    
 
     is_active = forms.BooleanField(required=False, initial=True)
 
@@ -32,6 +33,11 @@ class UserCreateForm(forms.ModelForm):
             'email': forms.EmailInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Enter email'
+            }),
+            
+            'password': forms.PasswordInput(attrs={
+             'class': 'form-control',
+             'placeholder': 'Enter password'
             }),
         }
 
@@ -50,48 +56,41 @@ class UserCreateForm(forms.ModelForm):
 
     # ---------------- SAVE LOGIC ---------------- #
     def save(self, commit=True):
-        user = super().save(commit=False)
-        user.set_password(self.cleaned_data["password"])
-        user.is_active = self.cleaned_data.get("is_active", True)
+      user = super().save(commit=False)
+      user.set_password(self.cleaned_data["password"])
 
-        if commit:
-            user.save()
+      if commit:
+        user.save()
 
-            # ✅ Create Profile safely
-            Profile.objects.update_or_create(
-                user=user,
-                defaults={"role": self.cleaned_data["role"]}
-            )
+        project = self.cleaned_data["assigned_project"]
+        role = self.cleaned_data["role"]
 
-        return user
+        ProjectMembership.objects.create(
+            user=user,
+            project=project,
+            role=role
+        )
+
+      return user
 
 
 # ============================================================
 # USER UPDATE FORM
 # ============================================================
-class UserUpdateForm(forms.ModelForm):
-    role = forms.ChoiceField(
-        choices=Profile.ROLE_CHOICES,  # ✅ No hardcoding
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
 
+class UserUpdateForm(forms.ModelForm):
     is_active = forms.BooleanField(required=False)
-    
-    # Add project assignment for admins
+
+    # Select projects
     assigned_projects = forms.ModelMultipleChoiceField(
         queryset=Project.objects.all(),
         required=False,
         widget=forms.SelectMultiple(attrs={'class': 'form-control', 'size': '6'}),
-        help_text="Select projects to assign this user to"
     )
 
     class Meta:
         model = User
         fields = ["username", "email", "is_active"]
-        widgets = {
-            'username': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-        }
 
     # ---------------- INIT ---------------- #
     def __init__(self, *args, **kwargs):
@@ -100,11 +99,10 @@ class UserUpdateForm(forms.ModelForm):
         if self.instance:
             self.fields["is_active"].initial = self.instance.is_active
 
-            if hasattr(self.instance, 'profile'):
-                self.fields["role"].initial = self.instance.profile.role
-            
-            # Set initial assigned projects
-            self.fields["assigned_projects"].initial = self.instance.project_members.all()
+            # ✅ Load assigned projects
+            self.fields["assigned_projects"].initial = Project.objects.filter(
+                projectmembership__user=self.instance
+            )
 
     # ---------------- VALIDATION ---------------- #
     def clean_username(self):
@@ -121,7 +119,7 @@ class UserUpdateForm(forms.ModelForm):
             raise forms.ValidationError("Email already exists")
         return email
 
-    # ---------------- SAVE LOGIC ---------------- #
+    # ---------------- SAVE ---------------- #
     def save(self, commit=True):
         user = super().save(commit=False)
         user.is_active = self.cleaned_data.get("is_active", False)
@@ -129,10 +127,32 @@ class UserUpdateForm(forms.ModelForm):
         if commit:
             user.save()
 
-            # ✅ Sync Profile role
-            Profile.objects.update_or_create(
-                user=user,
-                defaults={"role": self.cleaned_data["role"]}
-            )
+            selected_projects = self.cleaned_data.get("assigned_projects") or []
+
+            # ✅ Remove old memberships (only if projects were explicitly selected)
+            if selected_projects:
+                ProjectMembership.objects.filter(user=user).exclude(
+                    project__in=selected_projects
+                ).delete()
+
+            # ✅ Add missing memberships (default role)
+            for project in selected_projects:
+                ProjectMembership.objects.get_or_create(
+                    user=user,
+                    project=project,
+                    defaults={"role": "developer"}  # default role
+                )
 
         return user
+    
+class MembershipForm(forms.Form):
+    project = forms.ModelChoiceField(
+        queryset=Project.objects.all(),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label='Project'
+    )
+    role = forms.ChoiceField(
+        choices=ProjectMembership.ROLE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label='Role'
+    )

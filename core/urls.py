@@ -118,4 +118,6 @@ urlpatterns = [
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
     path('project/<int:project_id>/member/<int:user_id>/role/', views.update_member_role, name='update_member_role'),
     path('project/<int:project_id>/create-team/', views.create_team, name='create_team'),
+    path('teams/<int:team_id>/edit/', views.edit_team, name='edit_team'),
+    path('teams/<int:team_id>/delete/', views.delete_team, name='delete_team'),
 ]
