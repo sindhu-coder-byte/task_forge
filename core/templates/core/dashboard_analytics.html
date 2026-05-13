@@ -12,13 +12,59 @@
   <header class="analytics-page-header">
     <div>
       <h1 class="analytics-page-title">System Dashboard</h1>
-      <p class="analytics-page-sub">Gadgets for status distribution, filtered work, and activity.</p>
+      <p class="analytics-page-sub">Visual tracking for completion, active work, overdue risk, and department progress.</p>
     </div>
-    <div class="analytics-page-actions">
-      <button type="button" class="btn-atlassian-ghost" onclick="alert('Share link can be wired to your backend.');">Share</button>
-      <button type="button" class="btn-atlassian-primary" onclick="alert('Edit mode can toggle layout later.');">Edit</button>
-    </div>
+    <form class="analytics-filter" method="get">
+      <label for="roleFilter">User Role</label>
+      <select id="roleFilter" name="role" onchange="this.form.submit()">
+        <option value="">All departments</option>
+        {% for value, label in role_choices %}
+          <option value="{{ value }}" {% if selected_role == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </form>
   </header>
+
+  <section class="tracking-panel">
+    <div class="tracking-summary">
+      <div class="tracking-card tracking-card--green">
+        <span class="tracking-label">Completed</span>
+        <strong>{{ visual_completed|default:0 }}</strong>
+        <small>{{ visual_completion_percent|default:0 }}% of visible work</small>
+      </div>
+      <div class="tracking-card tracking-card--amber">
+        <span class="tracking-label">Pending / In Progress</span>
+        <strong>{{ visual_active|default:0 }}</strong>
+        <small>Open items in this view</small>
+      </div>
+      <div class="tracking-card tracking-card--red">
+        <span class="tracking-label">Overdue</span>
+        <strong>{{ visual_overdue|default:0 }}</strong>
+        <small>Past due and not done</small>
+      </div>
+    </div>
+
+    <div class="department-progress">
+      <div class="department-progress-head">
+        <h2>Department Progress</h2>
+        <span>{{ visual_total|default:0 }} tracked tasks</span>
+      </div>
+      {% for row in department_progress %}
+      <a class="department-row {% if selected_role == row.role %}department-row--active{% endif %}" href="?role={{ row.role }}">
+        <div class="department-meta">
+          <strong>{{ row.label }}</strong>
+          <span>{{ row.completed }} completed · {{ row.active }} active · {{ row.overdue }} overdue</span>
+        </div>
+        <div class="department-meter" aria-label="{{ row.label }} progress">
+          <span style="width: {{ row.percent }}%"></span>
+        </div>
+        <div class="department-percent">{{ row.percent }}%</div>
+      </a>
+      {% empty %}
+      <p class="gadget-empty">No department data is available for this dashboard yet.</p>
+      {% endfor %}
+    </div>
+  </section>
 
   <div class="analytics-masonry">
     <div class="analytics-col analytics-col--left">
@@ -138,10 +184,10 @@
   new Chart(pieEl, {
     type: 'pie',
     data: {
-      labels: ['To Do', 'In Progress', 'Testing', 'Done'],
+      labels: ['Pending', 'In Progress', 'In Review', 'Completed'],
       datasets: [{
         data: vals,
-        backgroundColor: ['#42526E', '#0052CC', '#6554C0', '#36B37E'],
+        backgroundColor: ['#f59e0b', '#fbbf24', '#d97706', '#16a34a'],
         borderWidth: 0
       }]
     },

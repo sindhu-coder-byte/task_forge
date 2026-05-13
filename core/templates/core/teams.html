@@ -1,448 +1,346 @@
 {% extends "core/app_shell.html" %}
-
-{% block shell_title %}Teams{% endblock %}
-
-{% block shell_page %}
-
-<!-- HEADER -->
-<div class="card">
-  <div class="section-header">
-    <div>
-      <div class="section-title">
-        {% if role == 'project_lead' %}
-          Project Dashboard
-        {% elif role == 'delivery_team' %}
-          Team Dashboard
-        {% else %}
-          My Dashboard
-        {% endif %}
-      </div>
-
-      <p class="dash-muted">
-        {% if role == 'admin' %}
-          Overview of all projects and system-wide progress.
-        {% elif role == 'project_lead' %}
-          Manage projects, teams, and overall progress.
-        {% elif role == 'delivery_team' %}
-          Monitor your team's tasks and track progress within your team.
-        {% else %}
-          Track your assigned tasks and personal progress.
-        {% endif %}
-      </p>
-    </div>
-
-    <span class="scope-badge">
-      {% if role == 'project_lead' %}
-        Project Scope
-      {% elif role == 'delivery_team' %}
-        Team Scope
-      {% else %}
-        Personal
-      {% endif %}
-    </span>
-  </div>
-</div>
-
-<!-- STATS -->
-<div class="card" style="margin-top:14px;">
-  <div class="card-body grid-stats">
-    <div class="stat">Projects: <strong>{{ project_count }}</strong></div>
-    <div class="stat">Team members: <strong>{{ team_member_count }}</strong></div>
-    <div class="stat">Open: <strong>{{ status_counts.todo|default:0 }}</strong></div>
-    <div class="stat">In Progress: <strong>{{ status_counts.in_progress|default:0 }}</strong></div>
-    <div class="stat">Review: <strong>{{ status_counts.in_review|default:0 }}</strong></div>
-    <div class="stat">Done: <strong>{{ status_counts.done|default:0 }}</strong></div>
-  </div>
-</div>
-
-<!-- REVIEW -->
-{% if role == 'project_lead' or role == 'delivery_team' %}
-<div class="card" style="margin-top:14px;">
-  <div class="section-title">Review Actions</div>
-  <div class="card-body">
-    <p class="dash-muted">
-      As a {{ role|title }}, you can review progress and approve transitions
-      {% if role == 'project_lead' %}
-        across your projects.
-      {% else %}
-        within your team.
-      {% endif %}
-    </p>
-
-    {% if can_approve %}
-      <div class="approval-box">Approval scope enabled</div>
-    {% endif %}
-  </div>
-</div>
-{% endif %}
-
-<!-- MY TEAMS (for delivery_team) -->
-{% if my_teams %}
-<div class="card" style="margin-top:14px;">
-  <div class="section-title">My Teams</div>
-  <div class="card-body">
-    {% for team in my_teams %}
-      <div class="team-item" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:8px;">
-        <div>
-          <strong>{{ team.name }}</strong>
-          <div class="dash-muted small">
-            Project: {{ team.project.name }} · Members: {{ team.members.count }}
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <a href="{% url 'core:edit_team' team.id %}" class="btn-ghost">Edit</a>
-          <form method="POST" action="{% url 'core:delete_team' team.id %}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this team?');">
-            {% csrf_token %}
-            <button type="submit" class="btn-danger" style="padding:8px 12px;border-radius:10px;border:none;background:#fee2e2;color:#dc2626;font-size:13px;cursor:pointer;">Delete</button>
-          </form>
-        </div>
-      </div>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<!-- PROJECTS -->
-<div class="card" style="margin-top:14px;">
-  <div class="section-title">Active Projects</div>
-  <div class="card-body">
-    {% if projects %}
-      <div class="project-grid">
-        {% for project in projects %}
-          <a href="{% url 'core:project_detail' project.id %}" class="project-card">
-            <strong>{{ project.name }}</strong>
-            <div class="dash-muted">Members: {{ project.members.count }}</div>
-          </a>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="dash-muted">No projects available.</div>
-    {% endif %}
-  </div>
-</div>
-
-<!-- TASKS -->
-<div class="card" style="margin-top:14px;">
-  <div class="section-title">
-    {% if role == 'project_lead' %}
-      All Project Tasks
-    {% elif role == 'delivery_team' %}
-      My Team Tasks
-    {% else %}
-      My Tasks
-    {% endif %}
-  </div>
-
-  <div class="card-body">
-    {% if tasks %}
-      <div class="task-list">
-        {% for task in tasks|slice:":12" %}
-          <div class="task-row">
-            <div>
-              <a href="{% url 'core:task_detail' task.id %}">
-                {{ task.issue_key }} · {{ task.title }}
-              </a>
-
-              <div class="task-meta">
-                {{ task.project.name }} • 
-                {{ task.assigned_to.username|default:"Unassigned" }}
-                {% if role == 'delivery_team' %}
-                  • Team Scope
-                {% endif %}
-              </div>
-            </div>
-
-            <span class="chip chip--{{ task.status }}">
-              {{ task.get_status_display }}
-            </span>
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="dash-muted">No tasks available.</div>
-    {% endif %}
-  </div>
-</div>
-
-<!-- MEMBERS -->
-{% if role == 'project_lead' or role == 'delivery_team' %}
-<div class="card" style="margin-top:14px;">
-  <div class="section-title">Team Members</div>
-
-  <div class="card-body member-grid">
-    {% for member in members %}
-      <div class="member-pill">
-        <span class="avatar">{{ member.username|slice:":1"|upper }}</span>
-        <div>
-          <div>{{ member.username }}</div>
-          <div class="dash-muted small">
-            {{ member.profile.role|title }}
-          </div>
-        </div>
-      </div>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<div class="card">
-  <div class="card-head">
-    <h3>Pending Invites</h3>
-  </div>
-
-  <div class="card-body">
-    {% if pending_invites %}
-      <div class="invite-list">
-        {% for inv in pending_invites %}
-          <div class="invite-item">
-            <div>
-              <strong>{{ inv.email }}</strong>
-              <div class="invite-meta">
-                Role: {{ inv.role }} · Invited {{ inv.created_at|timesince }} ago
-              </div>
-            </div>
-
-            <div class="invite-actions">
-              <button class="btn-danger" onclick="cancelInvite('{{ inv.id }}')">
-                <i class="ri-close-line"></i> Cancel
-              </button>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="empty-state">
-        <div class="empty-icon">
-          <i class="ri-mail-unread-line"></i>
-        </div>
-        <p>No pending invites</p>
-        <span>Invitations you send will appear here</span>
-      </div>
-    {% endif %}
-  </div>
-</div>
-
-
-{% endblock %}
+{% load static %}
 
 {% block shell_extra_css %}
-<style>
-.btn-ghost{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;text-decoration:none;color:#111827;font-size:13px}
-.stat{padding:14px 16px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;font-size:13px;color:#111827}
-.project-card{display:block;padding:14px;border:1px solid #e5e7eb;border-radius:12px;text-decoration:none;color:#111827;background:#fff;transition:background .2s}
-.project-card:hover{background:#f8fafc}
-.task-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border:1px solid #e5e7eb;border-radius:12px;background:#fff}
-.member-pill{display:inline-flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff}
-.member-pill .avatar{width:30px;height:30px;border-radius:50%;background:#0052cc;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
-.chip{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:650;background:#f4f5f7;color:#172b4d}
-.chip--todo{background:#f4f5f7;color:#42526e}
-.chip--in_progress{background:#deebff;color:#0747a6}
-.chip--in_review{background:#eae6ff;color:#403294}
-.chip--done{background:#e3fcef;color:#006644}
-
-.section-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-}
-
-.scope-badge{
-  padding:6px 10px;
-  background:#e3f2fd;
-  color:#0b5ed7;
-  border-radius:999px;
-  font-size:12px;
-}
-
-.grid-stats{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-  gap:12px;
-}
-
-.project-grid{
-  display:grid;
-  gap:10px;
-}
-
-.task-list{
-  display:grid;
-  gap:10px;
-}
-
-.task-row{
-  display:flex;
-  justify-content:space-between;
-  padding:12px;
-  border:1px solid #e5e7eb;
-  border-radius:12px;
-}
-.task-row a{
-  display: inline-block;
-  font-size: 15px;
-  color: #5e3ea1;              /* purple like screenshot */
-  text-decoration: none;
-  font-weight: 500;
-  word-break: break-all;
-}
-
-.task-meta{
-  font-size:12px;
-  color:#6b7280;
-}
-
-.member-grid{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-}
-
-.member-pill{
-  display:flex;
-  gap:10px;
-  padding:10px;
-  border:1px solid #e5e7eb;
-  border-radius:12px;
-}
-
-.avatar{
-  width:30px;
-  height:30px;
-  border-radius:50%;
-  background:#0052cc;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-
-.approval-box{
-  padding:10px;
-  border-left:4px solid #0052cc;
-  background:#f4f8ff;
-  margin-top:8px;
-}
-
-/* Invite List Styles */
-.invite-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.invite-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 14px;
-  border: 1px solid var(--td-border, #dfe1e6);
-  border-radius: 8px;
-  background: #fff;
-  transition: all 0.2s ease;
-}
-
-.invite-item:hover {
-  background: #f8f9fb;
-  border-color: #cbd5e1;
-}
-
-.invite-item > div:first-child {
-  flex: 1;
-  min-width: 0;
-}
-
-.invite-item strong {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  color: #172b4d;
-  margin-bottom: 4px;
-}
-
-.invite-meta {
-  font-size: 12px;
-  color: #6b7280;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.invite-meta::before {
-  content: '';
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #f59e0b;
-}
-
-.invite-actions {
-  display: flex;
-  gap: 8px;
-  margin-left: 12px;
-  flex-shrink: 0;
-}
-
-.btn-danger {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 3px;
-  background: #ffebe6;
-  color: #de350b;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-danger:hover {
-  background: #ffcab8;
-}
-
-.btn-danger i {
-  font-size: 14px;
-}
-
-/* Empty State */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 16px;
-  text-align: center;
-}
-
-.empty-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: #f4f5f7;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.empty-icon i {
-  font-size: 24px;
-  color: #6b7280;
-}
-
-.empty-state p {
-  font-size: 14px;
-  font-weight: 600;
-  color: #172b4d;
-  margin: 0 0 4px;
-}
-
-.empty-state span {
-  font-size: 12px;
-  color: #6b7280;
-}
-</style>
+<link rel="stylesheet" href="{% static 'core/css/teams.css' %}">
 {% endblock %}
 
+{% block shell_title %}
+  {% if role == 'project_lead' %}Project Dashboard
+  {% elif role == 'delivery_team' %}Team Dashboard
+  {% else %}My Dashboard{% endif %}
+{% endblock %}
+
+{% block shell_page %}
+<div class="tm-page">
+
+  <!-- ── HEADER ──────────────────────────────────────── -->
+  <div class="tm-header">
+    <div class="tm-header-left">
+      <div class="tm-header-icon">
+        {% if role == 'admin' %}<i class="ri-shield-star-line"></i>
+        {% elif role == 'project_lead' %}<i class="ri-briefcase-4-line"></i>
+        {% elif role == 'delivery_team' %}<i class="ri-team-line"></i>
+        {% else %}<i class="ri-user-3-line"></i>{% endif %}
+      </div>
+      <div>
+        <h1 class="tm-title">
+          {% if role == 'project_lead' %}Project Dashboard
+          {% elif role == 'delivery_team' %}Team Dashboard
+          {% else %}My Dashboard{% endif %}
+        </h1>
+        <p class="tm-sub">
+          {% if role == 'admin' %}Overview of all projects and system-wide progress.
+          {% elif role == 'project_lead' %}Manage projects, teams, and overall progress.
+          {% elif role == 'delivery_team' %}Monitor your team's tasks and track progress.
+          {% else %}Track your assigned tasks and personal progress.{% endif %}
+        </p>
+      </div>
+    </div>
+    <span class="tm-scope-badge tm-scope--{{ role }}">
+      <i class="{% if role == 'admin' %}ri-shield-star-line{% elif role == 'project_lead' %}ri-briefcase-line{% elif role == 'delivery_team' %}ri-team-line{% else %}ri-user-line{% endif %}"></i>
+      {% if role == 'admin' %}Admin Scope
+      {% elif role == 'project_lead' %}Project Scope
+      {% elif role == 'delivery_team' %}Team Scope
+      {% else %}Personal{% endif %}
+    </span>
+  </div>
+
+  <!-- ── STAT CARDS ──────────────────────────────────── -->
+  <div class="tm-stats">
+    <div class="tm-stat">
+      <div class="tm-stat-icon tm-stat-icon--blue"><i class="ri-folder-3-line"></i></div>
+      <div>
+        <div class="tm-stat-num">{{ project_count }}</div>
+        <div class="tm-stat-lbl">Projects</div>
+      </div>
+    </div>
+    <div class="tm-stat">
+      <div class="tm-stat-icon tm-stat-icon--violet"><i class="ri-group-line"></i></div>
+      <div>
+        <div class="tm-stat-num">{{ team_member_count }}</div>
+        <div class="tm-stat-lbl">Team Members</div>
+      </div>
+    </div>
+    <div class="tm-stat">
+      <div class="tm-stat-icon tm-stat-icon--gray"><i class="ri-checkbox-blank-circle-line"></i></div>
+      <div>
+        <div class="tm-stat-num">{{ status_counts.todo|default:0 }}</div>
+        <div class="tm-stat-lbl">To Do</div>
+      </div>
+    </div>
+    <div class="tm-stat">
+      <div class="tm-stat-icon tm-stat-icon--indigo"><i class="ri-loader-4-line"></i></div>
+      <div>
+        <div class="tm-stat-num">{{ status_counts.in_progress|default:0 }}</div>
+        <div class="tm-stat-lbl">In Progress</div>
+      </div>
+    </div>
+    <div class="tm-stat">
+      <div class="tm-stat-icon tm-stat-icon--purple"><i class="ri-eye-line"></i></div>
+      <div>
+        <div class="tm-stat-num">{{ status_counts.in_review|default:0 }}</div>
+        <div class="tm-stat-lbl">In Review</div>
+      </div>
+    </div>
+    <div class="tm-stat">
+      <div class="tm-stat-icon tm-stat-icon--green"><i class="ri-checkbox-circle-line"></i></div>
+      <div>
+        <div class="tm-stat-num">{{ status_counts.done|default:0 }}</div>
+        <div class="tm-stat-lbl">Done</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── APPROVAL BANNER ─────────────────────────────── -->
+  {% if can_approve %}
+  <div class="tm-banner tm-banner--info">
+    <i class="ri-shield-check-line"></i>
+    <div>
+      <strong>Approval scope enabled</strong>
+      As a {{ role|title }}, you can review progress and approve task transitions
+      {% if role == 'project_lead' %}across your projects.{% else %}within your team.{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── MY TEAMS ────────────────────────────────────── -->
+  {% if my_teams %}
+  <div class="tm-section">
+    <div class="tm-section-head">
+      <div class="tm-section-title">
+        <i class="ri-team-line"></i>
+        My Teams
+      </div>
+      <span class="tm-count-badge">{{ my_teams.count }} Team{{ my_teams.count|pluralize }}</span>
+    </div>
+
+    <div class="tm-team-grid">
+      {% for team in my_teams %}
+      <div class="tm-team-card">
+
+        <!-- TOP -->
+        <div class="tm-team-top">
+          <div class="tm-team-icon"><i class="ri-group-2-line"></i></div>
+          <div class="tm-team-info">
+            <div class="tm-team-name">{{ team.name }}</div>
+            <div class="tm-team-project">
+              <i class="ri-folder-line"></i>
+              {{ team.project.name }}
+            </div>
+          </div>
+          <div class="tm-team-count">{{ team.members.count }} Members</div>
+        </div>
+
+        <!-- MEMBERS LABEL -->
+        <div class="tm-team-members-label">Team Members</div>
+        <div class="tm-team-members">
+          {% for member in team.members.all|slice:":6" %}
+          <span class="tm-av {% if member.profile.oauth_provider == 'google' %}tm-av--google{% endif %}"
+                title="{{ member.username }}">
+            {{ member.username|slice:":1"|upper }}
+          </span>
+          {% endfor %}
+          {% if team.members.count > 6 %}
+          <span class="tm-av tm-av--more">+{{ team.members.count|add:"-6" }}</span>
+          {% endif %}
+        </div>
+
+        <!-- FOOTER -->
+        <div class="tm-team-footer">
+          <div class="tm-team-chips">
+            <span class="tm-chip tm-chip--blue">
+              <i class="ri-kanban-view"></i> Kanban
+            </span>
+            {% if team.project.department %}
+            <span class="tm-chip tm-chip--gray">{{ team.project.department }}</span>
+            {% endif %}
+          </div>
+          <div class="tm-team-actions">
+            <a href="{% url 'core:project_board' team.project.id %}" class="tm-btn tm-btn--ghost tm-btn--sm">
+              <i class="ri-layout-grid-line"></i> Board
+            </a>
+            <a href="{% url 'core:edit_team' team.id %}" class="tm-btn tm-btn--ghost tm-btn--sm">
+              <i class="ri-edit-line"></i> Edit
+            </a>
+            <form method="POST" action="{% url 'core:delete_team' team.id %}" style="display:inline;"
+                  onsubmit="return confirm('Delete this team?');">
+              {% csrf_token %}
+              <button type="submit" class="tm-btn tm-btn--danger tm-btn--sm">
+                <i class="ri-delete-bin-line"></i> Delete
+              </button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── TWO-COLUMN LAYOUT ───────────────────────────── -->
+  <div class="tm-layout">
+
+    <!-- MAIN: TASKS -->
+    <div class="tm-section">
+      <div class="tm-section-head">
+        <div class="tm-section-title">
+          <i class="ri-task-line"></i>
+          {% if role == 'project_lead' %}All Project Tasks
+          {% elif role == 'delivery_team' %}My Team Tasks
+          {% else %}My Tasks{% endif %}
+        </div>
+        {% if tasks %}
+        <span class="tm-count-badge">{{ tasks|length }} task{{ tasks|length|pluralize }}</span>
+        {% endif %}
+      </div>
+
+      {% if tasks %}
+      <div class="tm-task-list">
+        {% for task in tasks|slice:":15" %}
+        <div class="tm-task-row">
+          <div class="tm-task-left">
+            <a href="{% url 'core:task_detail' task.id %}" class="tm-task-link">
+              <span class="tm-task-key">{{ task.issue_key }}</span>
+              {{ task.title }}
+            </a>
+            <div class="tm-task-meta">
+              <i class="ri-folder-line"></i>
+              {{ task.project.name }}
+              &nbsp;·&nbsp;
+              <i class="ri-user-line"></i>
+              {{ task.assigned_to.username|default:"Unassigned" }}
+              {% if role == 'delivery_team' %}
+              &nbsp;·&nbsp;
+              <span class="tm-team-scope">Team Scope</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="tm-task-right">
+            {% if task.priority %}
+            <span class="tm-priority tm-priority--{{ task.priority|lower }}">{{ task.priority|upper }}</span>
+            {% endif %}
+            <span class="tm-status tm-status--{{ task.status }}">{{ task.get_status_display }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% if tasks|length > 15 %}
+      <div class="tm-more-hint">
+        <i class="ri-more-line"></i>
+        Showing 15 of {{ tasks|length }} tasks — open a project board to see all.
+      </div>
+      {% endif %}
+      {% else %}
+      <div class="tm-empty-inline">
+        <i class="ri-task-line"></i>
+        No tasks available.
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- SIDEBAR -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- PROJECTS -->
+      <div class="tm-section">
+        <div class="tm-section-head">
+          <div class="tm-section-title">
+            <i class="ri-folder-3-line"></i>
+            Active Projects
+          </div>
+          {% if projects %}
+          <span class="tm-count-badge">{{ projects|length }}</span>
+          {% endif %}
+        </div>
+        {% if projects %}
+        <div class="tm-project-list">
+          {% for project in projects %}
+          <a href="{% url 'core:project_detail' project.id %}" class="tm-project-row">
+            <div class="tm-project-dot"></div>
+            <div class="tm-project-info">
+              <div class="tm-project-name">{{ project.name }}</div>
+              <div class="tm-project-meta">{{ project.members.count }} member{{ project.members.count|pluralize }}</div>
+            </div>
+            <a href="{% url 'core:project_board' project.id %}" class="tm-project-action" title="Open board">
+              <i class="ri-layout-grid-line"></i>
+            </a>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="tm-empty-inline">
+          <i class="ri-folder-open-line"></i>
+          No active projects.
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- MEMBERS -->
+      {% if role == 'project_lead' or role == 'delivery_team' or role == 'admin' %}
+      <div class="tm-section">
+        <div class="tm-section-head">
+          <div class="tm-section-title">
+            <i class="ri-group-line"></i>
+            Team Members
+          </div>
+          {% if members %}
+          <span class="tm-count-badge">{{ members|length }}</span>
+          {% endif %}
+        </div>
+        {% if members %}
+        <div class="tm-member-grid">
+          {% for member in members %}
+          <div class="tm-member-pill">
+            <span class="tm-av {% if member.profile.oauth_provider == 'google' %}tm-av--google{% endif %}">
+              {{ member.username|slice:":1"|upper }}
+            </span>
+            <div class="tm-member-info">
+              <div class="tm-member-name">{{ member.username }}</div>
+              <div class="tm-member-role">{{ member.profile.role|title }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="tm-empty-inline">
+          <i class="ri-user-line"></i>
+          No members found.
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- PENDING INVITES -->
+      {% if pending_invites %}
+      <div class="tm-section">
+        <div class="tm-section-head">
+          <div class="tm-section-title">
+            <i class="ri-mail-unread-line"></i>
+            Pending Invites
+          </div>
+          <span class="tm-count-badge">{{ pending_invites|length }}</span>
+        </div>
+        <div class="tm-invite-list">
+          {% for inv in pending_invites %}
+          <div class="tm-invite-row">
+            <div>
+              <div class="tm-invite-email">{{ inv.email }}</div>
+              <div class="tm-invite-meta">
+                <i class="ri-user-settings-line"></i>
+                {{ inv.role }} &nbsp;·&nbsp; {{ inv.created_at|timesince }} ago
+              </div>
+            </div>
+            <span class="tm-awaiting">Awaiting</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div><!-- /sidebar -->
+  </div><!-- /tm-layout -->
+
+</div><!-- /tm-page -->
+{% endblock %}

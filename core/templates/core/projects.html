@@ -1,582 +1,535 @@
 {% extends 'core/app_shell.html' %}
+{% load static %}
 
 {% block shell_title %}Projects{% endblock %}
 
 {% block shell_extra_css %}
-
-<style>
-/* ===== WRAPPER ===== */
-.pm-wrap {
-  padding: 0;
-}
-
-/* HEADER */
-.pm-header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:24px;
-}
-
-.pm-title {
-  font-size:22px;
-  font-weight:600;
-  color:#172b4d;
-}
-
-/* BUTTON */
-.pm-create {
-  background:#0052cc;
-  color:#fff;
-  padding:10px 16px;
-  border-radius:8px;
-  text-decoration:none;
-  font-size:14px;
-  font-weight:500;
-  transition:0.2s;
-}
-
-.pm-create:hover {
-  background:#0747a6;
-}
-
-/* GRID */
-.pm-grid {
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
-  gap:20px;
-}
-
-/* CARD */
-.pm-card {
-  background:#fff;
-  padding:18px;
-  border-radius:10px;
-  border:1px solid #dfe1e6;
-  transition:all 0.2s ease;
-  cursor:pointer;
-  position:relative;
-}
-
-.pm-card:hover {
-  box-shadow:0 4px 14px rgba(0,0,0,0.1);
-  transform:translateY(-3px);
-}
-
-/* TITLE */
-.pm-name {
-  font-size:16px;
-  font-weight:600;
-  color:#172b4d;
-}
-
-.pm-desc {
-  font-size:13px;
-  color:#5e6c84;
-  margin:6px 0 14px;
-}
-
-/* MEMBERS */
-.pm-members {
-  display:flex;
-  align-items:center;
-  margin-bottom:12px;
-}
-
-/* AVATAR */
-.pm-avatar {
-  position:relative;
-  width:30px;
-  height:30px;
-  border-radius:50%;
-  background:#0052cc;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:12px;
-  margin-left:-8px;
-  border:2px solid #fff;
-  font-weight:500;
-  transition:0.2s;
-}
-
-.pm-avatar:first-child {
-  margin-left:0;
-}
-
-.pm-avatar:hover {
-  transform:scale(1.15);
-  z-index:2;
-}
-
-/* MORE */
-.pm-avatar.more {
-  background:#dfe1e6;
-  color:#172b4d;
-}
-
-/* REMOVE BUTTON */
-.remove-btn {
-  position:absolute;
-  top:-6px;
-  right:-6px;
-  background:#ff4d4f;
-  color:#fff;
-  width:16px;
-  height:16px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:10px;
-  cursor:pointer;
-  opacity:0;
-  transition:0.2s;
-}
-
-.pm-avatar:hover .remove-btn {
-  opacity:1;
-}
-
-/* ADD MEMBER */
-.pm-add {
-  display:flex;
-  gap:6px;
-  margin-top:10px;
-}
-
-.pm-add select {
-  flex:1;
-  padding:6px;
-  border-radius:6px;
-  border:1px solid #dfe1e6;
-  font-size:12px;
-}
-
-.pm-add button {
-  padding:6px 10px;
-  border:none;
-  background:#0052cc;
-  color:#fff;
-  border-radius:6px;
-  font-size:12px;
-  cursor:pointer;
-}
-
-.pm-add button:hover {
-  background:#0747a6;
-}
-
-/* ACTIONS */
-.pm-actions {
-  display:flex;
-  justify-content:space-between;
-  margin-top:12px;
-  font-size:12px;
-}
-
-.pm-actions a {
-  color:#0052cc;
-  text-decoration:none;
-}
-
-.pm-actions a:hover {
-  text-decoration:underline;
-}
-
-/* EMPTY */
-.pm-empty {
-  text-align:center;
-  padding:60px;
-  color:#6b7280;
-  font-size:14px;
-}
-
-/* ===== MODAL (Create Project) ===== */
-.pm-modal{
-  position:fixed;
-  inset:0;
-  background:rgba(9,30,66,0.54);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:24px;
-  z-index:1200;
-}
-.pm-modal[hidden]{display:none}
-.pm-modal-card{
-  width:100%;
-  max-width:560px;
-  background:#fff;
-  border-radius:14px;
-  border:1px solid #dfe1e6;
-  box-shadow:0 18px 46px rgba(9,30,66,0.18);
-  padding:22px 22px 18px;
-}
-.pm-modal-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px}
-.pm-modal-title{font-size:18px;font-weight:700;color:#172b4d}
-.pm-modal-sub{font-size:13px;color:#5e6c84;margin-top:4px}
-.pm-modal-close{border:none;background:transparent;font-size:22px;line-height:1;cursor:pointer;color:#6b778c;padding:0 6px}
-.pm-modal-close:hover{color:#172b4d}
-.pm-field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
-.pm-field label{font-size:12px;font-weight:600;color:#5e6c84}
-.pm-field input,.pm-field textarea,.pm-field select{
-  width:100%;
-  padding:10px 12px;
-  border-radius:10px;
-  border:1px solid #dfe1e6;
-  font-size:13px;
-  box-sizing:border-box;
-  background:#fff;
-}
-.pm-field textarea{min-height:90px;resize:vertical}
-.pm-field input:focus,.pm-field textarea:focus,.pm-field select:focus{
-  outline:none;
-  border-color:#0052cc;
-  box-shadow:0 0 0 2px rgba(0,82,204,0.12);
-}
-.pm-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.pm-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
-.pm-btn-ghost{padding:10px 14px;border-radius:10px;border:1px solid #dfe1e6;background:#fff;color:#172b4d;cursor:pointer}
-.pm-btn-ghost:hover{background:#f4f5f7}
-.pm-btn-primary{padding:10px 14px;border-radius:10px;border:none;background:#0052cc;color:#fff;font-weight:650;cursor:pointer}
-.pm-btn-primary:hover{background:#0747a6}
-.pm-error{margin-top:6px;color:#bf2600;font-size:13px}
-
-@media (max-width: 640px){
-  .pm-grid2{grid-template-columns:1fr}
-}
-</style>
-
+<link rel="stylesheet" href="{% static 'core/css/projects.css' %}">
+<link href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css" rel="stylesheet">
 {% endblock %}
 
 {% block shell_page %}
 
-<div class="pm-wrap">
+<div class="pj-page">
 
-  <!-- HEADER -->
-  <div class="pm-header">
-    <div class="pm-title">Projects</div>
-
-    {% if request.user.profile.role == 'admin' %}
-      <button type="button" class="pm-create" id="openCreateProject">
-        + Create Project
+  <!-- ── HEADER ── -->
+  <div class="pj-header">
+    <div class="pj-header-left">
+      <div class="pj-icon"><i class="ri-folder-3-line"></i></div>
+      <div>
+        <h2 class="pj-title">Projects</h2>
+        <p class="pj-sub">
+          {{ projects|length }} project{{ projects|length|pluralize }}
+          {% if projects %}&nbsp;·&nbsp; {{ projects|length }} tracked{% endif %}
+        </p>
+      </div>
+    </div>
+    <div class="pj-header-right">
+      <div class="pj-search-box">
+        <i class="ri-search-line"></i>
+        <input type="text" id="pjSearch" placeholder="Search projects…" autocomplete="off">
+      </div>
+      {% if request.user.is_authenticated and request.user.profile.role == 'admin' or request.user.is_authenticated and is_project_lead %}
+      <button type="button" class="pj-btn pj-btn--primary" id="openCreateProject">
+        <i class="ri-add-line"></i> New Project
       </button>
-    {% endif %}
+      {% endif %}
+    </div>
   </div>
 
-  <!-- GRID -->
-  <div class="pm-grid">
+  <!-- ── CATEGORY TABS ── -->
+  <div class="pj-tabs" id="pjTabs">
+    <button class="pj-tab active" data-cat="all">All</button>
+    <button class="pj-tab" data-cat="engineering">Engineering</button>
+    <button class="pj-tab" data-cat="product">Product</button>
+    <button class="pj-tab" data-cat="design">Design</button>
+    <button class="pj-tab" data-cat="marketing">Marketing</button>
+    <button class="pj-tab" data-cat="operations">Operations</button>
+    <button class="pj-tab" data-cat="other">Other</button>
+  </div>
+
+  <!-- ── PROJECT GRID ── -->
+  <div class="pj-grid" id="pjGrid">
 
     {% for project in projects %}
-    <div class="pm-card" data-project-id="{{ project.id }}">
+    <div class="pj-card"
+         data-project-id="{{ project.id }}"
+         data-name="{{ project.name|lower }}"
+         data-cat="{{ project.category|default:'other' }}">
 
-      <div class="pm-name">{{ project.name }}</div>
-      <div class="pm-desc">{{ project.description|default:"No description" }}</div>
+      <!-- Category stripe -->
+      <div class="pj-stripe pj-stripe--{{ project.category|default:'other' }}"></div>
 
-      <!-- MEMBERS -->
-      <div class="pm-members">
-        {% for member in project.members.all|slice:":4" %}
-          <div class="pm-avatar" data-project-id="{{ project.id }}" data-user-id="{{ member.id }}">
-            {{ member.username|slice:":1"|upper }}
+      <!-- Card header -->
+      <div class="pj-card-head">
+        <div class="pj-card-icon pj-cat-icon--{{ project.category|default:'other' }}">
+          {% if project.category == 'engineering' %}<i class="ri-code-line"></i>
+          {% elif project.category == 'marketing' %}<i class="ri-megaphone-line"></i>
+          {% elif project.category == 'sales' %}<i class="ri-bar-chart-line"></i>
+          {% elif project.category == 'product' %}<i class="ri-box-3-line"></i>
+          {% elif project.category == 'design' %}<i class="ri-palette-line"></i>
+          {% elif project.category == 'operations' %}<i class="ri-settings-3-line"></i>
+          {% elif project.category == 'hr' %}<i class="ri-team-line"></i>
+          {% elif project.category == 'finance' %}<i class="ri-money-dollar-circle-line"></i>
+          {% else %}<i class="ri-folder-3-line"></i>{% endif %}
+        </div>
 
-{% if request.user.profile.role == 'admin' or project.project_lead == request.user %}            <span class="remove-btn">
-              ×
-            </span>
-            {% endif %}
-          </div>
-        {% endfor %}
+        <div class="pj-card-chips">
+          <span class="pj-chip pj-chip--type">{{ project.get_project_type_display }}</span>
+          {% if project.priority %}
+          <span class="pj-chip pj-chip--pri pj-chip--pri-{{ project.priority }}">{{ project.priority|upper }}</span>
+          {% endif %}
+          {% if project.is_private %}
+          <span class="pj-chip pj-chip--private"><i class="ri-lock-line"></i></span>
+          {% endif %}
+        </div>
 
-        {% if project.members.count > 4 %}
-          <div class="pm-avatar more">
-            +{{ project.members.count|add:"-4" }}
-          </div>
-        {% endif %}
+        <!-- Quick actions (visible on hover) -->
+        <div class="pj-card-actions" onclick="event.stopPropagation()">
+          <a href="{% url 'core:project_board' project.id %}" class="pj-action" title="Board">
+            <i class="ri-kanban-view"></i>
+          </a>
+          <a href="{% url 'core:project_backlog' project.id %}" class="pj-action" title="Backlog">
+            <i class="ri-list-check-2"></i>
+          </a>
+          {% if project.project_url %}
+          <a href="{{ project.project_url }}" target="_blank" rel="noopener" class="pj-action" title="Repository">
+            <i class="ri-external-link-line"></i>
+          </a>
+          {% endif %}
+          {% if request.user.is_authenticated and request.user.profile.role == 'admin' %}
+          <a href="{% url 'core:edit_project' project.id %}" class="pj-action" title="Edit" onclick="event.stopPropagation()">
+            <i class="ri-edit-line"></i>
+          </a>
+          <a href="{% url 'core:delete_project' project.id %}" class="pj-action pj-action--danger" title="Delete" onclick="event.stopPropagation()">
+            <i class="ri-delete-bin-line"></i>
+          </a>
+          {% endif %}
+        </div>
       </div>
 
-      <!-- ADD MEMBER -->
-{% if request.user.profile.role == 'admin' or project.project_lead == request.user %}      <div class="pm-add" data-project-id="{{ project.id }}">
-        <select>
-          <option value="">Add member</option>
+      <!-- Name & description -->
+      <div class="pj-card-body">
+        <div class="pj-name">{{ project.name }}</div>
+        <div class="pj-desc">{{ project.description|default:"No description provided."|truncatechars:80 }}</div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="pj-progress-wrap">
+        <div class="pj-progress-bar">
+          <div class="pj-progress-fill {% if project.progress_pct == 100 %}pj-progress-fill--done{% endif %}"
+               style="width:{{ project.progress_pct }}%"></div>
+        </div>
+        <div class="pj-progress-label">
+          <span>{{ project.done_tasks }}/{{ project.total_tasks }} done</span>
+          <span class="pj-pct">{{ project.progress_pct }}%</span>
+        </div>
+      </div>
+
+      <!-- Meta row -->
+      <div class="pj-meta">
+
+        <!-- Lead -->
+        <div class="pj-lead" title="Lead: {{ project.project_lead.get_full_name|default:project.project_lead.username|default:'—' }}">
+          {% if project.project_lead %}
+          <div class="pj-lead-av">{{ project.project_lead.username|slice:":1"|upper }}</div>
+          <span class="pj-lead-name">{{ project.project_lead.get_full_name|default:project.project_lead.username }}</span>
+          {% else %}
+          <span class="pj-no-lead">No lead</span>
+          {% endif %}
+        </div>
+
+        <!-- Members -->
+        <div class="pj-members">
+          {% for m in project.members.all|slice:":4" %}
+          <div class="pj-av" title="{{ m.username }}"
+               data-project-id="{{ project.id }}" data-user-id="{{ m.id }}">
+            {{ m.username|slice:":1"|upper }}
+            {% if request.user.is_authenticated and request.user.profile.role == 'admin' or request.user.is_authenticated and project.project_lead == request.user %}
+            <span class="pj-av-remove" title="Remove">×</span>
+            {% endif %}
+          </div>
+          {% endfor %}
+          {% if project.members.count > 4 %}
+          <div class="pj-av pj-av--more">+{{ project.members.count|add:"-4" }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pj-footer">
+        <div class="pj-dates">
+          {% if project.target_end_date %}
+          <span class="pj-due {% if project.is_overdue %}pj-due--over{% endif %}">
+            <i class="ri-{% if project.is_overdue %}alarm-warning-line{% else %}calendar-line{% endif %}"></i>
+            {% if project.is_overdue %}Overdue · {% endif %}{{ project.target_end_date|date:"M d, Y" }}
+          </span>
+          {% elif project.start_date %}
+          <span class="pj-due">
+            <i class="ri-calendar-check-line"></i> Started {{ project.start_date|date:"M d, Y" }}
+          </span>
+          {% else %}
+          <span class="pj-due pj-due--none">No deadline</span>
+          {% endif %}
+        </div>
+
+        <a href="{% url 'core:project_board' project.id %}" class="pj-open-link" onclick="event.stopPropagation()">
+          Open <i class="ri-arrow-right-line"></i>
+        </a>
+      </div>
+
+      <!-- Add member row -->
+      {% if request.user.is_authenticated and request.user.profile.role == 'admin' or request.user.is_authenticated and project.project_lead == request.user %}
+      <div class="pj-add-row" data-project-id="{{ project.id }}" onclick="event.stopPropagation()">
+        <select class="pj-add-select">
+          <option value="">Add member…</option>
           {% for user in users %}
             <option value="{{ user.id }}">{{ user.username }}</option>
           {% endfor %}
         </select>
-
-        <button type="button">
-          Add
-        </button>
+        <button type="button" class="pj-add-btn">Add</button>
       </div>
       {% endif %}
 
-      <!-- ACTIONS -->
-      <div class="pm-actions">
-        <div>
-          {% if request.user.profile.role == 'admin' %}
-            <a href="{% url 'core:edit_project' project.id %}">Edit</a>
-          {% endif %}
-        </div>
-
-        <div>
-          {% if request.user.profile.role == 'admin' %}
-            <a href="{% url 'core:delete_project' project.id %}">Delete</a>
-          {% endif %}
-        </div>
-      </div>
-
     </div>
-
     {% empty %}
-      <div class="pm-empty">
-        🚀 No projects yet <br>
-        Start by creating your first project
-      </div>
+    <div class="pj-empty" id="pjEmpty">
+      <div class="pj-empty-icon"><i class="ri-folder-open-line"></i></div>
+      <h3>No projects yet</h3>
+      <p>Create your first project to start tracking work.</p>
+      {% if request.user.is_authenticated and request.user.profile.role == 'admin' or request.user.is_authenticated and is_project_lead %}
+      <button type="button" class="pj-btn pj-btn--primary" onclick="document.getElementById('openCreateProject').click()">
+        <i class="ri-add-line"></i> Create Project
+      </button>
+      {% endif %}
+    </div>
     {% endfor %}
 
   </div>
+
+  <!-- No-results state (shown by JS) -->
+  <div class="pj-empty" id="pjNoResults" hidden>
+    <div class="pj-empty-icon"><i class="ri-search-line"></i></div>
+    <h3>No results</h3>
+    <p>Try a different search or category.</p>
+  </div>
+
 </div>
 
-{% if request.user.profile.role == 'admin' %}
-<!-- Create Project Modal -->
-<div class="pm-modal" id="createProjectModal" hidden aria-hidden="true">
-  <div class="pm-modal-card" role="dialog" aria-modal="true" aria-labelledby="pmCreateTitle">
-    <div class="pm-modal-head">
+<!-- ── CREATE PROJECT MODAL ── -->
+{% if request.user.is_authenticated and request.user.profile.role == 'admin' or request.user.is_authenticated and is_project_lead %}
+<div class="pj-modal" id="createProjectModal" hidden aria-hidden="true">
+  <div class="pj-modal-card" role="dialog" aria-modal="true" aria-labelledby="pmCreateTitle">
+
+    <div class="pj-modal-head">
+      <div class="pj-modal-head-icon"><i class="ri-folder-add-line"></i></div>
       <div>
-        <div class="pm-modal-title" id="pmCreateTitle">Create project</div>
-        <div class="pm-modal-sub">Organize work and collaborate with your team.</div>
+        <div class="pj-modal-title" id="pmCreateTitle">New project</div>
+        <div class="pj-modal-sub">Organize work and collaborate with your team.</div>
       </div>
-      <button type="button" class="pm-modal-close" id="closeCreateProject" aria-label="Close">&times;</button>
+      <button type="button" class="pj-modal-close" id="closeCreateProject" aria-label="Close">
+        <i class="ri-close-line"></i>
+      </button>
     </div>
 
-    <form id="createProjectForm">
-      {% csrf_token %}
-      <div class="pm-field">
-        <label>Project name</label>
-        <input type="text" name="name" required placeholder="e.g. Mobile app" />
-      </div>
+    <div class="pj-modal-body">
+      <form id="createProjectForm" action="{% url 'core:create_project' %}" enctype="multipart/form-data">
+        {% csrf_token %}
 
-      <div class="pm-field">
-        <label>Description</label>
-        <textarea name="description" placeholder="Short description…"></textarea>
-      </div>
+        <div class="pj-field">
+          <label>Project name <span class="pj-req">*</span></label>
+          <input type="text" name="name" required placeholder="e.g. Mobile App Redesign">
+        </div>
 
-      <div class="pm-grid2">
-        <div class="pm-field">
-          <label>Project type</label>
-          <select name="project_type">
-            <option value="kanban" selected>Kanban</option>
-            <option value="scrum">Scrum</option>
+        <div class="pj-field">
+          <label>Description</label>
+          <textarea name="description" placeholder="What is this project about?"></textarea>
+        </div>
+
+        <div class="pj-grid2">
+          <div class="pj-field">
+            <label>Category</label>
+            <select name="category">
+              <option value="other">Other</option>
+              <option value="engineering">Engineering</option>
+              <option value="marketing">Marketing</option>
+              <option value="sales">Sales</option>
+              <option value="product">Product</option>
+              <option value="design">Design</option>
+              <option value="operations">Operations</option>
+              <option value="hr">HR</option>
+              <option value="finance">Finance</option>
+            </select>
+          </div>
+          <div class="pj-field">
+            <label>Project type</label>
+            <select name="project_type">
+              <option value="kanban" selected>Kanban</option>
+              <option value="scrum">Scrum</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pj-grid2">
+          <div class="pj-field">
+            <label>Key prefix</label>
+            <input type="text" name="key_prefix" maxlength="10" placeholder="Auto-generated">
+          </div>
+          <div class="pj-field">
+            <label>Priority</label>
+            <select name="priority">
+              <option value="p4">P4 — Low</option>
+              <option value="p3" selected>P3 — Medium</option>
+              <option value="p2">P2 — High</option>
+              <option value="p1">P1 — Critical</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pj-grid2">
+          <div class="pj-field">
+            <label>Start date</label>
+            <input type="date" name="start_date" value="{{ default_start_date }}">
+          </div>
+          <div class="pj-field">
+            <label>Due date</label>
+            <input type="date" name="target_end_date" min="{{ default_start_date }}">
+          </div>
+        </div>
+
+        <div class="pj-field">
+          <label>Repository / Docs URL</label>
+          <input type="url" name="project_url" placeholder="https://github.com/org/repo">
+        </div>
+
+        <div class="pj-field">
+          <label>Project owner</label>
+          <select name="project_lead">
+            <option value="">Select owner (optional)</option>
+            {% for user in users %}
+              <option value="{{ user.id }}">{{ user.username }}</option>
+            {% endfor %}
           </select>
         </div>
-        <div class="pm-field">
-          <label>Key prefix</label>
-          <input type="text" name="key_prefix" maxlength="10" value="TF" />
+
+        <div class="pj-modal-err" id="pmCreateErr" hidden></div>
+
+        <div class="pj-modal-actions">
+          <button type="button" class="pj-btn pj-btn--ghost" id="cancelCreateProject">Cancel</button>
+          <button type="submit" class="pj-btn pj-btn--primary" id="submitCreateProject">
+            <i class="ri-add-line"></i> Create project
+          </button>
         </div>
-      </div>
+      </form>
+    </div>
 
-      <div class="pm-field">
-  <label>Project Lead</label>
-  <select name="project_lead" required>
-    <option value="">Select Lead</option>
-
-    {% for user in users %}
-      <option value="{{ user.id }}">{{ user.username }}</option>
-    {% endfor %}
-
-  </select>
-</div>
-
-      <div class="pm-error" id="pmCreateErr" hidden></div>
-
-      <div class="pm-modal-actions">
-        <button type="button" class="pm-btn-ghost" id="cancelCreateProject">Cancel</button>
-        <button type="submit" class="pm-btn-primary" id="submitCreateProject">Create</button>
-      </div>
-    </form>
   </div>
 </div>
 {% endif %}
 
 <script>
-
-
 document.addEventListener('DOMContentLoaded', function () {
-
   const csrf = '{{ csrf_token }}';
 
-  // =========================
-  // CARD CLICK NAVIGATION
-  // =========================
-  function attachCardClick(card) {
-    const id = card.getAttribute('data-project-id');
-    card.addEventListener('click', () => {
-      window.location.href = '/projects/' + id + '/';
+  // ── CARD CLICK ──────────────────────────────────────────────
+  document.querySelectorAll('.pj-card[data-project-id]').forEach(function (card) {
+    card.addEventListener('click', function () {
+      window.location.href = '/projects/' + card.dataset.projectId + '/';
     });
+  });
+
+  // ── SEARCH ──────────────────────────────────────────────────
+  const searchInput  = document.getElementById('pjSearch');
+  const noResults    = document.getElementById('pjNoResults');
+  let activeCat      = 'all';
+
+  function filterCards() {
+    const q = (searchInput?.value || '').toLowerCase();
+    let visible = 0;
+    document.querySelectorAll('.pj-card[data-project-id]').forEach(function (card) {
+      const nameMatch = (card.dataset.name || '').includes(q);
+      const catMatch  = activeCat === 'all' || card.dataset.cat === activeCat;
+      const show = nameMatch && catMatch;
+      card.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    if (noResults) noResults.hidden = visible > 0;
   }
 
-  document.querySelectorAll('.pm-card[data-project-id]')
-    .forEach(attachCardClick);
+  searchInput?.addEventListener('input', filterCards);
 
-  // =========================
-  // REMOVE MEMBER
-  // =========================
-document.querySelectorAll('.pm-avatar[data-project-id]').forEach(function (avatar) {
-  const projectId = avatar.dataset.projectId;
-  const userId = avatar.dataset.userId;
-  const btn = avatar.querySelector('.remove-btn');
-
-  if (!btn) return;
-
-  btn.addEventListener('click', function (e) {
-    e.stopPropagation();
-
-    if (!confirm("Remove this member?")) return;
-
-    fetch(`/projects/${projectId}/remove-member/${userId}/`, {
-      method: 'POST',
-      headers: {
-        'X-CSRFToken': getCSRFToken(),
-        'X-Requested-With': 'XMLHttpRequest'
-      }
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.status === 'removed') {
-        avatar.remove(); // ✅ instant UI update
-      } else {
-        alert(data.error || "Failed to remove");
-      }
-    })
-    .catch(() => {
-      alert("Network error");
+  // ── CATEGORY TABS ──────────────────────────────────────────
+  document.querySelectorAll('.pj-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('.pj-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      activeCat = tab.dataset.cat;
+      filterCards();
     });
   });
-});
 
-  // =========================
-  // ADD MEMBER
-  // =========================
-  document.querySelectorAll('.pm-add').forEach(function (wrap) {
-    const projectId = wrap.dataset.projectId;
-    const select = wrap.querySelector('select');
-    const btn = wrap.querySelector('button');
-
-    if (!select || !btn) return;
-
-    wrap.addEventListener('click', e => e.stopPropagation());
-
+  // ── REMOVE MEMBER ──────────────────────────────────────────
+  document.querySelectorAll('.pj-av[data-project-id]').forEach(function (av) {
+    const btn = av.querySelector('.pj-av-remove');
+    if (!btn) return;
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
-
-      const userId = select.value;
-      if (!userId) return alert('Select user');
-
-      fetch(`/projects/${projectId}/add-member/`, {
+      if (!confirm('Remove this member?')) return;
+      fetch('/projects/' + av.dataset.projectId + '/remove-member/' + av.dataset.userId + '/', {
         method: 'POST',
-        headers: {
-          'X-CSRFToken': csrf,
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: 'user_id=' + userId
+        headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' }
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'added') {
-          location.reload(); // optional upgrade later
-        }
-      });
+      .then(r => r.json())
+      .then(d => { if (d.status === 'removed') av.remove(); else alert(d.error || 'Failed'); })
+      .catch(() => alert('Network error'));
     });
   });
 
-  // =========================
-  // MODAL
-  // =========================
-  const modal = document.getElementById('createProjectModal');
-  const openBtn = document.getElementById('openCreateProject');
-  const closeBtn = document.getElementById('closeCreateProject');
-  const cancelBtn = document.getElementById('cancelCreateProject');
-  const form = document.getElementById('createProjectForm');
-  const err = document.getElementById('pmCreateErr');
+  // ── ADD MEMBER ─────────────────────────────────────────────
+  document.querySelectorAll('.pj-add-row').forEach(function (row) {
+    const sel = row.querySelector('.pj-add-select');
+    const btn = row.querySelector('.pj-add-btn');
+    if (!sel || !btn) return;
+    row.addEventListener('click', e => e.stopPropagation());
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const userId = sel.value;
+      if (!userId) return;
+      fetch('/projects/' + row.dataset.projectId + '/add-member/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'user_id=' + userId
+      })
+      .then(r => r.json())
+      .then(d => { if (d.status === 'added') location.reload(); });
+    });
+  });
 
+  // ── MODAL ──────────────────────────────────────────────────
+  const modal     = document.getElementById('createProjectModal');
+  const openBtn   = document.getElementById('openCreateProject');
+  const closeBtn  = document.getElementById('closeCreateProject');
+  const cancelBtn = document.getElementById('cancelCreateProject');
+  const form      = document.getElementById('createProjectForm');
+  const errEl     = document.getElementById('pmCreateErr');
+  const nameInput = form?.querySelector('[name="name"]');
+  const keyInput  = form?.querySelector('[name="key_prefix"]');
+  const startInput= form?.querySelector('[name="start_date"]');
+  const dueInput  = form?.querySelector('[name="target_end_date"]');
+
+  function generateKey(name) {
+    const words = (name || '').trim().split(/\s+/).filter(Boolean);
+    const raw = words.length > 1 ? words.map(w => w[0]).join('') : (name || '').replace(/[^a-z0-9]/gi, '').slice(0, 3);
+    return (raw || 'TF').toUpperCase().slice(0, 10);
+  }
+  nameInput?.addEventListener('input', function () {
+    if (!keyInput || keyInput.dataset.touched === 'true') return;
+    keyInput.value = generateKey(nameInput.value);
+  });
+  keyInput?.addEventListener('input', function () {
+    keyInput.dataset.touched = keyInput.value ? 'true' : 'false';
+    keyInput.value = keyInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+  });
+  startInput?.addEventListener('change', function () {
+    if (!dueInput) return;
+    dueInput.min = startInput.value;
+    if (dueInput.value && dueInput.value < startInput.value) dueInput.value = startInput.value;
+  });
+
+  let lastFocus = null;
   function setModal(open) {
-    modal.hidden = !open;
-    if (!open) {
-      err.hidden = true;
-      err.textContent = '';
+    if (!modal) return;
+    if (open) {
+      lastFocus = document.activeElement;
+      modal.hidden = false;
+      modal.setAttribute('aria-hidden', 'false');
+      modal.querySelector('input, select, textarea, button')?.focus();
+    } else {
+      if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
+      modal.setAttribute('aria-hidden', 'true');
+      modal.hidden = true;
+      lastFocus?.focus();
     }
   }
 
   openBtn?.addEventListener('click', () => setModal(true));
   closeBtn?.addEventListener('click', () => setModal(false));
   cancelBtn?.addEventListener('click', () => setModal(false));
+  modal?.addEventListener('click', function (e) { if (e.target === modal) setModal(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal?.hidden) setModal(false); });
 
-  // =========================
-  // CREATE PROJECT (NO RELOAD)
-  // =========================
+  // ── CREATE SUBMIT ──────────────────────────────────────────
   form?.addEventListener('submit', function (e) {
     e.preventDefault();
+    const submitBtn = form.querySelector('[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="ri-loader-4-line"></i> Creating…';
 
-    const fd = new FormData(form);
-
-    fetch('', {
+    fetch(form.action, {
       method: 'POST',
-      headers: {
-        'X-CSRFToken': csrf,
-        'X-Requested-With': 'XMLHttpRequest'
-      },
-      body: fd
+      headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+      body: new FormData(form)
     })
-    .then(res => res.json())
-    .then(data => {
-      if (data.status === 'ok') {
-        createProjectCard(data.project);
-        setModal(false);
-        form.reset();
-      } else {
-        err.textContent = data.error || 'Error';
-        err.hidden = false;
-      }
+    .then(r => r.json().then(d => ({ ok: r.ok, d })))
+    .then(({ ok, d }) => {
+      if (!ok || d.status !== 'ok') throw new Error(d.error || 'Error');
+      injectCard(d.project);
+      setModal(false);
+      form.reset();
+      if (keyInput) keyInput.dataset.touched = 'false';
     })
-    .catch(() => {
-      err.textContent = 'Network error';
-      err.hidden = false;
+    .catch(err => {
+      if (errEl) { errEl.textContent = err.message || 'Network error'; errEl.hidden = false; }
+    })
+    .finally(() => {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="ri-add-line"></i> Create project';
     });
   });
 
-});
+  function injectCard(project) {
+    const grid = document.getElementById('pjGrid');
+    const empty = grid?.querySelector('.pj-empty');
+    if (empty) empty.remove();
 
+    const card = document.createElement('div');
+    card.className = 'pj-card pj-card--new';
+    card.dataset.projectId = project.id;
+    card.dataset.name = (project.name || '').toLowerCase();
+    card.dataset.cat = project.category || 'other';
 
-// =========================
-// CREATE CARD (DYNAMIC UI)
-// =========================
-function createProjectCard(project) {
-  const grid = document.querySelector('.pm-grid');
-
-  const card = document.createElement('div');
-  card.className = 'pm-card fade-in';
-  card.setAttribute('data-project-id', project.id);
-
-  card.innerHTML = `
-    <div class="pm-name">
-      ${project.name}
-      ${project.lead ? '<span class="badge">👑</span>' : ''}
-    </div>
-    <div class="pm-desc">${project.description}</div>
-
-    <div class="pm-members">
-      <div class="pm-avatar">
-        ${project.lead ? project.lead[0].toUpperCase() : 'U'}
+    card.innerHTML = `
+      <div class="pj-stripe pj-stripe--${project.category || 'other'}"></div>
+      <div class="pj-card-head">
+        <div class="pj-card-icon pj-cat-icon--${project.category || 'other'}">
+          <i class="ri-folder-3-line"></i>
+        </div>
+        <div class="pj-card-chips">
+          <span class="pj-chip pj-chip--type">${project.project_type || 'Kanban'}</span>
+        </div>
+        <div class="pj-card-actions"></div>
       </div>
-    </div>
-  `;
-
-  card.addEventListener('click', () => {
-    window.location.href = '/projects/' + project.id + '/';
-  });
-
-  grid.prepend(card);
-}
+      <div class="pj-card-body">
+        <div class="pj-name">${project.name}</div>
+        <div class="pj-desc">${project.description || 'No description provided.'}</div>
+      </div>
+      <div class="pj-progress-wrap">
+        <div class="pj-progress-bar"><div class="pj-progress-fill" style="width:0%"></div></div>
+        <div class="pj-progress-label"><span>0/0 done</span><span class="pj-pct">0%</span></div>
+      </div>
+      <div class="pj-meta">
+        <div class="pj-lead"><span class="pj-no-lead">No lead</span></div>
+        <div class="pj-members"></div>
+      </div>
+      <div class="pj-footer">
+        <span class="pj-due pj-due--none">No deadline</span>
+        <a href="/projects/${project.id}/" class="pj-open-link" onclick="event.stopPropagation()">Open <i class="ri-arrow-right-line"></i></a>
+      </div>
+    `;
+    card.addEventListener('click', () => window.location.href = '/projects/' + project.id + '/');
+    grid.prepend(card);
+  }
+});
 </script>
 
 {% endblock %}

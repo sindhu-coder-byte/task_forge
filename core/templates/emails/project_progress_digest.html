@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Progress: {{ project.name }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:32px 16px;">
+  <tr>
+    <td align="center">
+
+      <!-- Card -->
+      <table width="580" cellpadding="0" cellspacing="0"
+             style="background:#ffffff;border-radius:10px;border:1px solid #e5e7eb;overflow:hidden;">
+
+        <!-- ① HEADER STRIPE -->
+        <tr>
+          <td style="background:#0052cc;padding:20px 28px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td>
+                  <span style="color:#ffffff;font-size:13px;font-weight:600;
+                               letter-spacing:0.5px;text-transform:uppercase;">
+                    📊 Project Progress Report
+                  </span>
+                  <div style="color:#a8c4f0;font-size:18px;font-weight:800;margin-top:6px;">
+                    {{ project.name }}
+                  </div>
+                </td>
+                <td align="right" style="vertical-align:top;">
+                  <span style="color:#bfdbfe;font-size:12px;">{{ today_date }}</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- BODY -->
+        <tr>
+          <td style="padding:28px;">
+
+            <!-- ② GREETING -->
+            <p style="margin:0 0 20px;font-size:14px;color:#6b7280;">
+              Hello <strong style="color:#111827;">{{ recipient.get_full_name|default:recipient.username }}</strong>,
+            </p>
+            <p style="margin:0 0 24px;font-size:14px;color:#374151;line-height:1.6;">
+              Here is the latest progress summary for
+              <strong>{{ project.name }}</strong>.
+            </p>
+
+            <!-- ③ STATS ROW -->
+            <table width="100%" cellpadding="0" cellspacing="0"
+                   style="background:#f8f9fa;border-radius:8px;margin-bottom:20px;overflow:hidden;">
+              <tr>
+                <td align="center" style="padding:16px 8px;border-right:1px solid #e5e7eb;">
+                  <div style="font-size:22px;font-weight:800;color:#111827;line-height:1;">
+                    {{ stats.total }}
+                  </div>
+                  <div style="font-size:11px;color:#6b7280;text-transform:uppercase;
+                              letter-spacing:.5px;margin-top:4px;">Total</div>
+                </td>
+                <td align="center" style="padding:16px 8px;border-right:1px solid #e5e7eb;">
+                  <div style="font-size:22px;font-weight:800;color:#1d4ed8;line-height:1;">
+                    {{ stats.in_progress }}
+                  </div>
+                  <div style="font-size:11px;color:#6b7280;text-transform:uppercase;
+                              letter-spacing:.5px;margin-top:4px;">In Progress</div>
+                </td>
+                <td align="center" style="padding:16px 8px;border-right:1px solid #e5e7eb;">
+                  <div style="font-size:22px;font-weight:800;color:#15803d;line-height:1;">
+                    {{ stats.done }}
+                  </div>
+                  <div style="font-size:11px;color:#6b7280;text-transform:uppercase;
+                              letter-spacing:.5px;margin-top:4px;">Done</div>
+                </td>
+                <td align="center" style="padding:16px 8px;border-right:1px solid #e5e7eb;">
+                  <div style="font-size:22px;font-weight:800;
+                              color:{% if stats.overdue_count > 0 %}#b91c1c{% else %}#9ca3af{% endif %};
+                              line-height:1;">
+                    {{ stats.overdue_count }}
+                  </div>
+                  <div style="font-size:11px;color:#6b7280;text-transform:uppercase;
+                              letter-spacing:.5px;margin-top:4px;">Overdue</div>
+                </td>
+                <td align="center" style="padding:16px 8px;">
+                  <div style="font-size:22px;font-weight:800;color:#0052cc;line-height:1;">
+                    {{ stats.progress_percent }}%
+                  </div>
+                  <div style="font-size:11px;color:#6b7280;text-transform:uppercase;
+                              letter-spacing:.5px;margin-top:4px;">Complete</div>
+                </td>
+              </tr>
+            </table>
+
+            <!-- ④ PROGRESS BAR -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+              <tr>
+                <td>
+                  <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">
+                    Overall Completion
+                  </div>
+                  <table width="100%" cellpadding="0" cellspacing="0"
+                         style="background:#e5e7eb;border-radius:999px;overflow:hidden;height:10px;">
+                    <tr>
+                      {% if stats.progress_percent > 0 %}
+                      <td width="{{ stats.progress_percent }}%"
+                          style="background:linear-gradient(90deg,#2563eb,#0052cc);
+                                 height:10px;border-radius:999px;"></td>
+                      {% endif %}
+                      {% if stats.progress_percent < 100 %}
+                      <td style="height:10px;"></td>
+                      {% endif %}
+                    </tr>
+                  </table>
+                  <div style="font-size:11px;color:#6b7280;margin-top:4px;text-align:right;">
+                    {{ stats.progress_percent }}% of tasks completed or in review
+                  </div>
+                </td>
+              </tr>
+            </table>
+
+            <!-- ⑤ STATUS BREAKDOWN -->
+            <table width="100%" cellpadding="0" cellspacing="0"
+                   style="border:1px solid #e5e7eb;border-radius:8px;
+                          overflow:hidden;margin-bottom:28px;font-size:13px;">
+              <tr style="background:#f8f9fa;">
+                <td style="padding:10px 16px;font-weight:700;color:#374151;
+                           border-bottom:1px solid #e5e7eb;">Status</td>
+                <td style="padding:10px 16px;font-weight:700;color:#374151;
+                           border-bottom:1px solid #e5e7eb;" align="center">Tasks</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;">
+                  <span style="background:#f3f4f6;color:#374151;padding:3px 10px;
+                               border-radius:999px;font-size:12px;font-weight:600;">
+                    To Do
+                  </span>
+                </td>
+                <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;
+                           font-weight:700;color:#111827;" align="center">
+                  {{ stats.todo }}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;">
+                  <span style="background:#dbeafe;color:#1d4ed8;padding:3px 10px;
+                               border-radius:999px;font-size:12px;font-weight:600;">
+                    In Progress
+                  </span>
+                </td>
+                <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;
+                           font-weight:700;color:#111827;" align="center">
+                  {{ stats.in_progress }}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;">
+                  <span style="background:#ede9fe;color:#6d28d9;padding:3px 10px;
+                               border-radius:999px;font-size:12px;font-weight:600;">
+                    In Review
+                  </span>
+                </td>
+                <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;
+                           font-weight:700;color:#111827;" align="center">
+                  {{ stats.in_review }}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;">
+                  <span style="background:#fef3c7;color:#92400e;padding:3px 10px;
+                               border-radius:999px;font-size:12px;font-weight:600;">
+                    QA
+                  </span>
+                </td>
+                <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;
+                           font-weight:700;color:#111827;" align="center">
+                  {{ stats.qa }}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:10px 16px;">
+                  <span style="background:#dcfce7;color:#15803d;padding:3px 10px;
+                               border-radius:999px;font-size:12px;font-weight:600;">
+                    Done
+                  </span>
+                </td>
+                <td style="padding:10px 16px;font-weight:700;color:#15803d;" align="center">
+                  {{ stats.done }}
+                </td>
+              </tr>
+            </table>
+
+            <!-- ⑥ DUE-SOON TASKS -->
+            {% if due_soon_tasks %}
+            <div style="margin-bottom:24px;">
+              <div style="font-size:13px;font-weight:700;color:#d97706;
+                          margin-bottom:10px;padding-left:2px;">
+                ⏰ Tasks Due in the Next 7 Days
+              </div>
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="border:1px solid #fde68a;border-radius:8px;
+                            overflow:hidden;font-size:12px;">
+                <tr style="background:#fffbeb;">
+                  <td style="padding:8px 12px;font-weight:700;color:#92400e;
+                             border-bottom:1px solid #fde68a;">Key</td>
+                  <td style="padding:8px 12px;font-weight:700;color:#92400e;
+                             border-bottom:1px solid #fde68a;">Title</td>
+                  <td style="padding:8px 12px;font-weight:700;color:#92400e;
+                             border-bottom:1px solid #fde68a;">Assignee</td>
+                  <td style="padding:8px 12px;font-weight:700;color:#92400e;
+                             border-bottom:1px solid #fde68a;">Due Date</td>
+                  <td style="padding:8px 12px;font-weight:700;color:#92400e;
+                             border-bottom:1px solid #fde68a;">Priority</td>
+                </tr>
+                {% for t in due_soon_tasks %}
+                <tr style="{% if not forloop.last %}border-bottom:1px solid #f3f4f6;{% endif %}">
+                  <td style="padding:9px 12px;">
+                    <a href="{{ t._email_url }}"
+                       style="color:#0052cc;text-decoration:none;font-weight:600;">
+                      {{ t.issue_key }}
+                    </a>
+                  </td>
+                  <td style="padding:9px 12px;color:#374151;max-width:180px;
+                             overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    {{ t.title }}
+                  </td>
+                  <td style="padding:9px 12px;color:#6b7280;">
+                    {% if t.assigned_to %}{{ t.assigned_to.get_full_name|default:t.assigned_to.username }}{% else %}—{% endif %}
+                  </td>
+                  <td style="padding:9px 12px;color:#d97706;font-weight:600;">
+                    {{ t.due_date }}
+                  </td>
+                  <td style="padding:9px 12px;color:#374151;">
+                    {{ t.get_priority_display }}
+                  </td>
+                </tr>
+                {% endfor %}
+              </table>
+            </div>
+            {% endif %}
+
+            <!-- ⑦ OVERDUE TASKS -->
+            {% if overdue_tasks %}
+            <div style="margin-bottom:28px;">
+              <div style="font-size:13px;font-weight:700;color:#b91c1c;
+                          margin-bottom:10px;padding-left:2px;">
+                🚨 Overdue Tasks — Immediate Attention Required
+              </div>
+              <div style="background:#fef2f2;border-left:4px solid #b91c1c;
+                          padding:10px 14px;border-radius:4px;margin-bottom:10px;
+                          font-size:13px;color:#991b1b;">
+                {{ overdue_tasks|length }} task{{ overdue_tasks|length|pluralize }}
+                past deadline and still open.
+              </div>
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="border:1px solid #fecaca;border-radius:8px;
+                            overflow:hidden;font-size:12px;">
+                <tr style="background:#fef2f2;">
+                  <td style="padding:8px 12px;font-weight:700;color:#991b1b;
+                             border-bottom:1px solid #fecaca;">Key</td>
+                  <td style="padding:8px 12px;font-weight:700;color:#991b1b;
+                             border-bottom:1px solid #fecaca;">Title</td>
+                  <td style="padding:8px 12px;font-weight:700;color:#991b1b;
+                             border-bottom:1px solid #fecaca;">Assignee</td>
+                  <td style="padding:8px 12px;font-weight:700;color:#991b1b;
+                             border-bottom:1px solid #fecaca;">Due Date</td>
+                  <td style="padding:8px 12px;font-weight:700;color:#991b1b;
+                             border-bottom:1px solid #fecaca;">Days Overdue</td>
+                </tr>
+                {% for t in overdue_tasks %}
+                <tr style="{% if not forloop.last %}border-bottom:1px solid #f3f4f6;{% endif %}">
+                  <td style="padding:9px 12px;">
+                    <a href="{{ t._email_url }}"
+                       style="color:#b91c1c;text-decoration:none;font-weight:600;">
+                      {{ t.issue_key }}
+                    </a>
+                  </td>
+                  <td style="padding:9px 12px;color:#374151;max-width:160px;
+                             overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    {{ t.title }}
+                  </td>
+                  <td style="padding:9px 12px;color:#6b7280;">
+                    {% if t.assigned_to %}{{ t.assigned_to.get_full_name|default:t.assigned_to.username }}{% else %}—{% endif %}
+                  </td>
+                  <td style="padding:9px 12px;color:#b91c1c;">{{ t.due_date }}</td>
+                  <td style="padding:9px 12px;font-weight:700;color:#b91c1c;" align="center">
+                    {{ t._days_overdue }}d
+                  </td>
+                </tr>
+                {% endfor %}
+              </table>
+            </div>
+            {% endif %}
+
+            <!-- ⑧ CTA BUTTON -->
+            <table cellpadding="0" cellspacing="0" style="margin:0 auto 8px;">
+              <tr>
+                <td align="center" style="background:#0052cc;border-radius:6px;">
+                  <a href="{{ project_url }}"
+                     style="display:inline-block;padding:12px 28px;
+                            color:#ffffff;font-size:14px;font-weight:600;
+                            text-decoration:none;letter-spacing:0.3px;">
+                    View Full Project →
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+          </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td style="background:#f8f9fa;padding:14px 28px;border-top:1px solid #e5e7eb;">
+            <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">
+              This is an automated notification from
+              <strong style="color:#6b7280;">TaskForge</strong>.
+              You received this as a project lead for
+              <strong style="color:#6b7280;">{{ project.name }}</strong>.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+      <!-- /Card -->
+
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

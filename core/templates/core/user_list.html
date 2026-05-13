@@ -2,7 +2,6 @@
 {% load static %}
 
 {% block shell_extra_css %}
-<link rel="stylesheet" href="{% static 'core/css/user.css' %}">
 <link href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css" rel="stylesheet">
 {% endblock %}
 
@@ -26,15 +25,8 @@
   margin-bottom: 24px;
 }
 
-.um-title {
-  font-size: 22px;
-  font-weight: 600;
-}
-
-.um-sub {
-  font-size: 13px;
-  color: #6b7280;
-}
+.um-title { font-size: 22px; font-weight: 600; }
+.um-sub   { font-size: 13px; color: #6b7280; }
 
 .um-btn-add {
   background: #4f46e5;
@@ -48,10 +40,7 @@
   text-decoration: none;
   transition: 0.2s;
 }
-
-.um-btn-add:hover {
-  background: #4338ca;
-}
+.um-btn-add:hover { background: #4338ca; }
 
 /* STATS */
 .um-stats {
@@ -60,29 +49,17 @@
   gap: 16px;
   margin-bottom: 24px;
 }
-
 .um-stat-card {
   background: #fff;
   border-radius: 12px;
   padding: 18px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
-
-.um-stat-card h3 {
-  font-size: 22px;
-  margin: 0;
-}
-
-.um-stat-card p {
-  font-size: 13px;
-  color: #6b7280;
-}
+.um-stat-card h3 { font-size: 22px; margin: 0; }
+.um-stat-card p  { font-size: 13px; color: #6b7280; margin: 4px 0 0; }
 
 /* SEARCH */
-.um-search-row {
-  margin-bottom: 20px;
-}
-
+.um-search-row { margin-bottom: 20px; }
 .um-search-box {
   display: flex;
   align-items: center;
@@ -92,12 +69,12 @@
   border: 1px solid #e5e7eb;
   max-width: 320px;
 }
-
 .um-search-box input {
   border: none;
   outline: none;
   margin-left: 8px;
   width: 100%;
+  font-size: 14px;
 }
 
 /* TABLE CARD */
@@ -107,22 +84,14 @@
   padding: 16px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
-
-.um-table-wrapper {
-  overflow-x: auto;
-}
+.um-table-wrapper { overflow-x: auto; }
 
 /* TABLE */
 .um-table {
   width: 100%;
   border-collapse: collapse;
 }
-
-/* HEADER */
-.um-table thead {
-  background: #f9fafb;
-}
-
+.um-table thead { background: #f9fafb; }
 .um-table th {
   text-align: left;
   padding: 12px;
@@ -131,21 +100,13 @@
   font-weight: 500;
   border-bottom: 1px solid #e5e7eb;
 }
-
-/* ROWS */
 .um-table td {
   padding: 14px 12px;
   border-bottom: 1px solid #f1f1f1;
   font-size: 14px;
 }
-
-.um-table tbody tr {
-  transition: 0.2s;
-}
-
-.um-table tbody tr:hover {
-  background: #f9fafb;
-}
+.um-table tbody tr { transition: 0.2s; }
+.um-table tbody tr:hover { background: #f9fafb; }
 
 /* USER INFO */
 .um-user-info {
@@ -153,7 +114,6 @@
   align-items: center;
   gap: 10px;
 }
-
 .um-avatar {
   width: 36px;
   height: 36px;
@@ -164,125 +124,27 @@
   justify-content: center;
   border-radius: 50%;
   font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
 }
+.um-user-text strong { display: block; font-size: 14px; }
+.um-user-text small  { display: block; color: #6b7280; font-size: 12px; }
 
-.um-user-text small {
-  display: block;
-  color: #6b7280;
+/* ROLE BADGE */
+.um-role-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
   font-size: 12px;
-}
-
-/* EMAIL */
-.um-email {
+  font-weight: 600;
+  background: #f3f4f6;
   color: #374151;
-  font-size: 13px;
 }
+.um-role-badge.admin        { background: #fef3c7; color: #92400e; }
+.um-role-badge.project_lead { background: #dbeafe; color: #1d4ed8; }
+.um-role-badge.developer    { background: #ede9fe; color: #6d28d9; }
 
-/* STATUS */
-.um-status {
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.um-status.active {
-  color: #16a34a;
-}
-
-.um-status.inactive {
-  color: #dc2626;
-}
-
-/* ACTION CELL FIX */
-.um-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center; /* center horizontally */
-  gap: 12px;               /* spacing between icons */
-  white-space: nowrap;
-}
-
-
-/* ACTIONS */
-.um-actions a {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  color: #6b7280;
-  transition: 0.2s;
-}
-
-/* HOVER EFFECT */
-.um-actions a:hover {
-  background: #f3f4f6;
-  color: #111827;
-}
-
-/* ICON SIZE */
-.um-actions i {
-  font-size: 16px;
-}
-
-/* PAGINATION */
-.um-pagination {
-  margin-top: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.um-page-btn {
-  padding: 8px 14px;
-  border-radius: 6px;
-  background: #f3f4f6;
-  text-decoration: none;
-  font-size: 13px;
-  color: #111827;
-}
-
-.um-page-btn:hover {
-  background: #e5e7eb;
-}
-
-.um-page-info {
-  font-size: 13px;
-  color: #6b7280;
-}
-
-/* ===============================
-   BUTTONS (INCLUDING CANCEL)
-   =============================== */
-
-.um-btn {
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-size: 13px;
-  border: none;
-  cursor: pointer;
-}
-
-.um-btn-primary {
-  background: #4f46e5;
-  color: white;
-}
-
-.um-btn-primary:hover {
-  background: #4338ca;
-}
-
-.um-btn-cancel {
-  background: #e5e7eb;
-  color: #111827;
-}
-
-.um-btn-cancel:hover {
-  background: #d1d5db;
-}
-
-
-/* TOGGLE SWITCH */
+/* STATUS TOGGLE */
 .um-switch {
   position: relative;
   display: inline-block;
@@ -290,12 +152,11 @@
   height: 20px;
 }
 .um-switch input { display: none; }
-
 .um-slider {
   position: absolute;
   cursor: pointer;
   inset: 0;
-  background: #ccc;
+  background: #d1d5db;
   border-radius: 20px;
   transition: 0.3s;
 }
@@ -310,326 +171,390 @@
   border-radius: 50%;
   transition: 0.3s;
 }
-.um-switch input:checked + .um-slider {
-  background: #22c55e;
-}
-.um-switch input:checked + .um-slider:before {
-  transform: translateX(20px);
-}
+.um-switch input:checked + .um-slider { background: #22c55e; }
+.um-switch input:checked + .um-slider:before { transform: translateX(20px); }
 
-/* MODAL */
-.um-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  display: none;
+/* ACTIONS */
+.um-actions {
+  display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
 }
-.um-modal.active { display: flex; }
-
-.um-modal-box {
-  background: #fff;
-  padding: 20px;
-  border-radius: 12px;
-  width: 400px;
-}
-
-/* INPUT */
-.um-input {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  border: 1px solid #e5e7eb;
+.um-actions a, .um-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   border-radius: 6px;
+  color: #6b7280;
+  transition: 0.2s;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
 }
+.um-actions a:hover, .um-actions button:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+.um-actions i { font-size: 16px; }
 
-/* MODAL FOOTER */
-.um-modal-footer {
+/* Action colour states */
+.um-actions .action-edit:hover   { background: #eff6ff; color: #2563eb; }
+.um-actions .action-delete:hover { background: #fef2f2; color: #dc2626; }
+.um-actions .action-assign:hover { background: #f0fdf4; color: #16a34a; }
+.um-actions .is-lead             { color: #f59e0b; }
+.um-actions .is-lead:hover       { background: #fef3c7; color: #d97706; }
+
+/* TOAST */
+.um-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #111827;
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: 0.3s;
+  z-index: 9999;
+  pointer-events: none;
+  max-width: 300px;
+}
+.um-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.um-toast.success { border-left: 3px solid #22c55e; }
+.um-toast.error   { border-left: 3px solid #ef4444; }
+
+/* PAGINATION */
+.um-pagination {
+  margin-top: 20px;
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 15px;
+  justify-content: space-between;
+  align-items: center;
 }
+.um-page-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: #f3f4f6;
+  text-decoration: none;
+  font-size: 13px;
+  color: #111827;
+}
+.um-page-btn:hover { background: #e5e7eb; }
+.um-page-info { font-size: 13px; color: #6b7280; }
 
-/* ===============================
-   RESPONSIVE
-   =============================== */
-
-/* TABLET */
+/* RESPONSIVE */
 @media (max-width: 992px) {
-  .um-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .um-stats {
-    grid-template-columns: 1fr 1fr;
-  }
+  .um-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .um-stats  { grid-template-columns: 1fr 1fr; }
 }
-
-/* MOBILE */
 @media (max-width: 600px) {
-
-  .um-stats {
-    grid-template-columns: 1fr;
-  }
-
-  .um-table th,
-  .um-table td {
-    padding: 10px 8px;
-    font-size: 12px;
-  }
-
-  .um-avatar {
-    width: 30px;
-    height: 30px;
-    font-size: 12px;
-  }
-
-  .um-actions a {
-    font-size: 14px;
-  }
-
-  .um-pagination {
-    flex-direction: column;
-    gap: 10px;
-  }
+  .um-stats { grid-template-columns: 1fr; }
+  .um-table th, .um-table td { padding: 10px 8px; font-size: 12px; }
+  .um-avatar { width: 30px; height: 30px; font-size: 12px; }
+  .um-pagination { flex-direction: column; gap: 10px; }
 }
 </style>
 
 <div class="um-page">
 
   <!-- HEADER -->
-   <div class="um-header">
+  <div class="um-header">
     <div>
-      <h2>User Management</h2>
-      <p class="sub-text">Manage all users, roles and access</p>
+      <h2 class="um-title">User Management</h2>
+      <p class="um-sub">Manage all users, roles and access</p>
+      <p class="um-sub">Google-authenticated users are listed first for easier admin review.</p>
     </div>
-
-    <a href="{% url 'core:user_create' %}" class="btn-add">
+    <a href="{% url 'core:user_create' %}" class="um-btn-add">
       <i class="ri-user-add-line"></i> Add User
     </a>
   </div>
 
   <!-- STATS -->
   <div class="um-stats">
-    <div class="card stat-card">
+    <div class="um-stat-card">
       <h3>{{ total_users }}</h3>
       <p>Total Users</p>
     </div>
-
-    <div class="card stat-card">
-      <h3>
-      {{total_admins}}
-      </h3>
+    <div class="um-stat-card">
+      <h3>{{ total_admins }}</h3>
       <p>Admins</p>
     </div>
-
-    <div class="card stat-card">
-      <h3>
-        {{active_users}}
-      </h3>
+    <div class="um-stat-card">
+      <h3>{{ active_users }}</h3>
       <p>Active</p>
     </div>
   </div>
 
   <!-- SEARCH -->
-  <div class="search-row">
-    <form method="GET" class="search-box um-search-box">
-      <i class="ri-search-line"></i>
-      <input type="text" name="q" placeholder="Search users..." value="{{ query }}">
+  <div class="um-search-row">
+    <form method="GET" class="um-search-box">
+      <i class="ri-search-line" style="color:#9ca3af;"></i>
+      <input type="text" name="q" placeholder="Search users…" value="{{ query }}">
     </form>
   </div>
-  
 
- <!-- TABLE CARD -->
-<div class="card um-card">
+  <!-- TABLE CARD -->
+  <div class="um-card">
+    <div class="um-table-wrapper">
+      <table class="um-table">
+        <thead>
+          <tr>
+            <th style="width:90px;">ID</th>
+            <th>User</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th style="width:80px;text-align:center;">Active</th>
+            <th style="width:130px;text-align:center;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in page_obj %}
+          <tr id="user-row-{{ u.id }}">
 
-  <div class="table-wrapper um-table-wrapper">
-    <table class="user-table um-table">
+            <!-- ID -->
+            <td style="color:#9ca3af;font-size:12px;font-weight:600;">
+              TF-{{ u.id|stringformat:"03d" }}
+            </td>
 
-      <thead>
-        <tr>
-          <th class="col-id">ID</th>
-          <th>User</th>
-          <th>Email</th>
-          <th class="col-status">Status</th>
-          <th class="col-actions">Actions</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {% for user in page_obj %}
-        <tr>
-
-          <!-- ID -->
-          <td class="uid">
-            TF-{{ user.id|stringformat:"03d" }}
-          </td>
-
-          <!-- USER -->
-          <td>
-            <div class="user-info um-user">
-              <div class="avatar um-avatar">
-                {{ user.username|first|upper }}
+            <!-- USER -->
+            <td>
+              <div class="um-user-info">
+                <div class="um-avatar">{{ u.username|first|upper }}</div>
+                <div class="um-user-text">
+                  <strong>{{ u.get_full_name|default:u.username }}</strong>
+                  <small>@{{ u.username }}</small>
+                </div>
               </div>
-              <div class="user-text">
-                <strong>{{ user.username }}</strong>
-                <small>ID: {{ user.id }}</small>
+            </td>
+
+            <!-- EMAIL -->
+            <td style="color:#374151;font-size:13px;">{{ u.email|default:"—" }}</td>
+
+            <!-- ROLE -->
+            <td>
+              <span class="um-role-badge {{ u.profile.role }}">
+                {{ u.profile.get_role_display }}
+              </span>
+            </td>
+
+            <!-- ACTIVE TOGGLE -->
+            <td style="text-align:center;">
+              <label class="um-switch" title="{% if u.is_active %}Deactivate user{% else %}Activate user{% endif %}">
+                <input type="checkbox"
+                  {% if u.is_active %}checked{% endif %}
+                  {% if u == request.user or u.is_superuser %}disabled{% endif %}
+                  data-user-id="{{ u.id }}"
+                  data-toggle-url="{% url 'core:toggle_user' u.id %}"
+                  onchange="toggleActive(this)">
+                <span class="um-slider"></span>
+              </label>
+            </td>
+
+            <!-- ACTIONS -->
+            <td>
+              <div class="um-actions">
+
+                <!-- Promote / demote Project Lead -->
+                <a href="javascript:void(0)"
+                   title="{% if u.profile.isProjectLead %}Remove Project Lead{% else %}Promote to Project Lead{% endif %}"
+                   class="{% if u.profile.isProjectLead %}is-lead{% endif %}"
+                   data-user-id="{{ u.id }}"
+                   onclick="toggleProjectLead(this)">
+                  <i class="ri-vip-crown-line"></i>
+                </a>
+
+                <!-- Assign task -->
+                <a href="{% url 'core:create_task' %}?assignee={{ u.id }}"
+                   title="Assign task"
+                   class="action-assign">
+                  <i class="ri-task-line"></i>
+                </a>
+
+                <!-- Edit user -->
+                <a href="{% url 'core:user_update' u.id %}"
+                   title="Edit user"
+                   class="action-edit">
+                  <i class="ri-edit-line"></i>
+                </a>
+
+                <!-- Delete user -->
+                {% if u != request.user and not u.is_superuser %}
+                <a href="{% url 'core:user_delete' u.id %}"
+                   title="Delete user"
+                   class="action-delete"
+                   onclick="return confirmDelete(event, this.href, '{{ u.username|escapejs }}')">
+                  <i class="ri-delete-bin-line"></i>
+                </a>
+                {% else %}
+                <span style="width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;color:#d1d5db;" title="Cannot delete yourself or superuser">
+                  <i class="ri-delete-bin-line"></i>
+                </span>
+                {% endif %}
+
               </div>
-            </div>
-          </td>
-
-          <!-- EMAIL -->
-          <td class="email-cell um-email">
-            {{ user.email }}
-          </td>
-
-          <!-- STATUS TOGGLE -->
-          <td class="status-cell">
-            <label class="um-switch">
-              <input type="checkbox"
-                {% if user.is_active %}checked{% endif %}
-                onchange="toggleUser({{ user.id }}, this)">
-              <span class="um-slider"></span>
-            </label>
-          </td>
-
-          <!-- ACTIONS -->
-          <td class="actions um-actions">
-
-            <!-- Assign -->
-            <a href="{% url 'core:create_task' %}?assignee={{ user.id }}" title="Assign task">
-              <i class="ri-task-line"></i>
-            </a>
-
-            <!-- Edit (Modal) -->
-            <a href="javascript:void(0)" onclick="openEditModal({{ user.id }})" title="Edit">
-              <i class="ri-edit-line"></i>
-            </a>
-
-            <!-- Delete -->
-            <a href="javascript:void(0)" onclick="deleteUser({{ user.id }})" title="Delete">
-              <i class="ri-delete-bin-line"></i>
-            </a>
-
-          </td>
-
-        </tr>
-        {% endfor %}
-      </tbody>
-
-    </table>
-  </div>
-
-</div>
-
-<div class="um-modal" id="editUserModal">
-  <div class="um-modal-box">
-
-    <h3>Edit User</h3>
-
-    <input type="text" id="editUsername" placeholder="Username" class="um-input">
-    <input type="email" id="editEmail" placeholder="Email" class="um-input">
-
-    <div class="um-modal-footer">
-      <button class="um-btn um-btn-cancel" onclick="closeModal()">Cancel</button>
-      <button class="um-btn um-btn-primary" onclick="saveUser()">Save</button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" style="text-align:center;padding:40px;color:#9ca3af;">
+              No users found{% if query %} matching "{{ query }}"{% endif %}.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-
   </div>
+
+  <!-- PAGINATION -->
+  <div class="um-pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}" class="um-page-btn">← Prev</a>
+    {% else %}
+      <span></span>
+    {% endif %}
+
+    <span class="um-page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}&q={{ query }}" class="um-page-btn">Next →</a>
+    {% else %}
+      <span></span>
+    {% endif %}
+  </div>
+
 </div>
 
-<!-- PAGINATION -->
-<div class="pagination um-pagination">
+<!-- TOAST -->
+<div class="um-toast" id="umToast"></div>
 
-  {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}" class="page-btn um-page-btn">
-      ← Prev
-    </a>
-  {% endif %}
-
-  <span class="page-info um-page-info">
-    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-  </span>
-
-  {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}&q={{ query }}" class="page-btn um-page-btn">
-      Next →
-    </a>
-  {% endif %}
-
+<!-- DELETE CONFIRM OVERLAY -->
+<div id="umDeleteOverlay" style="
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);
+  z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;padding:28px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <div style="width:40px;height:40px;background:#fef2f2;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="ri-delete-bin-line" style="color:#dc2626;font-size:18px;"></i>
+      </div>
+      <div>
+        <div style="font-size:16px;font-weight:600;color:#111827;">Delete User</div>
+        <div style="font-size:13px;color:#6b7280;margin-top:2px;" id="umDeleteSubtitle"></div>
+      </div>
+    </div>
+    <p style="font-size:14px;color:#374151;margin-bottom:20px;line-height:1.5;">
+      This will permanently remove the user and all associated data.
+      <strong>This action cannot be undone.</strong>
+    </p>
+    <div style="display:flex;justify-content:flex-end;gap:10px;">
+      <button onclick="closeDeleteOverlay()"
+              style="padding:8px 16px;border-radius:6px;border:1px solid #e5e7eb;
+                     background:#fff;font-size:13px;cursor:pointer;color:#374151;">
+        Cancel
+      </button>
+      <form id="umDeleteForm" method="POST" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit"
+                style="padding:8px 16px;border-radius:6px;border:none;
+                       background:#dc2626;color:#fff;font-size:13px;
+                       font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+          <i class="ri-delete-bin-line"></i> Delete
+        </button>
+      </form>
+    </div>
+  </div>
 </div>
 
 <script>
-let currentUserId = null;
-
-/* TOGGLE */
-function toggleUser(id, el){
-  fetch(`/user/${id}/toggle/`, {
-    method: "POST",
-    headers: { "X-CSRFToken": "{{ csrf_token }}" }
-  }).catch(() => {
-    el.checked = !el.checked; // revert on error
-  });
+/* ---- TOAST ---- */
+function showToast(msg, type='success'){
+  const t = document.getElementById('umToast');
+  t.textContent = msg;
+  t.className = 'um-toast show ' + type;
+  setTimeout(() => { t.className = 'um-toast'; }, 3000);
 }
 
-/* OPEN MODAL */
-function openEditModal(id){
-  currentUserId = id;
-  document.getElementById('editUserModal').classList.add('active');
+/* ---- TOGGLE ACTIVE ---- */
+function toggleActive(checkbox){
+  const userId  = checkbox.dataset.userId;
+  const url     = checkbox.dataset.toggleUrl;
+  const wantActive = checkbox.checked;
 
-  fetch(`/user/${id}/data/`)
+  fetch(url, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+  })
   .then(res => res.json())
   .then(data => {
-    document.getElementById('editUsername').value = data.username;
-    document.getElementById('editEmail').value = data.email;
+    if(data.status === 'ok'){
+      showToast(wantActive ? 'User activated.' : 'User deactivated.');
+    } else {
+      checkbox.checked = !wantActive;
+      showToast(data.error || 'Could not update user.', 'error');
+    }
+  })
+  .catch(() => {
+    checkbox.checked = !wantActive;
+    showToast('Request failed. Please try again.', 'error');
   });
 }
 
-/* CLOSE */
-function closeModal(){
-  document.getElementById('editUserModal').classList.remove('active');
-}
+/* ---- TOGGLE PROJECT LEAD ---- */
+function toggleProjectLead(el){
+  const userId = el.dataset.userId;
 
-/* SAVE */
-function saveUser(){
-  fetch(`/user/save/`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": "{{ csrf_token }}"
-    },
-    body: JSON.stringify({
-      id: currentUserId,
-      username: document.getElementById('editUsername').value,
-      email: document.getElementById('editEmail').value
-    })
-  }).then(() => location.reload());
-}
-
-/* DELETE */
-function deleteUser(id){
-  if(!confirm("Delete this user?")) return;
-
-  fetch(`/user/${id}/delete/`, {
-    method: "POST",
-    headers: { "X-CSRFToken": "{{ csrf_token }}" }
-  }).then(() => location.reload());
-}
-
-
-function loadStats(){
-  fetch('/user/stats/')
-  .then(res => res.json())
+  fetch(`/api/users/${userId}/toggle-project-lead/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+  })
+  .then(res => {
+    if(!res.ok) throw new Error();
+    return res.json();
+  })
   .then(data => {
-    document.getElementById('totalUsers').innerText = data.total;
-    document.getElementById('totalAdmins').innerText = data.admins;
-    document.getElementById('activeUsers').innerText = data.active;
-  });
+    if(data.isProjectLead){
+      el.classList.add('is-lead');
+      el.title = 'Remove Project Lead';
+      showToast('Promoted to Project Lead.');
+    } else {
+      el.classList.remove('is-lead');
+      el.title = 'Promote to Project Lead';
+      showToast('Project Lead status removed.');
+    }
+  })
+  .catch(() => showToast('Failed to update Project Lead status.', 'error'));
 }
+
+/* ---- DELETE CONFIRM OVERLAY ---- */
+let _deleteHref = '';
+
+function confirmDelete(event, href, username){
+  event.preventDefault();
+  _deleteHref = href;
+  document.getElementById('umDeleteSubtitle').textContent = 'Deleting: ' + username;
+  document.getElementById('umDeleteForm').action = href;
+  const overlay = document.getElementById('umDeleteOverlay');
+  overlay.style.display = 'flex';
+  return false;
+}
+
+function closeDeleteOverlay(){
+  document.getElementById('umDeleteOverlay').style.display = 'none';
+}
+
+/* Close overlay on backdrop click */
+document.getElementById('umDeleteOverlay').addEventListener('click', function(e){
+  if(e.target === this) closeDeleteOverlay();
+});
 </script>
 
 {% endblock shell_page %}

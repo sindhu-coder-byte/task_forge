@@ -23,48 +23,7 @@ function toggleSidebar() {
   }
 })();
 
-(function () {
-  // Lightweight notification dropdown (UI-only)
-  var btn = document.getElementById('notifBtn');
-  var dd = document.getElementById('notifDropdown');
-  if (!btn || !dd) return;
-  var badge = btn.querySelector('.badge');
-  var sub = dd.querySelector('.dropdown-sub');
-
-  function open() {
-    dd.classList.add('open');
-    btn.setAttribute('aria-expanded', 'true');
-    // UX: treat opening the dropdown as "seen" (client-side only).
-    // Note: server-side count is a "pending queue" metric, not unread notifications.
-    if (badge) badge.textContent = '0';
-    if (sub) sub.textContent = '0 pending';
-  }
-  function close() {
-    dd.classList.remove('open');
-    btn.setAttribute('aria-expanded', 'false');
-  }
-  function toggle() {
-    if (dd.classList.contains('open')) close();
-    else open();
-  }
-
-  btn.addEventListener('click', function (e) {
-    e.stopPropagation();
-    toggle();
-  });
-  btn.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      toggle();
-    } else if (e.key === 'Escape') {
-      close();
-    }
-  });
-  document.addEventListener('click', function () { close(); });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') close();
-  });
-})();
+// Notification dropdown is handled by app_shell.html via makeDropdown()
 
 var searchTimeout;
 var searchInput = document.getElementById("searchInput");

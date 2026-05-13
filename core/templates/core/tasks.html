@@ -857,7 +857,7 @@ textarea {
 
   <div style="display:flex; gap:10px;">
     
-    {% if request.user.profile.role == 'admin' %}
+    {% if request.user.profile.role == 'admin' or request.user.profile.isProjectLead or is_project_lead %}
 <button type="button" onclick="openTaskModal()" class="create-btn1">
   + Create Task
 </button>
@@ -1102,6 +1102,8 @@ textarea {
     <i class="ri-calendar-line"></i> Not set
   </div>
 </div>
+
+{% if request.user.profile.role == 'admin' or request.user.profile.isProjectLead or is_project_lead %}
 <!-- CREATE TASK MODAL -->
 <div id="taskCreateModal" class="modal" onclick="closeTaskModal()">
   <div class="modal-card" onclick="event.stopPropagation()">
@@ -1112,7 +1114,7 @@ textarea {
         <span onclick="closeTaskModal()" class="modal-close">&times;</span>    </div>
 
     <!-- BODY -->
-    <form method="POST" action="{% url 'core:create_task' %}" class="form">
+    <form method="POST" action="{% url 'core:create_task' %}" class="form" enctype="multipart/form-data">
       {% csrf_token %}
 
       <!-- TITLE -->
@@ -1152,6 +1154,16 @@ textarea {
 
       </div>
 
+      <div class="form-group">
+        <label>Team</label>
+        <select name="team">
+          <option value="">No team</option>
+          {% for team in teams %}
+          <option value="{{ team.id }}" data-project="{{ team.project_id }}">{{ team.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
       <!-- PRIORITY -->
       <div class="form-group">
         <label>Priority</label>
@@ -1160,6 +1172,22 @@ textarea {
           <option value="Medium" selected>🟡 Medium</option>
           <option value="Low">🟢 Low</option>
         </select>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Start Date</label>
+          <input type="date" name="start_date">
+        </div>
+        <div class="form-group">
+          <label>Due Date</label>
+          <input type="date" name="due_date">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Files</label>
+        <input type="file" name="attachments" multiple accept="image/*,application/pdf,.zip,.rar,.txt,.doc,.docx,.xls,.xlsx">
       </div>
 
       <!-- FOOTER -->
@@ -1171,6 +1199,7 @@ textarea {
     </form>
   </div>
 </div>
+{% endif %}
 <script>
 (function () {
 
@@ -1180,11 +1209,15 @@ textarea {
 const modal = document.getElementById("taskCreateModal");
 
 function openTaskModal() {
-  modal?.classList.add("show");
+  const modal = document.getElementById("taskCreateModal");
+  if (!modal) return;
+  modal.classList.add("show");
 }
 
 function closeTaskModal() {
-  modal?.classList.remove("show");
+  const modal = document.getElementById("taskCreateModal");
+  if (!modal) return;
+  modal.classList.remove("show");
 }
 
 modal?.addEventListener("click", (e) => {
@@ -1633,6 +1666,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // There are multiple <select name="project"> on this page (filters + modal).
   const projectSelect = document.querySelector('#taskCreateModal select[name="project"]');
   const userSelect = document.querySelector('#taskCreateModal select[name="assigned_to"]');
+  const teamSelect = document.querySelector('#taskCreateModal select[name="team"]');
 
   if (projectSelect && userSelect) {
     projectSelect.addEventListener("change", function () {
@@ -1640,6 +1674,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const projectId = this.value;
 
       userSelect.innerHTML = '<option value="">Select user</option>';
+      if (teamSelect) {
+        Array.from(teamSelect.options).forEach(option => {
+          option.hidden = option.value && option.dataset.project !== projectId;
+        });
+        if (teamSelect.selectedOptions[0]?.hidden) teamSelect.value = "";
+      }
 
       if (!projectId) return;
 

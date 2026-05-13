@@ -1,0 +1,765 @@
+{% extends "core/app_shell.html" %}
+{% load static %}
+
+{% block shell_title %}Project Lead · Command Center{% endblock %}
+
+{% block shell_page %}
+<div class="cc-page">
+
+  <!-- ═══════════════════════════════════════════════
+       HEADER + PROJECT PICKER
+  ═══════════════════════════════════════════════ -->
+  <div class="cc-header">
+    <div>
+      <h2 class="cc-title">Command Center</h2>
+      <p class="cc-sub">
+        {% if selected_project %}
+          {{ selected_project.name }}
+          {% if selected_project.department %} · {{ selected_project.department }}{% endif %}
+        {% else %}
+          Select a project to begin
+        {% endif %}
+      </p>
+    </div>
+    <div class="cc-header-right">
+      <form method="get" class="cc-picker">
+        <i class="ri-folder-3-line" style="color:#6366f1;"></i>
+        <select name="project" onchange="this.form.submit()" class="cc-picker-select">
+          {% for p in projects %}
+            <option value="{{ p.id }}" {% if selected_project and p.id == selected_project.id %}selected{% endif %}>
+              {{ p.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </form>
+      <div class="cc-header-actions">
+        {% if selected_project %}
+          <a class="btn-act btn-act--ghost" href="{% url 'core:create_task' %}?project={{ selected_project.id }}">
+            <i class="ri-add-line"></i> New Task
+          </a>
+          <a class="btn-act btn-act--ghost" href="{% url 'core:project_team' selected_project.id %}">
+            <i class="ri-team-line"></i> Team
+          </a>
+        {% endif %}
+        <a class="btn-act btn-act--primary" href="{% url 'core:dashboard_analytics' %}">
+          <i class="ri-bar-chart-2-line"></i> Analytics
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {% if not selected_project %}
+  <div class="cc-empty">
+    <i class="ri-folder-open-line"></i>
+    <p>No projects assigned to you yet. <a href="{% url 'core:projects' %}">Browse projects →</a></p>
+  </div>
+  {% else %}
+
+  <!-- ═══════════════════════════════════════════════
+       STAT TILES
+  ═══════════════════════════════════════════════ -->
+  <div class="cc-stats">
+
+    <div class="cc-stat">
+      <div class="cc-stat__icon" style="background:#ede9fe;color:#7c3aed;"><i class="ri-task-line"></i></div>
+      <div>
+        <div class="cc-stat__num">{{ status_counts.todo|default:0|add:status_counts.in_progress|default:0|add:status_counts.in_review|default:0|add:status_counts.qa|default:0|add:status_counts.done|default:0 }}</div>
+        <div class="cc-stat__label">Total Tasks</div>
+      </div>
+    </div>
+
+    <div class="cc-stat {% if overdue_tasks %}cc-stat--alert{% endif %}">
+      <div class="cc-stat__icon" style="background:#fee2e2;color:#dc2626;"><i class="ri-alarm-warning-line"></i></div>
+      <div>
+        <div class="cc-stat__num">{{ overdue_tasks|length }}</div>
+        <div class="cc-stat__label">Overdue</div>
+      </div>
+    </div>
+
+    <div class="cc-stat {% if due_soon_tasks %}cc-stat--warn{% endif %}">
+      <div class="cc-stat__icon" style="background:#fef3c7;color:#d97706;"><i class="ri-calendar-event-line"></i></div>
+      <div>
+        <div class="cc-stat__num">{{ due_soon_tasks|length }}</div>
+        <div class="cc-stat__label">Due in 7 days</div>
+      </div>
+    </div>
+
+    <div class="cc-stat">
+      <div class="cc-stat__icon" style="background:#dcfce7;color:#15803d;"><i class="ri-checkbox-circle-line"></i></div>
+      <div>
+        <div class="cc-stat__num">{{ progress_percent }}%</div>
+        <div class="cc-stat__label">Completion</div>
+      </div>
+    </div>
+
+    <div class="cc-stat">
+      <div class="cc-stat__icon" style="background:#dbeafe;color:#1d4ed8;"><i class="ri-team-line"></i></div>
+      <div>
+        <div class="cc-stat__num">{{ selected_project.members.count }}</div>
+        <div class="cc-stat__label">Team Members</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       OVERDUE ALERT
+  ═══════════════════════════════════════════════ -->
+  {% if overdue_tasks %}
+  <div class="cc-alert">
+    <i class="ri-error-warning-fill"></i>
+    <strong>{{ overdue_tasks|length }} task{{ overdue_tasks|length|pluralize }} overdue</strong>
+    — these need immediate attention.
+  </div>
+  {% endif %}
+
+  <!-- ═══════════════════════════════════════════════
+       PROGRESS TRACKER
+  ═══════════════════════════════════════════════ -->
+  {% include "core/partials/progress_tracker.html" with project_timeline=project_timeline %}
+
+  <!-- ═══════════════════════════════════════════════
+       TWO-COL: TEAM WORKLOAD + UPCOMING DEADLINES
+  ═══════════════════════════════════════════════ -->
+  <div class="cc-two-col" style="margin-top:20px;">
+
+    <!-- TEAM WORKLOAD TABLE -->
+    <div>
+      <div class="cc-section-head">
+        <div class="cc-section-title"><i class="ri-user-3-line"></i> Team Workload</div>
+        <a href="{% url 'core:project_team' selected_project.id %}" class="cc-section-link">Manage →</a>
+      </div>
+      <div class="cc-card" style="overflow:auto;">
+        {% if team_breakdown %}
+        <table class="cc-table">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Role</th>
+              <th>Todo</th>
+              <th>Active</th>
+              <th>Review</th>
+              <th>Done</th>
+              <th>Overdue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in team_breakdown %}
+            <tr {% if row.overdue %}class="row--alert"{% endif %}>
+              <td>
+                <div class="user-cell">
+                  <div class="user-avatar">{{ row.user.username|slice:":1"|upper }}</div>
+                  <div>
+                    <div class="user-name">{{ row.user.username }}</div>
+                    <div class="muted">{{ row.total }} tasks</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="role-pill role-pill--{{ row.role }}">{{ row.role_label }}</span></td>
+              <td class="center num-col">{{ row.todo }}</td>
+              <td class="center num-col num-col--active">{{ row.in_progress }}</td>
+              <td class="center num-col">{{ row.in_review }}</td>
+              <td class="center num-col num-col--done">{{ row.done }}</td>
+              <td class="center {% if row.overdue %}num-col--overdue{% else %}num-col{% endif %}">
+                {% if row.overdue %}<strong>{{ row.overdue }}</strong>{% else %}—{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+          <div class="cc-empty-msg">No team members assigned yet.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- RIGHT: TEAM LOAD CHART + UPCOMING DEADLINES -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- TEAM LOAD DONUT -->
+      <div>
+        <div class="cc-section-head">
+          <div class="cc-section-title"><i class="ri-pie-chart-2-line"></i> Task Distribution</div>
+        </div>
+        <div class="cc-card">
+          <div style="padding:12px 16px;">
+            <canvas id="teamLoadChart"
+              data-labels="{% for r in team_load %}{{ r.label }}{% if not forloop.last %}||{% endif %}{% endfor %}"
+              data-values="{% for r in team_load %}{{ r.count }}{% if not forloop.last %},{% endif %}{% endfor %}"
+              data-colors="{% for r in team_load %}{{ r.color }}{% if not forloop.last %},{% endif %}{% endfor %}"
+              height="140"></canvas>
+          </div>
+          <div style="padding:0 16px 14px;">
+            {% for r in team_load %}
+              {% if r.count %}
+              <div class="load-row">
+                <span class="load-dot" style="background:{{ r.color }};"></span>
+                <span>{{ r.label }}</span>
+                <strong style="margin-left:auto;">{{ r.count }}</strong>
+              </div>
+              {% endif %}
+            {% empty %}
+              <div class="cc-empty-msg">No task assignments yet.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- UPCOMING DEADLINES -->
+      <div>
+        <div class="cc-section-head">
+          <div class="cc-section-title" {% if due_soon_tasks %}style="color:#d97706;"{% endif %}>
+            <i class="ri-calendar-event-line"></i> Due in 7 Days
+          </div>
+        </div>
+        <div class="cc-card">
+          {% if due_soon_tasks %}
+            {% for t in due_soon_tasks %}
+            <div class="deadline-row">
+              <div>
+                <a href="{% url 'core:task_detail' t.id %}" class="key-link">{{ t.issue_key|default:t.id }}</a>
+                <span class="deadline-title">{{ t.title|truncatechars:38 }}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                {% if t.assigned_to %}
+                  <div class="user-avatar-xs">{{ t.assigned_to.username|slice:":1"|upper }}</div>
+                {% endif %}
+                <span class="deadline-date">{{ t.due_date|date:"M d" }}</span>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="cc-empty-msg">No tasks due in the next 7 days.</div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       OVERDUE TASKS TABLE
+  ═══════════════════════════════════════════════ -->
+  {% if overdue_tasks %}
+  <div class="cc-section-head" style="margin-top:24px;">
+    <div class="cc-section-title" style="color:#dc2626;">
+      <i class="ri-alarm-warning-line"></i> Overdue Tasks
+    </div>
+  </div>
+  <div class="cc-card" style="overflow:auto;">
+    <table class="cc-table">
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>Task</th>
+          <th>Assignee</th>
+          <th>Due Date</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in overdue_tasks %}
+        <tr class="row--alert">
+          <td><a href="{% url 'core:task_detail' t.id %}" class="key-link">{{ t.issue_key|default:t.id }}</a></td>
+          <td>{{ t.title|truncatechars:44 }}</td>
+          <td>
+            {% if t.assigned_to %}
+              <div class="user-cell">
+                <div class="user-avatar-xs">{{ t.assigned_to.username|slice:":1"|upper }}</div>
+                {{ t.assigned_to.username }}
+              </div>
+            {% else %}
+              <span class="muted">Unassigned</span>
+            {% endif %}
+          </td>
+          <td class="overdue-date">{{ t.due_date|date:"M d, Y" }}</td>
+          <td><span class="status-chip status-chip--{{ t.status }}">{{ t.get_status_display }}</span></td>
+          <td><a href="{% url 'core:task_detail' t.id %}" class="btn-sm">Review →</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- ═══════════════════════════════════════════════
+       KANBAN BOARD
+  ═══════════════════════════════════════════════ -->
+  <div class="cc-section-head" style="margin-top:24px;">
+    <div class="cc-section-title"><i class="ri-kanban-view"></i> Kanban Board</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="progress-mini">
+        <div class="progress-mini__fill" style="width:{{ progress_percent }}%;"></div>
+      </div>
+      <span class="muted">{{ progress_percent }}% complete</span>
+      <a href="{% url 'core:project_board' selected_project.id %}" class="cc-section-link">Full board →</a>
+    </div>
+  </div>
+
+  <div class="cc-board">
+    {% for col in kanban_columns %}
+    <div class="cc-col" data-status="{{ col.status }}">
+      <div class="cc-col-head">
+        <strong>{{ col.label }}</strong>
+        <span class="cc-pill">{{ col.count|default:0 }}</span>
+      </div>
+      <div class="cc-col-body">
+        {% for t in tasks %}
+          {% if t.status == col.status %}
+          <div class="cc-task" draggable="true" data-id="{{ t.id }}" data-status="{{ t.status }}">
+            <div class="cc-task__key">
+              <a href="{% url 'core:task_detail' t.id %}">{{ t.issue_key }}</a>
+            </div>
+            <div class="cc-task__title">{{ t.title|truncatechars:52 }}</div>
+            <div class="cc-task__meta">
+              {% if t.assigned_to %}
+                <div class="user-avatar-xs">{{ t.assigned_to.username|slice:":1"|upper }}</div>
+                <span>{{ t.assigned_to.username }}</span>
+              {% else %}
+                <span class="muted">Unassigned</span>
+              {% endif %}
+              {% if t.due_date %}
+                <span class="cc-task__due {% if t.due_date < today %}cc-task__due--late{% endif %}">
+                  {{ t.due_date|date:"M d" }}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="muted" style="padding:8px 0 4px;font-size:12px;">
+    Drag cards between columns to update status. Workflow rules apply.
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       QUICK CREATE TASK (collapsed at bottom)
+  ═══════════════════════════════════════════════ -->
+  <details class="cc-quick-create" style="margin-top:20px;">
+    <summary class="cc-quick-create__toggle">
+      <i class="ri-add-circle-line"></i> Quick Create Task in {{ selected_project.name }}
+    </summary>
+    <div class="cc-quick-create__body">
+      <form method="post" action="{% url 'core:create_task' %}?project={{ selected_project.id }}" class="cc-form">
+        {% csrf_token %}
+        <input type="hidden" name="project" value="{{ selected_project.id }}">
+        <div class="cc-grid">
+          <div class="cc-field">
+            <label>Title <span class="req">*</span></label>
+            <input name="title" required placeholder="e.g., Build login flow">
+          </div>
+          <div class="cc-field">
+            <label>Assignee</label>
+            <select name="assigned_to">
+              <option value="">— Unassigned —</option>
+              {% for u in assignee_choices %}
+                <option value="{{ u.id }}">{{ u.username }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="cc-field cc-field--full">
+            <label>Description</label>
+            <textarea name="description" rows="2" placeholder="What does success look like?"></textarea>
+          </div>
+          <div class="cc-field">
+            <label>Start date</label>
+            <input type="date" name="start_date">
+          </div>
+          <div class="cc-field">
+            <label>Due date</label>
+            <input type="date" name="due_date">
+          </div>
+          <div class="cc-field">
+            <label>Priority</label>
+            <select name="priority">
+              <option>Medium</option>
+              <option>High</option>
+              <option>Low</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px;">
+          <a class="btn-act btn-act--ghost" href="{% url 'core:create_task' %}?project={{ selected_project.id }}">Full form</a>
+          <button type="submit" class="btn-act btn-act--primary">Create task</button>
+        </div>
+      </form>
+    </div>
+  </details>
+
+  {% endif %}{# /selected_project #}
+
+</div>
+{% endblock %}
+
+{% block shell_extra_css %}
+<style>
+
+/* ═══════════════════════════════════════════════
+   PAGE
+═══════════════════════════════════════════════ */
+.cc-page{ padding:24px; max-width:1500px; margin:auto; }
+
+/* ── HEADER ─────────────────────────────────── */
+.cc-header{
+  display:flex; justify-content:space-between; align-items:flex-start;
+  gap:16px; flex-wrap:wrap; margin-bottom:20px;
+}
+.cc-title{ margin:0; font-size:22px; font-weight:800; color:#0f172a; }
+.cc-sub{ margin:4px 0 0; color:#64748b; font-size:13px; }
+.cc-header-right{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+.cc-header-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+
+.cc-picker{
+  display:flex; align-items:center; gap:8px;
+  background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+  padding:8px 12px;
+}
+.cc-picker-select{
+  border:none; outline:none; font-size:13px;
+  font-weight:600; color:#0f172a; background:transparent;
+}
+
+.btn-act{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:9px 14px; border-radius:12px; font-size:13px;
+  font-weight:600; cursor:pointer; text-decoration:none; border:none;
+}
+.btn-act--ghost{ background:#fff; border:1px solid #e5e7eb; color:#374151; }
+.btn-act--ghost:hover{ background:#f9fafb; border-color:#c7d2fe; }
+.btn-act--primary{
+  background:linear-gradient(135deg,#4f46e5,#7c3aed);
+  color:#fff; box-shadow:0 6px 16px rgba(79,70,229,.2);
+}
+.btn-act--primary:hover{ opacity:.92; }
+
+/* ── EMPTY STATE ────────────────────────────── */
+.cc-empty{
+  text-align:center; padding:60px 20px; color:#94a3b8;
+  font-size:15px;
+}
+.cc-empty i{ font-size:48px; display:block; margin-bottom:12px; color:#c7d2fe; }
+
+/* ── STATS ──────────────────────────────────── */
+.cc-stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:14px; margin-bottom:20px;
+}
+.cc-stat{
+  display:flex; align-items:center; gap:14px;
+  background:#fff; border:1px solid #e5e7eb; border-radius:18px;
+  padding:16px; box-shadow:0 1px 4px rgba(15,23,42,.05);
+  transition:.2s ease;
+}
+.cc-stat:hover{ box-shadow:0 6px 20px rgba(15,23,42,.08); }
+.cc-stat--alert{ border-color:#fca5a5; background:#fff5f5; }
+.cc-stat--warn{ border-color:#fcd34d; background:#fffbeb; }
+.cc-stat__icon{
+  width:42px; height:42px; border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; flex-shrink:0;
+}
+.cc-stat__num{ font-size:24px; font-weight:800; color:#0f172a; line-height:1; }
+.cc-stat__label{ font-size:11px; color:#64748b; margin-top:4px; text-transform:uppercase; letter-spacing:.02em; }
+
+/* ── ALERT ──────────────────────────────────── */
+.cc-alert{
+  display:flex; align-items:center; gap:10px;
+  background:#fef2f2; border:1px solid #fca5a5;
+  border-radius:14px; padding:14px 18px;
+  font-size:13px; color:#991b1b; margin-bottom:16px;
+}
+.cc-alert i{ font-size:18px; }
+
+/* ── SECTION HEADS ──────────────────────────── */
+.cc-section-head{
+  display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;
+}
+.cc-section-title{
+  font-size:14px; font-weight:700; color:#0f172a;
+  display:flex; align-items:center; gap:8px;
+}
+.cc-section-link{ font-size:12px; color:#6366f1; text-decoration:none; }
+.cc-section-link:hover{ text-decoration:underline; }
+
+/* ── CARD ───────────────────────────────────── */
+.cc-card{
+  background:#fff; border:1px solid #e5e7eb;
+  border-radius:18px; overflow:hidden;
+  box-shadow:0 1px 4px rgba(15,23,42,.05);
+}
+.cc-empty-msg{ padding:20px; color:#94a3b8; font-size:13px; text-align:center; }
+
+/* ── TABLE ──────────────────────────────────── */
+.cc-table{ width:100%; border-collapse:collapse; }
+.cc-table th{
+  font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+  color:#64748b; background:#f8fafc; padding:10px 14px;
+  text-align:left; border-bottom:1px solid #e5e7eb; white-space:nowrap;
+}
+.cc-table td{
+  padding:11px 14px; border-bottom:1px solid #f1f5f9;
+  font-size:13px; vertical-align:middle;
+}
+.cc-table tr:last-child td{ border-bottom:none; }
+.cc-table tr:hover td{ background:#fafbfc; }
+.row--alert td{ background:#fff5f5 !important; }
+
+.center{ text-align:center; }
+.num-col{ font-weight:700; color:#374151; }
+.num-col--active{ color:#1d4ed8; }
+.num-col--done{ color:#15803d; }
+.num-col--overdue{ color:#dc2626; }
+
+.user-cell{ display:flex; align-items:center; gap:10px; }
+.user-avatar{
+  width:32px; height:32px; border-radius:50%; flex-shrink:0;
+  background:linear-gradient(135deg,#4f46e5,#7c3aed);
+  color:#fff; display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:12px;
+}
+.user-avatar-xs{
+  width:24px; height:24px; border-radius:50%; flex-shrink:0;
+  background:linear-gradient(135deg,#4f46e5,#7c3aed);
+  color:#fff; display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:10px;
+}
+.user-name{ font-weight:600; color:#0f172a; font-size:13px; }
+.muted{ color:#94a3b8; font-size:12px; }
+
+.key-link{ color:#4f46e5; font-weight:700; text-decoration:none; font-size:12px; }
+.key-link:hover{ text-decoration:underline; }
+
+.overdue-date{ color:#dc2626; font-weight:700; white-space:nowrap; }
+
+.status-chip{
+  font-size:11px; font-weight:700; padding:4px 10px;
+  border-radius:999px; white-space:nowrap;
+}
+.status-chip--todo{ background:#f3f4f6; color:#374151; }
+.status-chip--in_progress{ background:#dbeafe; color:#1d4ed8; }
+.status-chip--in_review{ background:#ede9fe; color:#6d28d9; }
+.status-chip--qa{ background:#fef3c7; color:#92400e; }
+.status-chip--done{ background:#dcfce7; color:#15803d; }
+
+/* ── ROLE PILLS ─────────────────────────────── */
+.role-pill{
+  font-size:11px; font-weight:700; padding:3px 9px;
+  border-radius:999px; white-space:nowrap;
+  background:#f1f5f9; color:#475569;
+}
+.role-pill--project_lead{ background:#dbeafe; color:#1d4ed8; }
+.role-pill--developer{ background:#dcfce7; color:#166534; }
+.role-pill--tester{ background:#fef3c7; color:#92400e; }
+.role-pill--qa{ background:#fef9c3; color:#713f12; }
+.role-pill--ui_ux_designer{ background:#f3e8ff; color:#6b21a8; }
+.role-pill--delivery_team{ background:#e0f2fe; color:#075985; }
+.role-pill--deployment_team{ background:#d1fae5; color:#065f46; }
+
+/* ── TEAM LOAD ──────────────────────────────── */
+.load-row{
+  display:flex; align-items:center; gap:10px;
+  padding:9px 0; border-top:1px dashed #e5e7eb;
+  font-size:13px; color:#374151;
+}
+.load-dot{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+/* ── DEADLINES ──────────────────────────────── */
+.deadline-row{
+  display:flex; justify-content:space-between; align-items:center;
+  gap:10px; padding:11px 14px; border-bottom:1px solid #f1f5f9;
+  font-size:13px;
+}
+.deadline-row:last-child{ border-bottom:none; }
+.deadline-title{ color:#374151; }
+.deadline-date{
+  font-size:12px; font-weight:700; color:#d97706;
+  background:#fef3c7; padding:3px 8px; border-radius:999px; white-space:nowrap;
+}
+
+/* ── PROGRESS MINI ──────────────────────────── */
+.progress-mini{
+  width:120px; height:8px; background:#f1f5f9;
+  border-radius:999px; overflow:hidden;
+}
+.progress-mini__fill{
+  height:100%; border-radius:999px;
+  background:linear-gradient(90deg,#4f46e5,#7c3aed);
+  transition:width .4s ease;
+}
+
+/* ── KANBAN ─────────────────────────────────── */
+.cc-board{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  gap:12px; margin-bottom:6px;
+}
+.cc-col{
+  background:#f8fafc; border:1px solid #e5e7eb;
+  border-radius:16px; min-height:200px; display:flex; flex-direction:column;
+}
+.cc-col.drag-over{ border:2px dashed #4f46e5; background:#eef2ff; }
+.cc-col-head{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px 14px; border-bottom:1px solid #e5e7eb;
+  font-size:13px; font-weight:700; color:#0f172a;
+}
+.cc-pill{
+  font-size:11px; background:#e2e8f0; color:#0f172a;
+  border-radius:999px; padding:2px 9px;
+}
+.cc-col-body{
+  padding:10px; display:flex; flex-direction:column;
+  gap:8px; overflow:auto; max-height:420px; flex:1;
+}
+.cc-task{
+  background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+  padding:10px 12px; cursor:grab;
+  transition:.15s ease;
+}
+.cc-task:hover{ border-color:#c7d2fe; box-shadow:0 4px 12px rgba(79,70,229,.08); }
+.cc-task.dragging{ opacity:.55; }
+.cc-task__key a{ color:#4f46e5; font-weight:700; font-size:11px; text-decoration:none; }
+.cc-task__title{ font-size:13px; font-weight:600; color:#0f172a; margin:4px 0; }
+.cc-task__meta{
+  display:flex; align-items:center; gap:6px;
+  font-size:11px; color:#64748b; flex-wrap:wrap;
+}
+.cc-task__due{
+  margin-left:auto; font-size:11px; background:#f1f5f9;
+  color:#64748b; padding:2px 6px; border-radius:999px;
+}
+.cc-task__due--late{ background:#fee2e2; color:#dc2626; }
+
+/* ── BTN SMALL ──────────────────────────────── */
+.btn-sm{
+  padding:5px 11px; border-radius:8px; font-size:12px; font-weight:600;
+  text-decoration:none; color:#374151; background:#f8fafc;
+  border:1px solid #e5e7eb; cursor:pointer; white-space:nowrap;
+}
+.btn-sm:hover{ background:#f1f5f9; }
+
+/* ── QUICK CREATE ───────────────────────────── */
+.cc-quick-create{
+  background:#fff; border:1px solid #e5e7eb;
+  border-radius:18px; overflow:hidden;
+}
+.cc-quick-create__toggle{
+  padding:14px 18px; font-size:14px; font-weight:700;
+  color:#4f46e5; cursor:pointer; list-style:none;
+  display:flex; align-items:center; gap:8px;
+  border-bottom:1px solid transparent;
+}
+.cc-quick-create[open] .cc-quick-create__toggle{
+  border-bottom-color:#e5e7eb;
+}
+.cc-quick-create__body{ padding:18px; }
+
+/* ── FORM ───────────────────────────────────── */
+.cc-form label{ font-size:12px; color:#475569; font-weight:700; display:block; margin-bottom:4px; }
+.req{ color:#dc2626; }
+.cc-form input,.cc-form select,.cc-form textarea{
+  width:100%; padding:10px 12px; border:1px solid #e5e7eb;
+  border-radius:10px; font-size:13px; box-sizing:border-box;
+  background:#fff;
+}
+.cc-form input:focus,.cc-form select:focus,.cc-form textarea:focus{
+  outline:none; border-color:#6366f1;
+  box-shadow:0 0 0 3px rgba(99,102,241,.12);
+}
+.cc-form textarea{ resize:vertical; }
+.cc-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.cc-field{ display:flex; flex-direction:column; }
+.cc-field--full{ grid-column:1/-1; }
+
+/* ── TWO-COL ────────────────────────────────── */
+.cc-two-col{
+  display:grid; grid-template-columns:1.5fr .8fr; gap:18px;
+}
+
+/* ── RESPONSIVE ─────────────────────────────── */
+@media (max-width:1100px){
+  .cc-two-col{ grid-template-columns:1fr; }
+}
+@media (max-width:768px){
+  .cc-page{ padding:14px; }
+  .cc-header{ flex-direction:column; }
+  .cc-grid{ grid-template-columns:1fr; }
+  .cc-board{ grid-template-columns:1fr 1fr; }
+  .cc-stats{ grid-template-columns:repeat(2,1fr); }
+}
+@media (max-width:480px){
+  .cc-board{ grid-template-columns:1fr; }
+}
+</style>
+{% endblock %}
+
+{% block shell_foot_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function () {
+
+  /* ── TEAM LOAD DONUT ── */
+  const el = document.getElementById('teamLoadChart');
+  if (el && typeof Chart !== 'undefined') {
+    const labels = (el.dataset.labels || '').split('||').filter(Boolean);
+    const values = (el.dataset.values || '').split(',').map(s => parseInt(s, 10)).filter(n => !isNaN(n));
+    const colors = (el.dataset.colors || '').split(',').filter(Boolean);
+    if (labels.length && values.some(v => v > 0)) {
+      new Chart(el, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+        options: {
+          plugins: { legend: { display: false } },
+          cutout: '65%',
+          maintainAspectRatio: true,
+        }
+      });
+    } else {
+      el.parentElement.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:12px;padding:20px;">No task data yet.</p>';
+    }
+  }
+
+  /* ── KANBAN DRAG & DROP ── */
+  let dragged = null;
+  const csrf = () => '{{ csrf_token }}';
+
+  function postStatus(taskId, status) {
+    return fetch(`/tasks/${taskId}/status/${status}/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrf() }
+    }).then(r => r.json().then(j => ({ ok: r.ok, j })));
+  }
+
+  document.querySelectorAll('.cc-task').forEach(card => {
+    card.addEventListener('dragstart', () => { dragged = card; card.classList.add('dragging'); });
+    card.addEventListener('dragend', () => { card.classList.remove('dragging'); dragged = null; });
+  });
+
+  document.querySelectorAll('.cc-col').forEach(col => {
+    col.addEventListener('dragover', e => e.preventDefault());
+    col.addEventListener('dragenter', () => col.classList.add('drag-over'));
+    col.addEventListener('dragleave', e => {
+      if (!col.contains(e.relatedTarget)) col.classList.remove('drag-over');
+    });
+    col.addEventListener('drop', () => {
+      col.classList.remove('drag-over');
+      if (!dragged) return;
+      const prev = dragged.dataset.status;
+      const next = col.dataset.status;
+      if (prev === next) return;
+      col.querySelector('.cc-col-body')?.appendChild(dragged);
+      postStatus(dragged.dataset.id, next).then(({ ok }) => {
+        if (!ok) { location.reload(); return; }
+        dragged.dataset.status = next;
+      }).catch(() => location.reload());
+    });
+  });
+
+})();
+</script>
+{% endblock %}

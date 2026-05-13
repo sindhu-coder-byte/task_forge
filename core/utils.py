@@ -1,6 +1,6 @@
 # utils.py (NEW FILE 🔥)
 from django.db.models import Q, Count
-from .models import Task
+from .models import ProjectMembership, Task
 
 def get_user_role(user):
     return getattr(user, 'profile', None).role if hasattr(user, 'profile') else 'user'
@@ -10,7 +10,9 @@ def get_notification_count(user):
     profile = getattr(user, 'profile', None)
     if not profile:
         return 0
-    role = profile.role
+    membership = ProjectMembership.objects.filter(user=user).first()
+
+    role = membership.role if membership else None
 
     if role == 'developer':
         return Task.objects.filter(assigned_to=user, status='todo').count()

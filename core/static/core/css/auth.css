@@ -311,23 +311,35 @@ body {
   top: 20px;
   right: 20px;
   z-index: 9999;
-  width: 300px;
 }
 
 .alert {
-  padding: 12px;
-  border-radius: 10px;
-  margin-bottom: 10px;
+  min-width: 260px;
+  padding: 14px 18px;
+  border-radius: 8px;
   font-size: 14px;
-  color: white;
   font-weight: 500;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-  animation: fadeOut 5s forwards;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  animation: slideIn 0.3s ease;
 }
+
 
 .alert.success { background: #10B981; }
 .alert.error { background: #EF4444; }
 .alert.warning { background: #F59E0B; }
+
+/* ANIMATION */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
 
 /* =========================
    RESPONSIVE
@@ -473,7 +485,7 @@ body {
 
 
 /* =========================================================
-   TASKFORGE AUTH (Scoped - No Conflicts)
+   TASKFORGE AUTH 
    ========================================================= */
 
 /* TITLE */
@@ -590,3 +602,5 @@ body {
 .auth-box {
   animation: fadeIn 0.4s ease;
 }
+
+

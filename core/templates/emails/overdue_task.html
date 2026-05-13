@@ -1,51 +1,125 @@
-<div style="font-family: Arial, sans-serif; background:#f4f5f7; padding:20px;">
-  <div style="max-width:500px;margin:auto;background:#fff;border-radius:10px;padding:20px;border:1px solid #e5e7eb;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Overdue Task – {{ task.issue_key }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;">
 
-    <h2 style="color:#d32f2f;margin-bottom:10px;">
-      ⚠️ Overdue Task: {{ task.issue_key }}
-    </h2>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:32px 16px;">
+    <tr>
+      <td align="center">
 
-    <p style="color:#44546f;font-size:14px;">
-      Hello {{ recipient.username }},
-    </p>
+        <!-- Card -->
+        <table width="520" cellpadding="0" cellspacing="0"
+               style="background:#ffffff;border-radius:10px;border:1px solid #e5e7eb;overflow:hidden;">
 
-    <p style="font-size:14px; color:#d32f2f;">
-      <strong>The task "{{ task.title }}" is now overdue.</strong>
-    </p>
+          <!-- Header stripe (red = overdue) -->
+          <tr>
+            <td style="background:#b91c1c;padding:18px 28px;">
+              <span style="color:#ffffff;font-size:13px;font-weight:600;
+                           letter-spacing:0.5px;text-transform:uppercase;">
+                🚨 Overdue Task Alert
+              </span>
+            </td>
+          </tr>
 
-    <div style="background:#fff3f3;padding:15px;border-radius:6px;margin:15px 0;border-left:4px solid #d32f2f;">
-      <p style="margin:5px 0;font-size:14px;">
-        <strong>Project:</strong> {{ task.project.name }}
-      </p>
-      <p style="margin:5px 0;font-size:14px;">
-        <strong>Due Date:</strong> {{ task.due_date }}
-      </p>
-      <p style="margin:5px 0;font-size:14px;">
-        <strong>Days Overdue:</strong> {{ days_overdue }}
-      </p>
-      <p style="margin:5px 0;font-size:14px;">
-        <strong>Assigned to:</strong> {{ task.assigned_to.username }}
-      </p>
-      <p style="margin:5px 0;font-size:14px;">
-        <strong>Priority:</strong> {{ task.get_priority_display }}
-      </p>
-    </div>
+          <!-- Body -->
+          <tr>
+            <td style="padding:28px;">
 
-    <p style="font-size:14px;">
-      Please take immediate action to address this overdue task.
-    </p>
+              <h2 style="margin:0 0 6px;font-size:20px;color:#172b4d;">
+                {{ task.issue_key }}: {{ task.title }}
+              </h2>
 
-    <div style="margin:20px 0;text-align:center;">
-      <a href="{{ task_url }}"
-         style="background:#d32f2f;color:#fff;padding:10px 18px;border-radius:6px;
-                text-decoration:none;font-size:14px;display:inline-block;">
-        View Task
-      </a>
-    </div>
+              <p style="margin:0 0 20px;font-size:14px;color:#6b7280;">
+                Hello {{ recipient.get_full_name|default:recipient.username }},
+              </p>
 
-    <p style="font-size:12px;color:#6b7280;">
-      This is an automated notification from TaskForge.
-    </p>
+              <!-- Alert banner -->
+              <div style="background:#fef2f2;border-left:4px solid #b91c1c;
+                          padding:14px 16px;border-radius:4px;margin-bottom:20px;">
+                <p style="margin:0;font-size:14px;color:#991b1b;">
+                  <strong>This task is {{ days_overdue }} day{{ days_overdue|pluralize }} overdue.</strong>
+                  Immediate action is required to resolve or escalate this item.
+                </p>
+              </div>
 
-  </div>
-</div>
+              <!-- Task metadata box -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:#f8f9fa;border-radius:6px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:16px;">
+                    <table width="100%" cellpadding="4" cellspacing="0" style="font-size:13px;color:#374151;">
+                      <tr>
+                        <td style="width:130px;color:#6b7280;font-weight:600;">Project</td>
+                        <td>{{ task.project.name }}</td>
+                      </tr>
+                      <tr>
+                        <td style="color:#6b7280;font-weight:600;">Task Key</td>
+                        <td>{{ task.issue_key }}</td>
+                      </tr>
+                      <tr>
+                        <td style="color:#6b7280;font-weight:600;">Original Due Date</td>
+                        <td><strong style="color:#b91c1c;">{{ task.due_date }}</strong></td>
+                      </tr>
+                      <tr>
+                        <td style="color:#6b7280;font-weight:600;">Days Overdue</td>
+                        <td><strong style="color:#b91c1c;">{{ days_overdue }}</strong></td>
+                      </tr>
+                      <tr>
+                        <td style="color:#6b7280;font-weight:600;">Assigned To</td>
+                        <td>{{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:"Unassigned" }}</td>
+                      </tr>
+                      <tr>
+                        <td style="color:#6b7280;font-weight:600;">Priority</td>
+                        <td>{{ task.get_priority_display }}</td>
+                      </tr>
+                      <tr>
+                        <td style="color:#6b7280;font-weight:600;">Status</td>
+                        <td>{{ task.get_status_display }}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CTA button -->
+              <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+                <tr>
+                  <td align="center"
+                      style="background:#b91c1c;border-radius:6px;">
+                    <a href="{{ task_url }}"
+                       style="display:inline-block;padding:11px 24px;
+                              color:#ffffff;font-size:14px;font-weight:600;
+                              text-decoration:none;letter-spacing:0.3px;">
+                      View Task →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f8f9fa;padding:14px 28px;border-top:1px solid #e5e7eb;">
+              <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">
+                This is an automated notification from
+                <strong style="color:#6b7280;">TaskForge</strong>.
+                You received this as an assignee or administrator of this project.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Card -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

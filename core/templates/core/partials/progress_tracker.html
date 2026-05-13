@@ -1,0 +1,70 @@
+{# Detailed Progress Tracker (project timeline) #}
+{% if project_timeline %}
+<section class="card dpt-card" aria-label="Detailed Progress Tracker">
+  <div class="dpt-head">
+    <div>
+      <div class="dpt-kicker">Detailed Progress Tracker</div>
+      <h3 class="dpt-title">{{ project_timeline.project_name }}</h3>
+    </div>
+    <div class="dpt-active">
+      Active stage:
+      <strong id="dptActiveLabel"></strong>
+    </div>
+  </div>
+
+  <div class="dpt-line" role="list">
+    {% for s in project_timeline.stages %}
+      <div
+        class="dpt-stage {% if s.id == project_timeline.active_stage_id %}is-active{% endif %} {% if s.complete %}is-done{% endif %}"
+        role="listitem"
+        data-stage-id="{{ s.id }}"
+        data-stage-label="{{ s.label }}"
+        style="--stage-color: {{ s.color }};">
+        <div class="dpt-dot"></div>
+        <div class="dpt-meta">
+          <div class="dpt-label">{{ s.label }}</div>
+          <div class="dpt-sub">
+            {% if s.total %}
+              {{ s.done }}/{{ s.total }} done
+            {% else %}
+              —
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% if not forloop.last %}<div class="dpt-connector"></div>{% endif %}
+    {% endfor %}
+  </div>
+</section>
+
+<style>
+.dpt-card{padding:16px;border-radius:14px;border:1px solid #e5e7eb;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.06)}
+.dpt-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+.dpt-kicker{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#64748b}
+.dpt-title{margin:6px 0 0;font-size:16px;font-weight:700;color:#0f172a}
+.dpt-active{font-size:12px;color:#475569;background:#f8fafc;border:1px solid #e5e7eb;border-radius:999px;padding:8px 12px}
+
+.dpt-line{display:flex;align-items:center;gap:10px;overflow:auto;padding:6px 2px}
+.dpt-stage{display:flex;align-items:center;gap:10px;min-width:170px}
+.dpt-dot{width:14px;height:14px;border-radius:999px;background:#cbd5e1;box-shadow:0 0 0 4px rgba(203,213,225,.35);transition:.2s}
+.dpt-connector{flex:0 0 26px;height:2px;background:#e5e7eb;border-radius:999px}
+.dpt-label{font-size:13px;font-weight:700;color:#0f172a}
+.dpt-sub{font-size:12px;color:#64748b}
+
+.dpt-stage.is-done .dpt-dot{background:var(--stage-color);box-shadow:0 0 0 4px rgba(34,197,94,.15)}
+.dpt-stage.is-active .dpt-dot{background:var(--stage-color);box-shadow:0 0 0 6px color-mix(in srgb, var(--stage-color) 30%, transparent), 0 0 22px 4px color-mix(in srgb, var(--stage-color) 45%, transparent)}
+.dpt-stage.is-active .dpt-label{color:var(--stage-color)}
+
+@media (max-width: 720px){
+  .dpt-stage{min-width:150px}
+}
+</style>
+<script>
+(function(){
+  var active = document.querySelector('.dpt-stage.is-active');
+  var out = document.getElementById('dptActiveLabel');
+  if (active && out) out.textContent = active.dataset.stageLabel || '—';
+})();
+</script>
+{% endif %}
+

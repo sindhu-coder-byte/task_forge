@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ email_subject }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:32px 16px;">
+  <tr>
+    <td align="center">
+
+      <!-- Card -->
+      <table width="520" cellpadding="0" cellspacing="0"
+             style="background:#ffffff;border-radius:10px;border:1px solid #e5e7eb;overflow:hidden;">
+
+        <!-- HEADER STRIPE -->
+        <tr>
+          <td style="background:{% if notification_type == 'welcome' %}#16a34a{% else %}#0052cc{% endif %};padding:18px 28px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td>
+                  <span style="color:#ffffff;font-size:13px;font-weight:600;
+                               letter-spacing:0.5px;text-transform:uppercase;">
+                    {% if notification_type == 'welcome' %}👋 You've Been Added to a Project{% else %}👤 New Team Member Added{% endif %}
+                  </span>
+                </td>
+                <td align="right">
+                  <span style="background:rgba(255,255,255,0.22);color:#ffffff;
+                               font-size:11px;font-weight:700;padding:4px 10px;
+                               border-radius:999px;letter-spacing:.4px;text-transform:uppercase;">
+                    {% if notification_type == 'welcome' %}{{ role_display }}{% else %}Project Lead{% endif %}
+                  </span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- BODY -->
+        <tr>
+          <td style="padding:28px;">
+
+            <!-- Greeting -->
+            <p style="margin:0 0 20px;font-size:14px;color:#6b7280;">
+              Hello {{ recipient.get_full_name|default:recipient.username }},
+            </p>
+
+            {% if notification_type == 'welcome' %}
+            <!-- Welcome message for new member -->
+            <div style="background:#f0fdf4;border-left:4px solid #16a34a;
+                        padding:14px 16px;border-radius:4px;margin-bottom:20px;">
+              <p style="margin:0;font-size:14px;color:#374151;">
+                <strong>Welcome to {{ project.name }}!</strong>
+                {{ added_by.get_full_name|default:added_by.username }} has added you to this project
+                as <strong>{{ role_display }}</strong>.
+                {% if team %}
+                  You have also been added to the <strong>{{ team.name }}</strong> team.
+                {% endif %}
+              </p>
+            </div>
+
+            <!-- Role description block -->
+            <div style="background:#f8f9fa;border-radius:6px;padding:16px;margin-bottom:20px;">
+              <div style="font-size:12px;font-weight:700;color:#6b7280;
+                          text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">
+                Your Role
+              </div>
+              <div style="display:inline-block;">
+                <span style="
+                  background:{% if role == 'project_lead' %}#dbeafe;color:#1d4ed8{% elif role == 'developer' %}#ede9fe;color:#6d28d9{% elif role == 'tester' or role == 'qa' %}#fef3c7;color:#92400e{% elif role == 'ui_ux_designer' %}#fce7f3;color:#9d174d{% else %}#dcfce7;color:#15803d{% endif %};
+                  padding:5px 16px;border-radius:999px;font-size:13px;font-weight:700;">
+                  {{ role_display }}
+                </span>
+              </div>
+              <p style="margin:10px 0 0;font-size:13px;color:#6b7280;line-height:1.5;">
+                {% if role == 'project_lead' %}
+                  As Project Lead, you are responsible for overseeing task progress, assigning work, and ensuring timely delivery.
+                {% elif role == 'developer' %}
+                  As Developer, you will be assigned coding tasks. Please pick up tasks from the backlog and keep statuses updated.
+                {% elif role == 'tester' %}
+                  As Tester, you will validate completed features and report defects before tasks move to QA.
+                {% elif role == 'qa' %}
+                  As QA, you will perform quality checks and approve or reject tasks before they are marked done.
+                {% elif role == 'ui_ux_designer' %}
+                  As UI/UX Designer, you will create and review design assets. Collaborate with developers during implementation.
+                {% elif role == 'delivery_team' %}
+                  As part of the Delivery Team, you will coordinate release schedules and communicate progress to stakeholders.
+                {% else %}
+                  You are a member of the {{ project.name }} project. Please check with your project lead for responsibilities.
+                {% endif %}
+              </p>
+            </div>
+
+            {% else %}
+            <!-- Lead notification for project lead -->
+            <div style="background:#eff6ff;border-left:4px solid #0052cc;
+                        padding:14px 16px;border-radius:4px;margin-bottom:20px;">
+              <p style="margin:0;font-size:14px;color:#374151;">
+                <strong>{{ new_member.get_full_name|default:new_member.username }}</strong>
+                has been added to <strong>{{ project.name }}</strong>
+                as <strong>{{ role_display }}</strong>
+                by {{ added_by.get_full_name|default:added_by.username }}.
+                {% if team %}
+                  They have been assigned to the <strong>{{ team.name }}</strong> team.
+                {% endif %}
+              </p>
+            </div>
+            {% endif %}
+
+            <!-- Project metadata box -->
+            <table width="100%" cellpadding="0" cellspacing="0"
+                   style="background:#f8f9fa;border-radius:6px;margin-bottom:24px;">
+              <tr>
+                <td style="padding:16px;">
+                  <table width="100%" cellpadding="4" cellspacing="0"
+                         style="font-size:13px;color:#374151;">
+                    <tr>
+                      <td style="width:130px;color:#6b7280;font-weight:600;">Project</td>
+                      <td>{{ project.name }}</td>
+                    </tr>
+                    {% if notification_type == 'welcome' %}
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Your Role</td>
+                      <td>{{ role_display }}</td>
+                    </tr>
+                    {% if team %}
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Team</td>
+                      <td>{{ team.name }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Added By</td>
+                      <td>{{ added_by.get_full_name|default:added_by.username }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">New Member</td>
+                      <td>{{ new_member.get_full_name|default:new_member.username }}</td>
+                    </tr>
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Role Assigned</td>
+                      <td>{{ role_display }}</td>
+                    </tr>
+                    {% if team %}
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Team</td>
+                      <td>{{ team.name }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Added By</td>
+                      <td>{{ added_by.get_full_name|default:added_by.username }}</td>
+                    </tr>
+                    {% endif %}
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <!-- CTA button -->
+            <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+              <tr>
+                <td align="center"
+                    style="background:{% if notification_type == 'welcome' %}#16a34a{% else %}#0052cc{% endif %};
+                           border-radius:6px;">
+                  <a href="{{ project_url }}"
+                     style="display:inline-block;padding:11px 24px;
+                            color:#ffffff;font-size:14px;font-weight:600;
+                            text-decoration:none;letter-spacing:0.3px;">
+                    View Project →
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+          </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td style="background:#f8f9fa;padding:14px 28px;border-top:1px solid #e5e7eb;">
+            <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">
+              This is an automated notification from
+              <strong style="color:#6b7280;">TaskForge</strong>.
+              {% if notification_type == 'welcome' %}
+                You received this because you were added to {{ project.name }}.
+              {% else %}
+                You received this as a project lead for {{ project.name }}.
+              {% endif %}
+            </p>
+          </td>
+        </tr>
+
+      </table>
+      <!-- /Card -->
+
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,643 @@
+{% extends "core/app_shell.html" %}
+{% load static %}
+
+{% block shell_title %}Admin · Command Center{% endblock %}
+
+{% block shell_page %}
+<div class="adm-page">
+
+  <!-- ═══════════════════════════════════════════════
+       HEADER
+  ═══════════════════════════════════════════════ -->
+  <div class="adm-header">
+    <div>
+      <h2 class="adm-title">Admin Command Center</h2>
+      <p class="adm-sub">Org-wide project health · team roles · overdue alerts</p>
+    </div>
+    <div class="adm-header-actions">
+      <a class="btn-act btn-act--ghost" href="{% url 'core:user_list' %}">
+        <i class="ri-user-settings-line"></i> Manage Users
+      </a>
+      <a class="btn-act btn-act--ghost" href="{% url 'core:projects' %}">
+        <i class="ri-folder-3-line"></i> All Projects
+      </a>
+      <a class="btn-act btn-act--primary" href="{% url 'core:dashboard_analytics' %}">
+        <i class="ri-bar-chart-2-line"></i> Analytics
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       STAT TILES
+  ═══════════════════════════════════════════════ -->
+  <div class="adm-stats">
+
+    <div class="stat-tile">
+      <div class="stat-tile__icon" style="background:#ede9fe;color:#7c3aed;">
+        <i class="ri-user-3-line"></i>
+      </div>
+      <div>
+        <div class="stat-tile__num">{{ total_users_count }}</div>
+        <div class="stat-tile__label">Active Users</div>
+      </div>
+    </div>
+
+    <div class="stat-tile">
+      <div class="stat-tile__icon" style="background:#dbeafe;color:#1d4ed8;">
+        <i class="ri-folder-3-line"></i>
+      </div>
+      <div>
+        <div class="stat-tile__num">{{ active_projects_count }}</div>
+        <div class="stat-tile__label">Projects</div>
+      </div>
+    </div>
+
+    <div class="stat-tile">
+      <div class="stat-tile__icon" style="background:#dcfce7;color:#15803d;">
+        <i class="ri-task-line"></i>
+      </div>
+      <div>
+        <div class="stat-tile__num">{{ total_tasks_count }}</div>
+        <div class="stat-tile__label">Total Tasks</div>
+      </div>
+    </div>
+
+    <div class="stat-tile {% if overdue_tasks %}stat-tile--alert{% endif %}">
+      <div class="stat-tile__icon" style="background:#fee2e2;color:#dc2626;">
+        <i class="ri-alarm-warning-line"></i>
+      </div>
+      <div>
+        <div class="stat-tile__num">{{ overdue_tasks|length }}</div>
+        <div class="stat-tile__label">Overdue Tasks</div>
+      </div>
+    </div>
+
+    <div class="stat-tile {% if pending_invites_count %}stat-tile--warn{% endif %}">
+      <div class="stat-tile__icon" style="background:#fef3c7;color:#d97706;">
+        <i class="ri-mail-send-line"></i>
+      </div>
+      <div>
+        <div class="stat-tile__num">{{ pending_invites_count }}</div>
+        <div class="stat-tile__label">Pending Invites</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       OVERDUE ALERT BANNER
+  ═══════════════════════════════════════════════ -->
+  {% if overdue_tasks %}
+  <div class="adm-alert">
+    <i class="ri-error-warning-fill"></i>
+    <strong>{{ overdue_tasks|length }} overdue task{{ overdue_tasks|length|pluralize }}</strong>
+    across the organisation — review below.
+  </div>
+  {% endif %}
+
+  <!-- ═══════════════════════════════════════════════
+       PROJECT HEALTH GRID
+  ═══════════════════════════════════════════════ -->
+  <div class="adm-section-head">
+    <div class="adm-section-title"><i class="ri-folder-3-line"></i> Project Health</div>
+    <a href="{% url 'core:projects' %}" class="adm-section-link">View all →</a>
+  </div>
+
+  {% if project_rows %}
+  <div class="proj-grid">
+    {% for p in project_rows %}
+    <div class="proj-card">
+
+      <!-- TOP -->
+      <div class="proj-card__top">
+        <div>
+          <a href="{% url 'core:project_detail' p.id %}" class="proj-card__name">{{ p.name }}</a>
+          {% if p.department %}
+            <span class="proj-tag proj-tag--dept">{{ p.department }}</span>
+          {% endif %}
+          {% if p.priority == 'p1' %}
+            <span class="proj-tag proj-tag--p1">P1</span>
+          {% elif p.priority == 'p2' %}
+            <span class="proj-tag proj-tag--p2">P2</span>
+          {% endif %}
+        </div>
+        <div class="proj-card__pct {% if p.progress == 100 %}proj-card__pct--done{% endif %}">
+          {{ p.progress }}%
+        </div>
+      </div>
+
+      <!-- META -->
+      <div class="proj-card__meta">
+        <span><i class="ri-user-line"></i> {{ p.lead }}</span>
+        <span><i class="ri-team-line"></i> {{ p.team_size }} members</span>
+        {% if p.deadline %}
+          <span class="{% if p.deadline < today %}proj-meta--overdue{% endif %}">
+            <i class="ri-calendar-line"></i> {{ p.deadline|date:"M d, Y" }}
+          </span>
+        {% endif %}
+      </div>
+
+      <!-- PROGRESS BAR -->
+      <div class="proj-bar">
+        <div class="proj-bar__fill" style="width:{{ p.progress }}%;
+          background:{% if p.progress == 100 %}#22c55e{% elif p.overdue %}#ef4444{% else %}linear-gradient(90deg,#4f46e5,#7c3aed){% endif %};"></div>
+      </div>
+
+      <!-- STATUS COUNTS -->
+      <div class="proj-counts">
+        <div class="proj-count proj-count--todo">
+          <strong>{{ p.todo }}</strong><span>Todo</span>
+        </div>
+        <div class="proj-count proj-count--active">
+          <strong>{{ p.in_progress }}</strong><span>Active</span>
+        </div>
+        <div class="proj-count proj-count--done">
+          <strong>{{ p.done_like }}</strong><span>Done</span>
+        </div>
+        <div class="proj-count {% if p.overdue %}proj-count--overdue{% endif %}">
+          <strong>{{ p.overdue }}</strong><span>Overdue</span>
+        </div>
+      </div>
+
+      <!-- ACTIONS -->
+      <div class="proj-card__actions">
+        <a href="{% url 'core:project_board' p.id %}" class="btn-sm">Board</a>
+        <a href="{% url 'core:project_team' p.id %}" class="btn-sm">Team</a>
+        <a href="{% url 'core:project_detail' p.id %}" class="btn-sm btn-sm--primary">Detail →</a>
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="adm-empty">No projects yet. <a href="{% url 'core:projects' %}">Create one →</a></div>
+  {% endif %}
+
+  <!-- ═══════════════════════════════════════════════
+       OVERDUE TASKS TABLE
+  ═══════════════════════════════════════════════ -->
+  {% if overdue_tasks %}
+  <div class="adm-section-head" style="margin-top:28px;">
+    <div class="adm-section-title" style="color:#dc2626;">
+      <i class="ri-alarm-warning-line"></i> Overdue Tasks
+    </div>
+  </div>
+  <div class="adm-card" style="overflow:auto;">
+    <table class="adm-table">
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>Task</th>
+          <th>Project</th>
+          <th>Assignee</th>
+          <th>Due Date</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in overdue_tasks %}
+        <tr>
+          <td>
+            <a href="{% url 'core:task_detail' t.id %}" class="key-link">
+              {{ t.issue_key|default:t.id }}
+            </a>
+          </td>
+          <td class="task-title-cell">{{ t.title|truncatechars:48 }}</td>
+          <td>
+            {% if t.project %}
+              <a href="{% url 'core:project_detail' t.project.id %}" class="proj-link">
+                {{ t.project.name }}
+              </a>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if t.assigned_to %}
+              <div class="user-cell">
+                <div class="user-avatar">{{ t.assigned_to.username|slice:":1"|upper }}</div>
+                {{ t.assigned_to.username }}
+              </div>
+            {% else %}
+              <span class="muted">Unassigned</span>
+            {% endif %}
+          </td>
+          <td class="overdue-date">{{ t.due_date|date:"M d, Y" }}</td>
+          <td><span class="status-chip status-chip--{{ t.status }}">{{ t.get_status_display }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- ═══════════════════════════════════════════════
+       TWO-COLUMN: USERS & ACTIVITY
+  ═══════════════════════════════════════════════ -->
+  <div class="adm-two-col" style="margin-top:28px;">
+
+    <!-- USERS & ROLES -->
+    <div>
+      <div class="adm-section-head">
+        <div class="adm-section-title"><i class="ri-user-3-line"></i> Users &amp; Roles</div>
+        <a href="{% url 'core:user_list' %}" class="adm-section-link">Full list →</a>
+      </div>
+      <div class="adm-card" style="overflow:auto;">
+        <table class="adm-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Role</th>
+              <th>Projects</th>
+              <th>Auth</th>
+              <th>Lead</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in all_users %}
+            <tr>
+              <td>
+                <div class="user-cell">
+                  <div class="user-avatar {% if u.profile.oauth_provider == 'google' %}user-avatar--google{% endif %}">
+                    {{ u.username|slice:":1"|upper }}
+                  </div>
+                  <div>
+                    <div class="user-name">{{ u.username }}</div>
+                    <div class="muted">{{ u.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="role-pill role-pill--{{ u.profile.role }}">
+                  {{ u.profile.get_role_display }}
+                </span>
+              </td>
+              <td class="center">{{ u.project_count }}</td>
+              <td>
+                {% if u.profile.oauth_provider == 'google' %}
+                  <span class="auth-pill auth-pill--google">Google</span>
+                {% else %}
+                  <span class="auth-pill">Manual</span>
+                {% endif %}
+              </td>
+              <td class="center">
+                <button
+                  type="button"
+                  class="lead-toggle {% if u.profile.isProjectLead %}lead-toggle--on{% endif %}"
+                  data-user-id="{{ u.id }}"
+                  onclick="toggleLead(this)">
+                  {% if u.profile.isProjectLead %}✓ Lead{% else %}Promote{% endif %}
+                </button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="adm-empty">No users found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RECENT ACTIVITY -->
+    <div>
+      <div class="adm-section-head">
+        <div class="adm-section-title"><i class="ri-pulse-line"></i> Recent Activity</div>
+      </div>
+      <div class="adm-card activity-feed">
+        {% for act in recent_activity %}
+        <div class="activity-item">
+          <div class="activity-avatar">{{ act.user.username|slice:":1"|upper }}</div>
+          <div class="activity-body">
+            <div class="activity-line">
+              <strong>{{ act.user.username }}</strong>
+              <span class="muted">{{ act.action }}</span>
+              {% if act.task %}
+                <a href="{% url 'core:task_detail' act.task.id %}" class="key-link">
+                  {{ act.task.issue_key|default:act.task.id }}
+                </a>
+              {% endif %}
+            </div>
+            {% if act.task and act.task.project %}
+              <div class="muted" style="font-size:11px;">{{ act.task.project.name }}</div>
+            {% endif %}
+            <div class="activity-time">{{ act.created_at|timesince }} ago</div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="adm-empty">No recent activity.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
+
+{% block shell_extra_css %}
+<style>
+
+/* ═══════════════════════════════════════════════
+   PAGE LAYOUT
+═══════════════════════════════════════════════ */
+.adm-page{
+  padding:24px;
+  max-width:1500px;
+  margin:auto;
+}
+
+/* ── HEADER ─────────────────────────────────── */
+.adm-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:22px;
+}
+.adm-title{ margin:0; font-size:22px; font-weight:800; color:#0f172a; }
+.adm-sub{ margin:4px 0 0; color:#64748b; font-size:13px; }
+.adm-header-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+
+.btn-act{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 16px; border-radius:12px; font-size:13px;
+  font-weight:600; cursor:pointer; text-decoration:none; border:none;
+}
+.btn-act--ghost{
+  background:#fff; border:1px solid #e5e7eb; color:#374151;
+}
+.btn-act--ghost:hover{ background:#f9fafb; border-color:#c7d2fe; }
+.btn-act--primary{
+  background:linear-gradient(135deg,#4f46e5,#7c3aed);
+  color:#fff;
+  box-shadow:0 8px 20px rgba(79,70,229,.2);
+}
+.btn-act--primary:hover{ opacity:.92; }
+
+/* ── STATS ──────────────────────────────────── */
+.adm-stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:14px;
+  margin-bottom:24px;
+}
+.stat-tile{
+  display:flex; align-items:center; gap:14px;
+  background:#fff; border:1px solid #e5e7eb; border-radius:18px;
+  padding:18px; box-shadow:0 1px 4px rgba(15,23,42,.05);
+  transition:.2s ease;
+}
+.stat-tile:hover{ box-shadow:0 6px 20px rgba(15,23,42,.08); }
+.stat-tile--alert{ border-color:#fca5a5; background:#fff5f5; }
+.stat-tile--warn{ border-color:#fcd34d; background:#fffbeb; }
+.stat-tile__icon{
+  width:44px; height:44px; border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0;
+}
+.stat-tile__num{ font-size:26px; font-weight:800; color:#0f172a; line-height:1; }
+.stat-tile__label{ font-size:12px; color:#64748b; margin-top:4px; }
+
+/* ── ALERT BANNER ───────────────────────────── */
+.adm-alert{
+  display:flex; align-items:center; gap:10px;
+  background:#fef2f2; border:1px solid #fca5a5;
+  border-radius:14px; padding:14px 18px;
+  font-size:13px; color:#991b1b;
+  margin-bottom:24px;
+}
+.adm-alert i{ font-size:18px; flex-shrink:0; }
+
+/* ── SECTION HEADS ──────────────────────────── */
+.adm-section-head{
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:12px;
+}
+.adm-section-title{
+  font-size:15px; font-weight:700; color:#0f172a;
+  display:flex; align-items:center; gap:8px;
+}
+.adm-section-link{ font-size:12px; color:#6366f1; text-decoration:none; }
+.adm-section-link:hover{ text-decoration:underline; }
+
+/* ── CARD ───────────────────────────────────── */
+.adm-card{
+  background:#fff; border:1px solid #e5e7eb;
+  border-radius:18px; box-shadow:0 1px 4px rgba(15,23,42,.05);
+  overflow:hidden;
+}
+.adm-empty{ padding:20px; color:#94a3b8; font-size:13px; text-align:center; }
+
+/* ── PROJECT GRID ───────────────────────────── */
+.proj-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(310px,1fr));
+  gap:16px;
+  margin-bottom:0;
+}
+.proj-card{
+  background:#fff; border:1px solid #e5e7eb; border-radius:20px;
+  padding:18px; display:flex; flex-direction:column; gap:12px;
+  box-shadow:0 1px 4px rgba(15,23,42,.05);
+  transition:.25s ease;
+}
+.proj-card:hover{ box-shadow:0 10px 30px rgba(15,23,42,.08); transform:translateY(-2px); }
+
+.proj-card__top{
+  display:flex; justify-content:space-between; align-items:flex-start; gap:10px;
+}
+.proj-card__name{
+  font-size:15px; font-weight:700; color:#0f172a;
+  text-decoration:none;
+}
+.proj-card__name:hover{ color:#4f46e5; }
+.proj-card__pct{ font-size:22px; font-weight:800; color:#4f46e5; flex-shrink:0; }
+.proj-card__pct--done{ color:#15803d; }
+
+.proj-tag{
+  display:inline-block; font-size:10px; font-weight:700;
+  padding:2px 8px; border-radius:999px; margin-left:6px;
+}
+.proj-tag--dept{ background:#ede9fe; color:#6d28d9; }
+.proj-tag--p1{ background:#fee2e2; color:#dc2626; }
+.proj-tag--p2{ background:#fef3c7; color:#d97706; }
+
+.proj-card__meta{
+  display:flex; flex-wrap:wrap; gap:10px;
+  font-size:12px; color:#64748b;
+}
+.proj-card__meta span{ display:flex; align-items:center; gap:4px; }
+.proj-meta--overdue{ color:#dc2626 !important; }
+
+.proj-bar{
+  height:8px; background:#f1f5f9; border-radius:999px; overflow:hidden;
+}
+.proj-bar__fill{
+  height:100%; border-radius:999px;
+  transition:width .4s ease;
+}
+
+.proj-counts{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:8px;
+}
+.proj-count{
+  text-align:center; padding:8px 4px; border-radius:12px;
+  background:#f8fafc; border:1px solid #f1f5f9;
+}
+.proj-count strong{ display:block; font-size:18px; color:#0f172a; }
+.proj-count span{ font-size:10px; color:#94a3b8; text-transform:uppercase; }
+.proj-count--todo strong{ color:#6b7280; }
+.proj-count--active strong{ color:#2563eb; }
+.proj-count--done strong{ color:#15803d; }
+.proj-count--overdue strong{ color:#dc2626; }
+.proj-count--overdue{ background:#fff5f5; border-color:#fca5a5; }
+
+.proj-card__actions{
+  display:flex; gap:8px; flex-wrap:wrap; padding-top:10px;
+  border-top:1px solid #f1f5f9;
+}
+.btn-sm{
+  padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600;
+  text-decoration:none; color:#374151; background:#f8fafc;
+  border:1px solid #e5e7eb; cursor:pointer;
+}
+.btn-sm:hover{ background:#f1f5f9; }
+.btn-sm--primary{
+  background:linear-gradient(135deg,#4f46e5,#7c3aed);
+  color:#fff; border:none;
+}
+.btn-sm--primary:hover{ opacity:.9; }
+
+/* ── TABLE ──────────────────────────────────── */
+.adm-table{ width:100%; border-collapse:collapse; }
+.adm-table th{
+  font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+  color:#64748b; background:#f8fafc; padding:10px 14px;
+  text-align:left; border-bottom:1px solid #e5e7eb; white-space:nowrap;
+}
+.adm-table td{
+  padding:12px 14px; border-bottom:1px solid #f1f5f9;
+  font-size:13px; vertical-align:middle;
+}
+.adm-table tr:last-child td{ border-bottom:none; }
+.adm-table tr:hover td{ background:#fafbfc; }
+.center{ text-align:center; }
+
+.user-cell{ display:flex; align-items:center; gap:10px; }
+.user-avatar{
+  width:34px; height:34px; border-radius:50%; flex-shrink:0;
+  background:linear-gradient(135deg,#4f46e5,#7c3aed);
+  color:#fff; display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:13px;
+}
+.user-avatar--google{ background:linear-gradient(135deg,#4285F4,#34A853); }
+.user-name{ font-weight:600; color:#0f172a; }
+.muted{ color:#94a3b8; font-size:12px; }
+
+.key-link{ color:#4f46e5; font-weight:700; text-decoration:none; font-size:12px; }
+.key-link:hover{ text-decoration:underline; }
+.proj-link{ color:#0f172a; font-weight:600; text-decoration:none; font-size:13px; }
+.proj-link:hover{ color:#4f46e5; }
+.task-title-cell{ color:#374151; }
+.overdue-date{ color:#dc2626; font-weight:600; white-space:nowrap; }
+
+/* ── ROLE PILLS ─────────────────────────────── */
+.role-pill{
+  font-size:11px; font-weight:700; padding:4px 10px;
+  border-radius:999px; white-space:nowrap;
+  background:#f1f5f9; color:#475569;
+}
+.role-pill--admin{ background:#fce7f3; color:#9d174d; }
+.role-pill--project_lead{ background:#dbeafe; color:#1d4ed8; }
+.role-pill--developer{ background:#dcfce7; color:#166534; }
+.role-pill--tester{ background:#fef3c7; color:#92400e; }
+.role-pill--qa{ background:#fef9c3; color:#713f12; }
+.role-pill--ui_ux_designer{ background:#f3e8ff; color:#6b21a8; }
+.role-pill--delivery_team{ background:#e0f2fe; color:#075985; }
+.role-pill--deployment_team{ background:#d1fae5; color:#065f46; }
+
+.auth-pill{
+  font-size:11px; font-weight:600; padding:3px 8px;
+  border-radius:999px; background:#f4f4f5; color:#52525b;
+}
+.auth-pill--google{ background:#e8f0fe; color:#1a73e8; }
+
+.lead-toggle{
+  padding:5px 10px; border-radius:999px;
+  border:1px solid #e5e7eb; background:#fff;
+  font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap;
+}
+.lead-toggle--on{ border-color:#4f46e5; background:#ede9fe; color:#4338ca; }
+.lead-toggle:disabled{ opacity:.6; cursor:not-allowed; }
+
+/* ── STATUS CHIPS ───────────────────────────── */
+.status-chip{
+  font-size:11px; font-weight:700; padding:4px 10px;
+  border-radius:999px; white-space:nowrap;
+}
+.status-chip--todo{ background:#f3f4f6; color:#374151; }
+.status-chip--in_progress{ background:#dbeafe; color:#1d4ed8; }
+.status-chip--in_review{ background:#ede9fe; color:#6d28d9; }
+.status-chip--qa{ background:#fef3c7; color:#92400e; }
+.status-chip--done{ background:#dcfce7; color:#15803d; }
+
+/* ── ACTIVITY FEED ──────────────────────────── */
+.activity-feed{ padding:12px 16px; display:flex; flex-direction:column; gap:0; }
+.activity-item{
+  display:flex; gap:12px; padding:12px 0;
+  border-bottom:1px solid #f1f5f9;
+}
+.activity-item:last-child{ border-bottom:none; }
+.activity-avatar{
+  width:32px; height:32px; border-radius:50%; flex-shrink:0;
+  background:linear-gradient(135deg,#4f46e5,#7c3aed);
+  color:#fff; display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:12px;
+}
+.activity-body{ min-width:0; flex:1; }
+.activity-line{
+  font-size:13px; color:#374151;
+  display:flex; flex-wrap:wrap; gap:4px; align-items:center;
+}
+.activity-time{ font-size:11px; color:#94a3b8; margin-top:2px; }
+
+/* ── TWO-COL LAYOUT ─────────────────────────── */
+.adm-two-col{
+  display:grid;
+  grid-template-columns:1.4fr .6fr;
+  gap:20px;
+}
+
+/* ── RESPONSIVE ─────────────────────────────── */
+@media (max-width:1100px){
+  .adm-two-col{ grid-template-columns:1fr; }
+}
+@media (max-width:768px){
+  .adm-page{ padding:14px; }
+  .proj-grid{ grid-template-columns:1fr; }
+  .adm-stats{ grid-template-columns:repeat(2,1fr); }
+}
+</style>
+{% endblock %}
+
+{% block shell_foot_scripts %}
+<script>
+function toggleLead(btn) {
+  const id = btn.dataset.userId;
+  if (!id) return;
+  btn.disabled = true;
+  fetch(`/api/users/${id}/toggle-project-lead/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+  })
+  .then(r => r.json().then(j => ({ ok: r.ok, j })))
+  .then(({ ok, j }) => {
+    if (!ok) throw new Error(j && j.error ? j.error : 'Failed');
+    location.reload();
+  })
+  .catch(() => {
+    btn.disabled = false;
+    alert('Failed to update Project Lead flag.');
+  });
+}
+</script>
+{% endblock %}

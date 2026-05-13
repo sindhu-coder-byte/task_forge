@@ -2,143 +2,300 @@
 {% load static %}
 
 {% block shell_extra_css %}
-<link rel="stylesheet" href="{% static 'core/css/user.css' %}">
 <link href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css" rel="stylesheet">
 {% endblock %}
 
-{% block shell_title %}Users{% endblock %}
+{% block shell_title %}Create User{% endblock %}
 
 {% block shell_page %}
 <style>
-  /* PASSWORD FIELD */
-.pw-wrap {
-  position: relative;
-}
+/* ========================
+   CREATE USER (uc-*) STYLES
+   ======================== */
+.uc-page { padding: 24px; max-width: 680px; margin: 0 auto; }
 
-.pw-wrap input {
-  width: 100%;
-  padding-right: 40px; /* space for icon */
+.uc-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 24px; gap: 12px; flex-wrap: wrap;
 }
+.uc-header-left { display: flex; align-items: center; gap: 16px; }
+.uc-icon {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.uc-icon i { color: #fff; font-size: 22px; }
+.uc-title { font-size: 20px; font-weight: 700; color: #111827; margin: 0; }
+.uc-sub   { font-size: 13px; color: #6b7280; margin: 2px 0 0; }
 
-/* EYE ICON */
-.toggle-password {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  color: #6b7280;
-  font-size: 18px;
-  transition: 0.2s;
+.uc-btn-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border-radius: 8px; background: #f3f4f6;
+  color: #374151; font-size: 13px; font-weight: 500;
+  text-decoration: none; transition: 0.2s; white-space: nowrap;
 }
+.uc-btn-back:hover { background: #e5e7eb; }
 
-.toggle-password:hover {
-  color: #111827;
+.uc-msg {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 20px;
 }
+.uc-msg.success { background: #f0fdf4; border: 1px solid #86efac; color: #15803d; }
+.uc-msg.error   { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; }
+
+.uc-card {
+  background: #fff; border-radius: 12px;
+  border: 1px solid #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,.05); overflow: hidden;
+}
+.uc-card-hd {
+  padding: 16px 24px; border-bottom: 1px solid #f3f4f6;
+  font-size: 14px; font-weight: 600; color: #374151;
+  display: flex; align-items: center; gap: 8px;
+}
+.uc-card-bd { padding: 24px; }
+
+.uc-group { margin-bottom: 20px; }
+.uc-lbl {
+  display: block; font-size: 13px; font-weight: 600;
+  color: #374151; margin-bottom: 6px;
+}
+.uc-lbl em { color: #ef4444; font-style: normal; margin-left: 2px; }
+.uc-group input[type="text"],
+.uc-group input[type="email"],
+.uc-group input[type="password"] {
+  width: 100%; padding: 10px 12px; border: 1px solid #d1d5db;
+  border-radius: 8px; font-size: 14px; color: #111827;
+  transition: border-color 0.2s, box-shadow 0.2s; box-sizing: border-box;
+}
+.uc-group input:focus {
+  outline: none; border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
+}
+.uc-err  { font-size: 12px; color: #b91c1c; margin-top: 4px; display: block; }
+.uc-hint { font-size: 12px; color: #9ca3af; margin-top: 4px; display: block; }
+
+/* USER TYPE CHIPS */
+.uc-chips { display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap; }
+.uc-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 18px; border-radius: 8px; cursor: pointer;
+  border: 2px solid #e5e7eb; background: #f9fafb;
+  transition: 0.2s; font-size: 13px; font-weight: 500; color: #374151;
+}
+.uc-chip input[type="radio"] { display: none; }
+.uc-chip i { font-size: 17px; }
+.uc-chip-manual { border-color: #4f46e5; background: #eef2ff; color: #4338ca; }
+.uc-chip-google { border-color: #ef4444; background: #fef2f2; color: #b91c1c; }
+
+.uc-ginfo {
+  display: none; align-items: flex-start; gap: 10px;
+  padding: 12px 16px; border-radius: 8px; margin-top: 12px;
+  background: #eff6ff; border: 1px solid #bfdbfe;
+  color: #1d4ed8; font-size: 13px; line-height: 1.5;
+}
+.uc-ginfo.show { display: flex; }
+.uc-ginfo i { font-size: 18px; flex-shrink: 0; }
+
+/* PASSWORD EYE */
+.uc-pw-wrap { position: relative; }
+.uc-pw-wrap input { padding-right: 44px !important; }
+.uc-eye {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  cursor: pointer; color: #9ca3af; font-size: 18px; transition: 0.2s;
+}
+.uc-eye:hover { color: #374151; }
+
+/* CHECKBOX ROW */
+.uc-check-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; background: #f9fafb;
+  border-radius: 8px; border: 1px solid #f3f4f6;
+}
+.uc-check-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #4f46e5; cursor: pointer; }
+.uc-check-lbl { font-size: 13px; font-weight: 500; color: #374151; cursor: pointer; }
+
+/* FORM FOOTER */
+.uc-footer {
+  display: flex; justify-content: flex-end; gap: 10px;
+  margin-top: 24px; padding-top: 20px; border-top: 1px solid #f3f4f6;
+}
+.uc-btn-cancel {
+  padding: 10px 20px; border-radius: 8px; background: #f3f4f6;
+  color: #374151; font-size: 14px; font-weight: 500;
+  text-decoration: none; border: none; cursor: pointer; transition: 0.2s;
+}
+.uc-btn-cancel:hover { background: #e5e7eb; }
+.uc-btn-submit {
+  padding: 10px 24px; border-radius: 8px; background: #4f46e5;
+  color: #fff; font-size: 14px; font-weight: 600;
+  border: none; cursor: pointer; transition: 0.2s;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.uc-btn-submit:hover { background: #4338ca; }
 </style>
 
-
-
-
-
-
-<div class="user-page">
+<div class="uc-page">
 
   <!-- HEADER -->
-  <div class="header-row">
-    <div>
-      <h2>Create User</h2>
-      <p class="sub-text">Add a new user to the system</p>
+  <div class="uc-header">
+    <div class="uc-header-left">
+      <div class="uc-icon"><i class="ri-user-add-line"></i></div>
+      <div>
+        <h2 class="uc-title">Create User</h2>
+        <p class="uc-sub">Add a new member to TaskForge</p>
+      </div>
     </div>
-
-    <a href="{% url 'core:user_list' %}" class="btn-add">
-      <i class="ri-arrow-left-line"></i> Back
+    <a href="{% url 'core:user_list' %}" class="uc-btn-back">
+      <i class="ri-arrow-left-line"></i> Back to Users
     </a>
   </div>
 
-  <!-- FORM CARD -->
-  <div class="card form-card">
-    <form method="POST" class="user-form">
-  {% csrf_token %}
+  <!-- MESSAGES -->
+  {% for msg in messages %}
+  <div class="uc-msg {{ msg.tags }}">
+    <i class="ri-{% if 'success' in msg.tags %}checkbox-circle-line{% else %}error-warning-line{% endif %}"></i>
+    {{ msg }}
+  </div>
+  {% endfor %}
 
-  <!-- GLOBAL ERRORS -->
-  {% if form.non_field_errors %}
-    <div class="form-error">
-      {{ form.non_field_errors }}
+  <!-- CARD -->
+  <div class="uc-card">
+    <div class="uc-card-hd">
+      <i class="ri-user-settings-line" style="color:#4f46e5;"></i>
+      User Details
     </div>
-  {% endif %}
+    <div class="uc-card-bd">
+      <form method="POST">
+        {% csrf_token %}
 
-  <!-- Username -->
-  <div class="form-group">
-    <label>Username</label>
-    {{ form.username }}
-    {% if form.username.errors %}
-      <small class="error">{{ form.username.errors.0 }}</small>
-    {% endif %}
-  </div>
+        {% if form.non_field_errors %}
+        <div class="uc-msg error">
+          <i class="ri-error-warning-line"></i>
+          {{ form.non_field_errors }}
+        </div>
+        {% endif %}
 
-  <!-- Email -->
-  <div class="form-group">
-    <label>Email</label>
-    {{ form.email }}
-    {% if form.email.errors %}
-      <small class="error">{{ form.email.errors.0 }}</small>
-    {% endif %}
-  </div>
+        <!-- USER TYPE -->
+        <div class="uc-group">
+          <label class="uc-lbl">User Type <em>*</em></label>
+          <div class="uc-chips" id="ucChips">
+            {% for radio in form.user_type %}
+            <label class="uc-chip {% if radio.data.value == 'regular' %}uc-chip-manual{% endif %}" id="ucChip-{{ radio.data.value }}">
+              {{ radio.tag }}
+              {% if radio.data.value == 'regular' %}
+                <i class="ri-user-line"></i> Manual Account
+              {% else %}
+                <i class="ri-google-line" style="color:#ea4335;"></i> Google OAuth
+              {% endif %}
+            </label>
+            {% endfor %}
+          </div>
+          {% if form.user_type.errors %}
+            <span class="uc-err">{{ form.user_type.errors.0 }}</span>
+          {% endif %}
+          <div class="uc-ginfo" id="ucGoogleInfo">
+            <i class="ri-information-line"></i>
+            <span>Google users are created by email only. A username is auto-generated and no password is required. The user signs in via Google OAuth to activate their account.</span>
+          </div>
+        </div>
 
-  <!-- Password -->
-<div class="form-group">
-  <label>Password</label>
+        <!-- USERNAME -->
+        <div class="uc-group" id="ucUsernameField">
+          <label class="uc-lbl" for="{{ form.username.id_for_label }}">Username <em>*</em></label>
+          {{ form.username }}
+          {% if form.username.errors %}
+            <span class="uc-err">{{ form.username.errors.0 }}</span>
+          {% endif %}
+        </div>
 
-  <div class="pw-wrap">
-    {{ form.password }}
-    <i class="ri-eye-line toggle-password" onclick="togglePassword(this)"></i>
-  </div>
+        <!-- EMAIL -->
+        <div class="uc-group">
+          <label class="uc-lbl" for="{{ form.email.id_for_label }}">Email <em>*</em></label>
+          {{ form.email }}
+          {% if form.email.errors %}
+            <span class="uc-err">{{ form.email.errors.0 }}</span>
+          {% endif %}
+        </div>
 
-  {% if form.password.errors %}
-    <small class="error">{{ form.password.errors.0 }}</small>
-  {% endif %}
-</div>
+        <!-- PASSWORD -->
+        <div class="uc-group" id="ucPasswordField">
+          <label class="uc-lbl" for="{{ form.password.id_for_label }}">Password <em>*</em></label>
+          <div class="uc-pw-wrap">
+            {{ form.password }}
+            <i class="ri-eye-line uc-eye" onclick="ucTogglePw(this)"></i>
+          </div>
+          {% if form.password.errors %}
+            <span class="uc-err">{{ form.password.errors.0 }}</span>
+          {% endif %}
+        </div>
 
-  <!-- Role -->
-  <div class="form-group">
-    <label>Role</label>
-    {{ form.role }}
-  </div>
+        <!-- ACTIVE -->
+        <div class="uc-group">
+          <div class="uc-check-row">
+            {{ form.is_active }}
+            <label class="uc-check-lbl" for="{{ form.is_active.id_for_label }}">
+              Active — user can log in immediately
+            </label>
+          </div>
+        </div>
 
-  <!-- Active -->
-  <div class="form-group checkbox">
-    <label>
-      {{ form.is_active }} Active User
-    </label>
-  </div>
+        <!-- FOOTER ACTIONS -->
+        <div class="uc-footer">
+          <a href="{% url 'core:user_list' %}" class="uc-btn-cancel">Cancel</a>
+          <button type="submit" class="uc-btn-submit">
+            <i class="ri-user-add-line"></i> Create User
+          </button>
+        </div>
 
-  <!-- Submit -->
-  <div class="form-actions">
-    <button type="submit" class="btn-primary">
-      Create User
-    </button>
-  </div>
-
-</form>
+      </form>
+    </div>
   </div>
 
 </div>
 
 <script>
-function togglePassword(icon){
-  const input = icon.previousElementSibling;
+(function () {
+  const radios  = document.querySelectorAll('input[name="user_type"]');
+  const pwField = document.getElementById('ucPasswordField');
+  const unField = document.getElementById('ucUsernameField');
+  const gInfo   = document.getElementById('ucGoogleInfo');
 
-  if(input.type === "password"){
-    input.type = "text";
-    icon.classList.remove("ri-eye-line");
-    icon.classList.add("ri-eye-off-line");
-  } else {
-    input.type = "password";
-    icon.classList.remove("ri-eye-off-line");
-    icon.classList.add("ri-eye-line");
+  function apply(val) {
+    const isGoogle = val === 'google';
+    document.querySelectorAll('.uc-chip').forEach(c => {
+      c.classList.remove('uc-chip-manual', 'uc-chip-google');
+    });
+    const active = document.getElementById('ucChip-' + val);
+    if (active) active.classList.add(isGoogle ? 'uc-chip-google' : 'uc-chip-manual');
+
+    pwField.style.display = isGoogle ? 'none' : 'block';
+    unField.style.display = isGoogle ? 'none' : 'block';
+    const pw = pwField.querySelector('input');
+    const un = unField.querySelector('input');
+    pw.required = !isGoogle;
+    un.required = !isGoogle;
+    if (isGoogle) { pw.value = ''; un.value = ''; }
+    gInfo.classList.toggle('show', isGoogle);
   }
+
+  radios.forEach(r => r.addEventListener('change', () => apply(r.value)));
+  const checked = document.querySelector('input[name="user_type"]:checked');
+  apply(checked ? checked.value : 'regular');
+})();
+
+function ucTogglePw(icon) {
+  const input = icon.previousElementSibling;
+  input.type = input.type === 'password' ? 'text' : 'password';
+  icon.classList.toggle('ri-eye-line');
+  icon.classList.toggle('ri-eye-off-line');
 }
+
+setTimeout(() => {
+  document.querySelectorAll('.uc-msg').forEach(el => {
+    el.style.transition = '0.3s'; el.style.opacity = '0';
+    setTimeout(() => el.remove(), 300);
+  });
+}, 4000);
 </script>
 
 {% endblock shell_page %}

@@ -10,19 +10,41 @@
   box-shadow: none;
 }
 
+/* Nav has inner horizontal padding so hover bg sits inside the track */
+.app--shell .sidebar--navy nav {
+  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Section labels */
+.app--shell .sidebar--navy .sidebar-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #4a6080;
+  padding: 14px 6px 4px;
+  user-select: none;
+}
+
+/* Base nav link colours in navy theme */
 .app--shell .sidebar--navy nav a,
 .app--shell .sidebar--navy .sidebar-bottom a,
 .app--shell .sidebar--navy .sb-link {
   color: #a8b8d0;
 }
 
+/* Hover */
 .app--shell .sidebar--navy nav a:hover,
 .app--shell .sidebar--navy .sidebar-bottom a:hover,
 .app--shell .sidebar--navy .sb-link:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.09);
   color: #fff;
 }
 
+/* Active */
 .app--shell .sidebar--navy nav a.active {
   background: rgba(0, 82, 204, 0.35);
   color: #fff;
@@ -33,8 +55,16 @@
   background: #4c9aff;
 }
 
+/* Icon colour — dim by default, inherit (white) on hover/active */
+.app--shell .sidebar--navy a i,
+.app--shell .sidebar--navy .sb-link i {
+  color: #7a8ca3;
+}
+
 .app--shell .sidebar--navy nav a.active i,
-.app--shell .sidebar--navy nav a:hover i {
+.app--shell .sidebar--navy nav a:hover i,
+.app--shell .sidebar--navy .sb-link:hover i,
+.app--shell .sidebar--navy .sb-link.active i {
   color: inherit;
 }
 
@@ -44,18 +74,15 @@
   box-shadow: 0 8px 24px rgba(0, 82, 204, 0.35);
 }
 
-.app--shell .sidebar--navy a i,
-.app--shell .sidebar--navy .sb-link i {
-  color: #7a8ca3;
-}
-
-.app--shell .sidebar--navy nav a.active i,
-.app--shell .sidebar--navy .sb-link.active i {
-  color: #fff;
-}
-
+/* Bottom strip border */
 .app--shell .sidebar--navy .sb-bottom {
   border-top-color: rgba(255, 255, 255, 0.06);
+  padding: 10px 10px;
+}
+
+/* Bottom links also get inner padding track */
+.app--shell .sidebar--navy .sb-bottom .sb-link {
+  border-radius: 10px;
 }
 
 .main--shell {
@@ -101,21 +128,14 @@
   top: 88px; /* below topbar */
 }
 
-/* @media (max-width: 1024px) {
-  .shell-layout.has-right {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .shell-layout.has-right .shell-right {
-    position: static;
-  }
-} */
 
 .create-btn--secondary {
   background: #fff !important;
   color: #0052cc !important;
   border: 1px solid #dfe1e6;
 }
+
+
 
 .create-btn--secondary:hover {
   background: #f4f5f7 !important;
@@ -546,3 +566,29 @@
     padding: 10px;
   }
 }
+
+
+.alert-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+}
+
+.alert {
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #fff; /* 🔥 important */
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.alert.error {
+  background: #e53935;
+}
+
+.alert.success {
+  background: #2e7d32;
+}
+

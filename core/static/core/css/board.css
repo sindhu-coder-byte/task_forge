@@ -1,0 +1,217 @@
+/* ============================================================
+   WORKFLOW GUIDE CARD  (wf-* namespace)
+============================================================ */
+.wf-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;margin:0 0 18px;box-shadow:0 1px 3px rgba(15,23,42,.06)}
+.wf-head{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 18px;cursor:pointer;user-select:none;border-bottom:1px solid #f3f4f6}
+.wf-head:hover{background:#fafafa}
+.wf-head-left{display:flex;align-items:center;gap:12px}
+.wf-head-left>i{font-size:1.2rem;color:#4f46e5}
+.wf-head-title{font-size:.9rem;font-weight:700;color:#111827}
+.wf-head-sub{font-size:.75rem;color:#9ca3af;margin-top:1px}
+.wf-head-right{display:flex;align-items:center;gap:10px}
+.wf-role-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:999px;background:#eef2ff;color:#4f46e5;font-size:.75rem;font-weight:700}
+.wf-chevron{font-size:1.1rem;color:#6b7280;transition:transform .25s}
+.wf-chevron.open{transform:rotate(180deg)}
+.wf-body{display:none;padding:18px}
+.wf-body.open{display:block}
+
+/* PIPELINE */
+.wf-pipeline{display:flex;align-items:center;gap:0;flex-wrap:wrap;justify-content:center;padding:14px 0 6px;gap:4px}
+.wf-pipe-step{display:flex;flex-direction:column;align-items:center;padding:10px 14px;border-radius:10px;min-width:110px;text-align:center}
+.wf-pipe-step--todo{background:#f3f4f6;border:1px solid #e5e7eb}
+.wf-pipe-step--inprogress{background:#eef2ff;border:1px solid #c7d2fe}
+.wf-pipe-step--review{background:#faf5ff;border:1px solid #e9d5ff}
+.wf-pipe-step--done{background:#f0fdf4;border:1px solid #bbf7d0}
+.wf-pipe-icon{font-size:1.4rem;margin-bottom:4px}
+.wf-pipe-step--todo .wf-pipe-icon{color:#6b7280}
+.wf-pipe-step--inprogress .wf-pipe-icon{color:#4f46e5}
+.wf-pipe-step--review .wf-pipe-icon{color:#9333ea}
+.wf-pipe-step--done .wf-pipe-icon{color:#16a34a}
+.wf-pipe-label{font-size:.78rem;font-weight:700;color:#111827}
+.wf-pipe-who{font-size:.65rem;color:#9ca3af;margin-top:2px}
+.wf-pipe-arrow{color:#d1d5db;font-size:1.1rem;flex-shrink:0}
+.wf-reject-note{text-align:center;font-size:.75rem;color:#d97706;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:7px 14px;margin:8px 0 18px;display:flex;align-items:center;gap:6px;justify-content:center}
+.wf-reject-note i{color:#f59e0b;flex-shrink:0}
+
+/* ROLE CARDS GRID */
+.wf-roles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:20px}
+.wf-role-card{border:1px solid #e5e7eb;border-radius:10px;overflow:hidden}
+.wf-role-card--active{border-color:#4f46e5;box-shadow:0 0 0 2px rgba(79,70,229,.12)}
+.wf-role-head{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:.82rem;font-weight:700;color:#fff}
+.wf-role-head--dev{background:#059669}
+.wf-role-head--design{background:#7c3aed}
+.wf-role-head--qa{background:#0891b2}
+.wf-role-head--tester{background:#d97706}
+.wf-role-head--deploy{background:#dc2626}
+.wf-role-head--lead{background:#4f46e5}
+.wf-role-head i{font-size:1rem}
+.wf-you{margin-left:auto;background:rgba(255,255,255,.25);border-radius:999px;padding:2px 8px;font-size:.65rem;font-weight:700}
+.wf-role-body{padding:12px 14px}
+.wf-example-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;margin-bottom:8px}
+.wf-steps{display:flex;flex-direction:column;gap:5px}
+.wf-step{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.wf-step i{color:#d1d5db;font-size:.9rem;flex-shrink:0}
+.wf-step--approve i{color:#22c55e}
+.wf-step--reject i{color:#f87171}
+.wf-step-note{font-size:.68rem;color:#9ca3af;margin-left:4px}
+.wf-rule{font-size:.72rem;color:#6b7280;background:#f8fafc;border-radius:6px;padding:6px 10px;margin-top:8px;display:flex;align-items:flex-start;gap:5px;line-height:1.4}
+.wf-rule i{color:#4f46e5;flex-shrink:0;margin-top:1px}
+
+/* STATUS CHIPS */
+.wf-chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:.68rem;font-weight:700;white-space:nowrap}
+.wf-chip--todo{background:#f3f4f6;color:#374151}
+.wf-chip--in_progress,.wf-chip--inprogress{background:#eef2ff;color:#4338ca}
+.wf-chip--in_review,.wf-chip--review{background:#faf5ff;color:#7e22ce}
+.wf-chip--qa{background:#e0f2fe;color:#075985}
+.wf-chip--done{background:#dcfce7;color:#15803d}
+
+/* TRANSITION TABLE */
+.wf-table-details{margin-top:4px}
+.wf-table-details summary{font-size:.8rem;font-weight:600;color:#4f46e5;cursor:pointer;padding:6px 0;outline:none}
+.wf-table-details summary:hover{text-decoration:underline}
+.wf-table-wrap{overflow:auto;margin-top:10px;border-radius:8px;border:1px solid #e5e7eb}
+.wf-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.wf-table th{padding:8px 12px;background:#f8fafc;color:#6b7280;font-weight:700;text-transform:uppercase;font-size:.65rem;letter-spacing:.4px;border-bottom:1px solid #e5e7eb;text-align:left}
+.wf-table td{padding:9px 12px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+.wf-table tr:last-child td{border-bottom:none}
+.wf-tr--mine{background:#f5f3ff}
+.wf-chip-row{display:flex;gap:5px;flex-wrap:wrap}
+.wf-table-chip{display:inline-flex;padding:2px 8px;border-radius:999px;background:#f1f5f9;color:#0f172a;font-size:.68rem;font-weight:600}
+
+/* ============================================================
+   BOARD CONTAINER + HEADER  (board-* namespace)
+============================================================ */
+.board-container{padding:24px;max-width:1400px;margin:auto}
+.board-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.board-title{font-size:18px;font-weight:650}
+.board-actions{display:flex;gap:10px;align-items:center}
+.btn-ghost{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;text-decoration:none;color:#111827;font-size:13px}
+.btn-jira{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;text-decoration:none;color:#111827;font-size:13px}
+
+/* PROGRESS BAR */
+.board-progress-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin:18px 0;box-shadow:0 1px 3px rgba(15,23,42,.06)}
+.board-progress-label{font-size:12px;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.board-progress-bar{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden}
+.board-progress-fill{height:100%;background:#10b981;transition:width .3s ease}
+.board-progress-text{margin-top:10px;font-size:13px;color:#111827;font-weight:600}
+
+/* KANBAN BOARD COLUMNS */
+.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.column{background:#f8fafc;border-radius:14px;padding:14px;max-height:calc(100vh - 180px);overflow-y:auto;border:1px solid #e5e7eb}
+.column.drag-over{background:#e6f4ff;border:2px dashed #1677ff}
+.column-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.count{font-size:12px;color:#666;background:#e0e0e0;padding:2px 8px;border-radius:10px}
+
+/* TASK CARDS */
+.task-card{background:#fff;padding:12px;border-radius:12px;margin-bottom:12px;border:1px solid #eee;transition:box-shadow .2s,border-color .2s}
+.task-card:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(0,0,0,.12);border-color:#1677ff}
+.task-card.dragging{opacity:.5}
+.task-card.task-card--revert-flash{animation:task-revert-flash .55s ease}
+@keyframes task-revert-flash{0%{box-shadow:0 0 0 2px #0052cc,0 8px 20px rgba(0,82,204,.25)}100%{box-shadow:none}}
+.task-title{font-weight:600;font-size:14px;margin-bottom:4px}
+.task-project{font-size:11px;color:#888}
+.task-labels{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.label{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:600;color:#fff;background:var(--label-color,#64748b)}
+.task-footer{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.priority{font-size:10px;padding:4px 8px;border-radius:20px}
+.priority.high{background:#ff4d4f;color:#fff}
+.priority.medium{background:#faad14;color:#fff}
+.priority.low{background:#52c41a;color:#fff}
+.avatar{width:28px;height:28px;border-radius:50%;background:#1677ff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
+.empty{text-align:center;font-size:13px;color:#aaa;margin-top:20px;font-style:italic}
+
+/* ============================================================
+   TASK SIDEBAR  (tk-* namespace)
+============================================================ */
+.tk-sidebar{
+  position:fixed;top:0;right:-420px;width:400px;height:100%;
+  background:#fff;box-shadow:-6px 0 24px rgba(0,0,0,0.08);
+  transition:right 0.3s ease;z-index:1100;
+  display:flex;flex-direction:column;overflow-y:auto;
+}
+.tk-sidebar.open{right:0}
+.tk-sidebar>*{padding:0 20px}
+
+.tk-sidebar-header{
+  position:sticky;top:0;background:#fff;z-index:10;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:16px 20px;border-bottom:1px solid #eee;
+}
+.tk-sidebar-header-left h3{font-size:16px;font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-sidebar-close{font-size:20px;cursor:pointer;color:#888;padding:4px;border-radius:6px;transition:0.2s}
+.tk-sidebar-close:hover{background:#f0f0f0;color:#000}
+
+.tk-sidebar-desc{font-size:13px;color:#555;line-height:1.5;margin:15px 0}
+.tk-sidebar-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.tk-sidebar-grid span{font-size:11px;color:#888;display:block}
+.tk-sidebar-grid strong{font-size:13px;font-weight:600;color:#222}
+
+.tk-badge{padding:4px 8px;font-size:11px;border-radius:12px;display:inline-block}
+.tk-badge.high{background:#ff4d4f;color:#fff}
+.tk-badge.medium{background:#faad14;color:#fff}
+.tk-badge.low{background:#52c41a;color:#fff}
+.tk-badge.critical{background:#7f1d1d;color:#fff}
+.tk-badge.todo{background:#f3f4f6;color:#374151}
+.tk-badge.in_progress{background:#0052cc;color:#fff}
+.tk-badge.in_review{background:#6554c0;color:#fff}
+.tk-badge.qa{background:#e0f2fe;color:#075985}
+.tk-badge.done{background:#22c55e;color:#fff}
+
+.tk-divider{border:none;border-top:1px solid #eee;margin:16px 0}
+
+.tk-sidebar-actions{display:flex;gap:10px;align-items:center;margin:6px 0}
+.tk-transition-panel h4{font-size:14px;margin:0 0 10px}
+.tk-transition-list{display:flex;gap:8px;flex-wrap:wrap}
+.tk-transition-hint{margin-top:10px;font-size:12px;color:#64748b;line-height:1.5}
+.tk-transition-chip{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#e0f2fe;color:#075985;font-size:12px;font-weight:700}
+
+.tk-btn-primary{background:#0052cc;color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;transition:0.2s}
+.tk-btn-primary:hover{background:#0747a6}
+.tk-btn-secondary{display:inline-flex;align-items:center;justify-content:center;padding:8px 14px;border-radius:8px;background:#f3f4f6;font-size:13px;cursor:pointer;transition:0.2s;border:1px solid #e5e7eb;color:#111827;text-decoration:none}
+.tk-btn-secondary:hover{background:#e5e7eb}
+
+.tk-inline-update{margin:16px 0}
+.tk-inline-update label{font-size:12px;color:#666;margin-bottom:4px;display:block}
+.tk-inline-update select{width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;font-size:13px}
+
+.tk-comments h4{font-size:14px;margin-bottom:10px}
+.tk-comments-list{max-height:150px;overflow-y:auto;margin-bottom:10px}
+.tk-comments-list .comment{background:#f5f5f5;padding:8px;border-radius:6px;margin-bottom:6px;font-size:12px}
+.tk-comment-input{width:100%;padding:8px;border-radius:6px;border:1px solid #ddd;margin-bottom:8px;box-sizing:border-box}
+
+.tk-input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #ddd;font-size:13px;box-sizing:border-box}
+.tk-upload-wrap{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+.tk-file-input{display:none}
+.tk-file-list{font-size:12px;margin-top:10px}
+.tk-file-item{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;margin-bottom:8px}
+.tk-file-item a{color:#0052cc;text-decoration:none;word-break:break-word}
+.tk-file-item a:hover{text-decoration:underline}
+.tk-file-remove{border:1px solid #fee2e2;background:#fff;color:#b91c1c;border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer}
+.tk-file-remove:hover{background:#fef2f2}
+.tk-file-preview{margin-top:10px;border:1px solid #e5e7eb;border-radius:12px;padding:10px;background:#fff}
+.tk-file-preview img{max-width:100%;border-radius:10px;display:block}
+.tk-file-preview .meta{font-size:12px;color:#6b7280;margin-top:8px}
+.tk-activity-list .comment{font-size:12px;background:#fafafa;padding:6px;border-radius:6px;margin-bottom:6px}
+.tk-labels-actions,.tk-due-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0 10px}
+.tk-due-text{font-size:13px;color:#374151}
+
+/* ============================================================
+   MODAL  (modal-* namespace)
+============================================================ */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1200}
+.modal-dialog{width:100%;max-width:420px;background:#fff;border-radius:16px;box-shadow:0 20px 45px rgba(0,0,0,.15);padding:20px;animation:modalFade .25s ease}
+@keyframes modalFade{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.modal-head h2{font-size:16px;font-weight:600}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280}
+.input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #d1d5db;font-size:13px;margin-bottom:12px}
+.input:focus{outline:none;border-color:#0052cc;box-shadow:0 0 0 2px rgba(0,82,204,.15)}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:10px}
+.invite-error{color:#dc2626;font-size:12px;margin-top:6px}
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+@media (max-width: 768px) {
+  .tk-sidebar{width:100%;right:-105%;max-width:420px}
+}

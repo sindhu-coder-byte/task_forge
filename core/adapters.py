@@ -1,6 +1,7 @@
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.contrib.auth.models import User
-from .models import Profile, ProjectInvite
+from .models import Profile
+
 
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
 
@@ -10,49 +11,94 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         if not email:
             return
 
-        existing_user = User.objects.filter(email__iexact=email).first()
+        user = User.objects.filter(email__iexact=email).first()
 
-        if existing_user:
-            # ✅ EXISTING USER
-            sociallogin.connect(request, existing_user)
+        # =========================
+        # ✅ EXISTING USER
+        # =========================
+        if user:
+            sociallogin.connect(request, user)
 
-        else:
-            # ✅ RANDOM GOOGLE LOGIN → ALLOWED
-            username = email.split("@")[0]
-
-            new_user = User.objects.create_user(
-                username=username,
-                email=email
-            )
-            new_user.set_unusable_password()
-            new_user.save()
-
-            # ✅ DEFAULT PROFILE
-            profile, _ = Profile.objects.get_or_create(user=new_user)
-            profile.role = 'user'
+            profile, _ = Profile.objects.get_or_create(user=user)
+            profile.oauth_provider = sociallogin.account.provider
+            profile.oauth_id = sociallogin.account.uid
             profile.save()
 
-            sociallogin.connect(request, new_user)
+            # Apply any pending invites for this existing user's email
+            self._apply_pending_invites(user)
+
+            return
+
+        # ❗ DO NOT create user here
+        # Let allauth handle creation
+
 
     def save_user(self, request, sociallogin, form=None):
         user = super().save_user(request, sociallogin, form)
 
-        # ✅ APPLY INVITE AFTER GOOGLE LOGIN
-        invite = ProjectInvite.objects.filter(
-            email__iexact=user.email,
-            used=False
-        ).first()
+        # =========================
+        # ✅ ENSURE PROFILE EXISTS
+        # =========================
+        profile, _ = Profile.objects.get_or_create(user=user)
 
-        if invite:
+        # ✅ Save OAuth info
+        profile.oauth_provider = sociallogin.account.provider
+        profile.oauth_id = sociallogin.account.uid
+
+        # ✅ Default role
+        if not profile.role:
+            profile.role = 'user'
+
+        profile.save()
+
+        # Apply any pending invites for new user
+        self._apply_pending_invites(user)
+
+        return user
+
+    # ------------------------------------------------------------------
+    # Shared helper — apply ALL unused invites for a user's email
+    # ------------------------------------------------------------------
+    def _apply_pending_invites(self, user):
+        from .models import ProjectInvite, ProjectMembership
+        from .notifications import NotificationService
+
+        allowed_roles = [
+            'project_lead', 'developer', 'tester',
+            'qa', 'deployment_team', 'delivery_team', 'ui_ux_designer',
+        ]
+
+        pending = ProjectInvite.objects.filter(
+            email__iexact=user.email,
+            used=False,
+        ).select_related('project', 'project__project_lead', 'team')
+
+        service = NotificationService()
+
+        for invite in pending:
+            # Add to project members
             invite.project.members.add(user)
 
-            profile, _ = Profile.objects.get_or_create(user=user)
+            # Assign project membership role
+            if invite.role in allowed_roles:
+                ProjectMembership.objects.get_or_create(
+                    user=user,
+                    project=invite.project,
+                    defaults={'role': invite.role},
+                )
 
-            if profile.role == 'user':
-                profile.role = invite.role
-                profile.save()
+            # Add to team if specified
+            if invite.team:
+                invite.team.members.add(user)
 
             invite.used = True
             invite.save()
 
-        return user
+            # Send welcome email + in-app notification (same as accept_project_invite)
+            added_by = invite.project.project_lead or user
+            try:
+                service.notify_project_member_added(
+                    invite.project, user, invite.role, added_by, invite.team,
+                )
+            except Exception:
+                pass

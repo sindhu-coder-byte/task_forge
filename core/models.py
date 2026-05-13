@@ -1,13 +1,43 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db import transaction
 
 
 # ---------------- PROFILE ----------------
 class Profile(models.Model):
+    ROLE_CHOICES = (
+        ('admin', 'Admin'),
+        ('project_lead', 'Project Lead'),
+        ('developer', 'Developer'),
+        ('tester', 'Tester'),
+        ('ui_ux_designer', 'UI/UX Designer'),
+        ('delivery_team', 'Delivery Team'),
+        ('deployment_team', 'Deployment Team'),
+        ('user', 'User'),
+    )
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    oauth_provider = models.CharField(max_length=50, blank=True)  # 'google', 'github'
-    oauth_id = models.CharField(max_length=255, blank=True, unique=True)
-    
+
+    # 🔑 GLOBAL ROLE
+    role = models.CharField(max_length=25, choices=ROLE_CHOICES, default='user')
+
+    # ⚠️ KEEP (used in your views already)
+    isProjectLead = models.BooleanField(default=False)
+
+
+    # 🔐 AUTH
+    oauth_provider = models.CharField(max_length=50, null=True, blank=True)
+    oauth_id = models.CharField(max_length=255, null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['oauth_provider', 'oauth_id'],
+                name='unique_oauth_per_provider',
+                condition=~models.Q(oauth_provider=None)  # ✅ prevents NULL conflicts
+            )
+        ]
+
     def __str__(self):
         return self.user.username
 
@@ -15,7 +45,6 @@ class Profile(models.Model):
 # ---------------- PROJECT MEMBERSHIP ----------------
 class ProjectMembership(models.Model):
     ROLE_CHOICES = (
-        ('admin', 'Admin'),
         ('project_lead', 'Project Lead'),
         ('ui_ux_designer', 'UI/UX Designer'),
         ('developer', 'Developer'),
@@ -26,11 +55,14 @@ class ProjectMembership(models.Model):
     )
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    project = models.ForeignKey('Project', on_delete=models.CASCADE)  # ✅ FIXED
+    project = models.ForeignKey('Project', on_delete=models.CASCADE)
     role = models.CharField(max_length=25, choices=ROLE_CHOICES)
 
     class Meta:
         unique_together = ('user', 'project')
+        indexes = [
+            models.Index(fields=['project', 'role']),  # ✅ faster filtering
+        ]
 
     def __str__(self):
         return f"{self.user.username} - {self.project.name} - {self.role}"
@@ -55,6 +87,48 @@ class Project(models.Model):
         related_name='leading_projects'
     )
 
+    # ✅ NEW (important)
+    department = models.CharField(max_length=100, null=True, blank=True)
+
+    # ====== METADATA & CATEGORIZATION ======
+    CATEGORY_CHOICES = (
+        ('engineering', 'Engineering'),
+        ('marketing', 'Marketing'),
+        ('sales', 'Sales'),
+        ('product', 'Product'),
+        ('design', 'Design'),
+        ('operations', 'Operations'),
+        ('hr', 'HR'),
+        ('finance', 'Finance'),
+        ('other', 'Other'),
+    )
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='other', null=True, blank=True)
+    project_url = models.URLField(max_length=500, null=True, blank=True, help_text='Link to documentation, repo, or external resource')
+
+    # ====== VISUAL IDENTITY ======
+    avatar = models.ImageField(upload_to='project_avatars/', null=True, blank=True, help_text='Project icon or logo')
+
+    # ====== TIMELINE & PRIORITY ======
+    PRIORITY_CHOICES = (
+        ('p1', 'P1 - Critical'),
+        ('p2', 'P2 - High'),
+        ('p3', 'P3 - Medium'),
+        ('p4', 'P4 - Low'),
+    )
+    start_date = models.DateField(null=True, blank=True)
+    target_end_date = models.DateField(null=True, blank=True)
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='p3', null=True, blank=True)
+
+    # ====== SECURITY & GOVERNANCE ======
+    is_private = models.BooleanField(default=False)
+    default_assignee = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='default_projects'
+    )
+
     project_type = models.CharField(
         max_length=10,
         choices=PROJECT_TYPE_CHOICES,
@@ -72,8 +146,20 @@ class Project(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        if self.project_lead:
+            ProjectMembership.objects.get_or_create(
+                user=self.project_lead,
+                project=self,
+                defaults={'role': 'project_lead'}
+            )
+
     def __str__(self):
         return self.name
+    
+    
 # ---------------- LABEL ----------------
 class Label(models.Model):
     name = models.CharField(max_length=50)
@@ -90,6 +176,7 @@ class Task(models.Model):
         ('todo', 'To Do'),
         ('in_progress', 'In Progress'),
         ('in_review', 'In Review'),
+        ('qa', 'Send to QA'),
         ('done', 'Done'),
     ]
 
@@ -199,6 +286,17 @@ class Task(models.Model):
     def __str__(self):
         return self.title
 
+    def save(self, *args, **kwargs):
+        if not self.issue_number and self.project:
+            with transaction.atomic():
+                project = Project.objects.select_for_update().get(pk=self.project.pk)
+
+                self.issue_number = project.next_issue_number
+                project.next_issue_number += 1
+                project.save(update_fields=["next_issue_number"])
+
+        super().save(*args, **kwargs)
+
     class Meta:
         indexes = [
             models.Index(fields=['status']),
@@ -243,8 +341,34 @@ class TaskActivity(models.Model):
 
 
 # ---------------- INVITE ----------------
+# =========================
+# TEAM
+# =========================
+
 class Team(models.Model):
-    name = models.CharField(max_length=100)
+
+    TEAM_TYPE_CHOICES = (
+        ('development', 'Development'),
+        ('qa', 'QA'),
+        ('design', 'Design'),
+        ('deployment', 'Deployment'),
+        ('delivery', 'Delivery'),
+        ('support', 'Support'),
+    )
+
+    name = models.CharField(
+        max_length=120
+    )
+
+    slug = models.SlugField(
+        max_length=140,
+        blank=True
+    )
+
+    description = models.TextField(
+        blank=True,
+        null=True
+    )
 
     project = models.ForeignKey(
         Project,
@@ -255,9 +379,9 @@ class Team(models.Model):
     lead = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
+        related_name='leading_teams',
         null=True,
-        blank=True,
-        related_name='leading_teams'
+        blank=True
     )
 
     members = models.ManyToManyField(
@@ -266,11 +390,90 @@ class Team(models.Model):
         blank=True
     )
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    team_type = models.CharField(
+        max_length=30,
+        choices=TEAM_TYPE_CHOICES,
+        default='development'
+    )
+
+    avatar = models.ImageField(
+        upload_to='team_avatars/',
+        null=True,
+        blank=True
+    )
+
+    color = models.CharField(
+        max_length=20,
+        default='#4F46E5'
+    )
+
+    capacity = models.PositiveIntegerField(
+        default=10
+    )
+
+    is_active = models.BooleanField(
+        default=True
+    )
+
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_teams'
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+        ordering = ['name']
+
+        unique_together = (
+            ('project', 'name'),
+        )
+
+        indexes = [
+            models.Index(fields=['project']),
+            models.Index(fields=['lead']),
+            models.Index(fields=['team_type']),
+            models.Index(fields=['is_active']),
+        ]
 
     def __str__(self):
-        return self.name
+        return f"{self.project.name} - {self.name}"
 
+    @property
+    def total_members(self):
+        return self.members.count()
+
+    @property
+    def workload(self):
+        return self.tasks.exclude(status='done').count()
+
+    @property
+    def completed_tasks(self):
+        return self.tasks.filter(status='done').count()
+
+    def clean(self):
+
+        from django.core.exceptions import ValidationError
+
+        if self.capacity < 1:
+            raise ValidationError("Capacity must be greater than 0")
+
+    def save(self, *args, **kwargs):
+
+        from django.utils.text import slugify
+
+        if not self.slug:
+            self.slug = slugify(self.name)
+
+        super().save(*args, **kwargs)
 
 class ProjectInvite(models.Model):
     email = models.EmailField()
@@ -312,9 +515,14 @@ class Notification(models.Model):
         return f"{self.user.username} - {self.title}"
     
 class RolePermission(models.Model):
+    PERMISSION_CHOICES = (
+        ('create_task', 'Create Task'),
+        ('delete_task', 'Delete Task'),
+        ('assign_task', 'Assign Task'),
+    )
+
     role = models.CharField(max_length=25, choices=ProjectMembership.ROLE_CHOICES)
-    permission = models.CharField(max_length=100)  # 'can_create_task', 'can_delete_user', etc.
-    
+    permission = models.CharField(max_length=50, choices=PERMISSION_CHOICES)
     
 
     

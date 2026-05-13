@@ -5,24 +5,34 @@
 
 {% block shell_extra_css %}
 <link rel="stylesheet" href="{% static 'core/css/reports.css' %}">
+<link href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css" rel="stylesheet">
 {% endblock %}
 
 {% block shell_page %}
-<div class="reports-wrap">
+{% with total=status_summary.todo|add:status_summary.in_progress|add:status_summary.in_review|add:status_summary.done %}
 
-  <!-- ===== HEADER ===== -->
-  <div class="reports-header">
-    <h1>Reports & Insights</h1>
+<div class="rp-page">
 
-    <div class="reports-actions">
-      <a href="?export=csv" class="reports-btn reports-btn--primary">
-        <i class="ri-download-line"></i> Export CSV
-      </a>
+  <!-- ── HEADER ── -->
+  <div class="rp-header">
+    <div class="rp-header-left">
+      <div class="rp-icon"><i class="ri-bar-chart-2-line"></i></div>
+      <div>
+        <h2 class="rp-title">Reports &amp; Insights</h2>
+        <p class="rp-sub">Task analytics across your projects</p>
+      </div>
     </div>
+    <a href="?export=csv{% if selected_project %}&project={{ selected_project }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}"
+       class="rp-btn rp-btn--primary">
+      <i class="ri-download-2-line"></i> Export CSV
+    </a>
   </div>
 
-  <!-- ===== FILTERS ===== -->
-  <form method="get" class="reports-filters">
+  <!-- ── FILTERS ── -->
+  <form method="get" class="rp-filters">
+
+    <span class="rp-filter-label"><i class="ri-filter-3-line"></i> Filter by</span>
+    <div class="rp-filter-sep"></div>
 
     <select name="project">
       <option value="">All Projects</option>
@@ -34,11 +44,12 @@
     </select>
 
     <select name="status">
-      <option value="">All Status</option>
-      <option value="todo" {% if selected_status == 'todo' %}selected{% endif %}>To Do</option>
+      <option value="">All Statuses</option>
+      <option value="todo"        {% if selected_status == 'todo' %}selected{% endif %}>To Do</option>
       <option value="in_progress" {% if selected_status == 'in_progress' %}selected{% endif %}>In Progress</option>
-      <option value="in_review" {% if selected_status == 'in_review' %}selected{% endif %}>Testing</option>
-      <option value="done" {% if selected_status == 'done' %}selected{% endif %}>Done</option>
+      <option value="in_review"   {% if selected_status == 'in_review' %}selected{% endif %}>In Review</option>
+      <option value="qa"          {% if selected_status == 'qa' %}selected{% endif %}>QA</option>
+      <option value="done"        {% if selected_status == 'done' %}selected{% endif %}>Done</option>
     </select>
 
     {% if users %}
@@ -46,93 +57,213 @@
       <option value="">All Users</option>
       {% for u in users %}
         <option value="{{ u.id }}" {% if u.id|stringformat:"s" == selected_user %}selected{% endif %}>
-          {{ u.username }}
+          {{ u.get_full_name|default:u.username }}
         </option>
       {% endfor %}
     </select>
     {% endif %}
 
-    <button type="submit" class="reports-btn reports-btn--ghost">
-      Apply Filters
+    <div class="rp-filter-sep"></div>
+
+    <button type="submit" class="rp-btn rp-btn--ghost">
+      <i class="ri-equalizer-line"></i> Apply
     </button>
+
+    {% if selected_project or selected_status or selected_user %}
+    <a href="{% url 'core:reports' %}" class="rp-btn rp-btn--ghost" style="color:#b91c1c;border-color:#fca5a5;">
+      <i class="ri-close-line"></i> Clear
+    </a>
+    {% endif %}
 
   </form>
 
-  <!-- ===== SUMMARY CARDS ===== -->
-  <div class="reports-stats">
+  <!-- ── STAT CARDS ── -->
+  <div class="rp-stats">
 
-    <div class="reports-card">
-      <span>To Do</span>
-      <h2>{{ status_summary.todo }}</h2>
+    <div class="rp-stat">
+      <div class="rp-stat-dot total"><i class="ri-stack-line"></i></div>
+      <div>
+        <div class="rp-stat-num">{{ total }}</div>
+        <div class="rp-stat-lbl">Total Tasks</div>
+      </div>
     </div>
 
-    <div class="reports-card">
-      <span>In Progress</span>
-      <h2>{{ status_summary.in_progress }}</h2>
+    <div class="rp-stat">
+      <div class="rp-stat-dot todo"><i class="ri-checkbox-blank-circle-line"></i></div>
+      <div>
+        <div class="rp-stat-num">{{ status_summary.todo }}</div>
+        <div class="rp-stat-lbl">To Do</div>
+      </div>
     </div>
 
-    <div class="reports-card">
-      <span>Testing</span>
-      <h2>{{ status_summary.in_review }}</h2>
+    <div class="rp-stat">
+      <div class="rp-stat-dot progress"><i class="ri-loader-4-line"></i></div>
+      <div>
+        <div class="rp-stat-num">{{ status_summary.in_progress }}</div>
+        <div class="rp-stat-lbl">In Progress</div>
+      </div>
     </div>
 
-    <div class="reports-card">
-      <span>Done</span>
-      <h2>{{ status_summary.done }}</h2>
+    <div class="rp-stat">
+      <div class="rp-stat-dot review"><i class="ri-git-pull-request-line"></i></div>
+      <div>
+        <div class="rp-stat-num">{{ status_summary.in_review }}</div>
+        <div class="rp-stat-lbl">In Review</div>
+      </div>
+    </div>
+
+    <div class="rp-stat">
+      <div class="rp-stat-dot done"><i class="ri-checkbox-circle-line"></i></div>
+      <div>
+        <div class="rp-stat-num">{{ status_summary.done }}</div>
+        <div class="rp-stat-lbl">Done</div>
+      </div>
     </div>
 
   </div>
 
-  <!-- ===== PROJECT PROGRESS ===== -->
-  {% comment %} <div class="reports-section">
-    <h3>Project Progress</h3>
-
-    {% for p in project_summary %}
-      <div class="reports-progress-row">
-        <div class="reports-progress-title">
-          {{ p.project.name }}
+  <!-- ── PROJECT PROGRESS ── -->
+  {% if project_summary %}
+  <div class="rp-section">
+    <div class="rp-section-hd">
+      <span class="rp-section-title">
+        <i class="ri-folder-chart-line"></i> Project Progress
+      </span>
+      <span style="font-size:12px;color:#9ca3af;">
+        {{ project_summary|length }} project{{ project_summary|length|pluralize }}
+      </span>
+    </div>
+    <div class="rp-section-bd">
+      {% for p in project_summary %}
+      <div class="rp-proj-row">
+        <div class="rp-proj-name" title="{{ p.project.name }}">{{ p.project.name }}</div>
+        <div class="rp-proj-track">
+          <div class="rp-proj-fill" style="width:{{ p.progress }}%;"></div>
         </div>
-
-        <div class="reports-progress-bar">
-          <div style="width: {{ p.progress }}%"></div>
-        </div>
-
-        <span class="reports-progress-text">{{ p.progress }}%</span>
+        <div class="rp-proj-pct">{{ p.progress }}%</div>
+        <div class="rp-proj-counts">{{ p.completed }}/{{ p.total }}</div>
       </div>
-    {% endfor %}
-  </div> {% endcomment %}
+      {% empty %}
+      <p style="font-size:13px;color:#9ca3af;text-align:center;padding:20px 0;">
+        No project data available.
+      </p>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
-  <!-- ===== TASK TABLE ===== -->
-  <div class="reports-section">
-    <h3>Tasks Overview</h3>
+  <!-- ── TASK TABLE ── -->
+  <div class="rp-section">
+    <div class="rp-section-hd">
+      <span class="rp-section-title">
+        <i class="ri-task-line"></i> Tasks Overview
+      </span>
+      <span style="font-size:12px;color:#9ca3af;">
+        {{ tasks|length }} task{{ tasks|length|pluralize }}{% if selected_project or selected_status or selected_user %} (filtered){% endif %}
+      </span>
+    </div>
 
-    <table class="reports-table">
-      <thead>
-        <tr>
-          <th>Task</th>
-          <th>Project</th>
-          <th>User</th>
-          <th>Status</th>
-          <th>Priority</th>
-        </tr>
-      </thead>
+    <div class="rp-table-wrap">
+      <table class="rp-table">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Title</th>
+            <th>Project</th>
+            <th>Assigned To</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Due Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tasks %}
+          <tr>
 
-      <tbody>
-        {% for t in tasks %}
-        <tr>
-          <td>{{ t.title }}</td>
-          <td>{{ t.project.name }}</td>
-          <td>{{ t.assigned_to.username }}</td>
-          <td>
-            <span class="status {{ t.status }}">{{ t.status }}</span>
-          </td>
-          <td>{{ t.priority }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            <td><span class="rp-key">{{ t.issue_key }}</span></td>
+
+            <td>
+              <a href="{% url 'core:task_detail' t.id %}" style="text-decoration:none;" title="{{ t.title }}">
+                <div class="rp-task-title">{{ t.title }}</div>
+              </a>
+            </td>
+
+            <td>
+              <span class="rp-proj-chip">
+                <i class="ri-folder-3-line" style="font-size:11px;"></i>
+                {{ t.project.name|default:"—" }}
+              </span>
+            </td>
+
+            <td>
+              {% if t.assigned_to %}
+              <div class="rp-assignee">
+                <div class="rp-av">{{ t.assigned_to.username|first|upper }}</div>
+                <span class="rp-av-name">
+                  {{ t.assigned_to.get_full_name|default:t.assigned_to.username }}
+                </span>
+              </div>
+              {% else %}
+              <span style="color:#9ca3af;font-size:12px;">Unassigned</span>
+              {% endif %}
+            </td>
+
+            <td>
+              <span class="rp-status {{ t.status }}">
+                {% if t.status == 'todo' %}To Do
+                {% elif t.status == 'in_progress' %}In Progress
+                {% elif t.status == 'in_review' %}In Review
+                {% elif t.status == 'qa' %}QA
+                {% elif t.status == 'done' %}Done
+                {% else %}{{ t.status }}{% endif %}
+              </span>
+            </td>
+
+            <td>
+              <span class="rp-priority {{ t.priority }}">{{ t.get_priority_display }}</span>
+            </td>
+
+            <td>
+              {% if t.due_date %}
+                <span class="rp-due {% if t.due_date < today and t.status != 'done' %}overdue{% endif %}">
+                  <i class="ri-{% if t.due_date < today and t.status != 'done' %}alarm-warning-line{% else %}calendar-line{% endif %}"></i>
+                  {{ t.due_date }}
+                </span>
+              {% else %}
+                <span style="color:#d1d5db;font-size:12px;">—</span>
+              {% endif %}
+            </td>
+
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7">
+              <div class="rp-empty">
+                <i class="ri-file-search-line"></i>
+                <h3>No tasks found</h3>
+                <p>Try adjusting the filters above.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if tasks %}
+    <div class="rp-table-foot">
+      <span>Showing up to 50 tasks — use Export CSV for the full dataset.</span>
+      <a href="?export=csv{% if selected_project %}&project={{ selected_project }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}"
+         style="color:#4f46e5;font-weight:600;font-size:12px;text-decoration:none;
+                display:inline-flex;align-items:center;gap:4px;">
+        <i class="ri-download-2-line"></i> Export all
+      </a>
+    </div>
+    {% endif %}
 
   </div>
 
 </div>
+
+{% endwith %}
 {% endblock shell_page %}

@@ -10,56 +10,98 @@
   </div>
 
   <div style="background:#fff; border: 1px solid #dfe1e6; border-radius: 12px; padding: 14px;">
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
       {% csrf_token %}
 
       <div style="display:grid; gap: 10px;">
-        <input type="text" name="title" placeholder="Task title" required
-               style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+        <div>
+          <label for="title" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Task Title</label>
+          <input type="text" id="title" name="title" placeholder="Enter task title" required
+                 style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+        </div>
 
-        <textarea name="description" placeholder="Description"
-                  style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px; min-height: 110px; resize: vertical;"></textarea>
+        <div>
+          <label for="description" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Description</label>
+          <textarea id="description" name="description" placeholder="Describe the task"
+                    style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px; min-height: 110px; resize: vertical;"></textarea>
+        </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <select name="project" required style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
-            <option value="">Select project</option>
-            {% for project in projects %}
-              <option value="{{ project.id }}" {% if selected_project and selected_project|stringformat:"s" == project.id|stringformat:"s" %}selected{% endif %}>{{ project.name }}</option>
-            {% endfor %}
-          </select>
+          <div>
+            <label for="project" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Project</label>
+            <select id="project" name="project" required style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+              <option value="">Select project</option>
+              {% for project in projects %}
+                <option value="{{ project.id }}" {% if selected_project and selected_project|stringformat:"s" == project.id|stringformat:"s" %}selected{% endif %}>{{ project.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
 
-          <select name="assigned_to" id="assignedToSelect" required style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
-            <option value="">{% if selected_project %}Assign user{% else %}Select a project first{% endif %}</option>
-            {% for user in users %}
-              <option value="{{ user.id }}" {% if selected_assignee and selected_assignee|stringformat:"s" == user.id|stringformat:"s" %}selected{% endif %}>{{ user.username }}</option>
+          <div>
+            <label for="assignedToSelect" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Assign to User</label>
+            <select id="assignedToSelect" name="assigned_to" required style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+              <option value="">{% if selected_project %}Select user{% else %}Select a project first{% endif %}</option>
+              {% for user in users %}
+                <option value="{{ user.id }}" {% if selected_assignee and selected_assignee|stringformat:"s" == user.id|stringformat:"s" %}selected{% endif %}>{{ user.username }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="teamSelect" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Team (Optional)</label>
+          <select id="teamSelect" name="team"
+                  style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+            <option value="">No team</option>
+            {% for team in teams %}
+              <option value="{{ team.id }}" data-project="{{ team.project_id }}">{{ team.name }}</option>
             {% endfor %}
           </select>
         </div>
 
-        <select name="priority" style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
-          <option value="High">High</option>
-          <option value="Medium" selected>Medium</option>
-          <option value="Low">Low</option>
-        </select>
+        <div>
+          <label for="priority" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Priority</label>
+          <select id="priority" name="priority" style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+            <option value="High">High</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-          <input type="date" name="start_date"
-                 style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;"
-                 placeholder="Start Date">
-          <input type="date" name="due_date"
-                 style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;"
-                 placeholder="Due Date">
-          <input type="date" name="delivery_date"
-                 style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;"
-                 placeholder="Delivery Date">
+          <div>
+            <label for="start_date" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Start Date</label>
+            <input type="date" id="start_date" name="start_date"
+                   style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+          </div>
+          <div>
+            <label for="due_date" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Due Date</label>
+            <input type="date" id="due_date" name="due_date"
+                   style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+          </div>
+          <div>
+            <label for="delivery_date" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Delivery Date</label>
+            <input type="date" id="delivery_date" name="delivery_date"
+                   style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+          </div>
         </div>
 
-        <select name="labels" multiple
-                style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px; min-height:44px;">
-          {% for l in labels %}
-            <option value="{{ l.id }}">{{ l.name }}</option>
-          {% endfor %}
-        </select>
+        <div>
+          <label for="labels" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Labels (Optional)</label>
+          <select id="labels" name="labels" multiple
+                  style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px; min-height:44px;">
+            {% for l in labels %}
+              <option value="{{ l.id }}">{{ l.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label for="attachments" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Attachments (Optional)</label>
+          <input type="file" id="attachments" name="attachments" multiple
+                 style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;"
+                 accept="image/*,application/pdf,.zip,.rar,.txt,.doc,.docx,.xls,.xlsx">
+        </div>
 
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top: 4px;">
           <a href="{% url 'core:tasks' %}" style="text-decoration:none; padding: 9px 12px; border: 1px solid #dfe1e6; border-radius: 10px; color:#172b4d; background:#fff;">Cancel</a>
@@ -76,6 +118,7 @@
 (function () {
   var projectSelect = document.querySelector('select[name="project"]');
   var assignedSelect = document.getElementById('assignedToSelect');
+  var teamSelect = document.getElementById('teamSelect');
   if (!projectSelect || !assignedSelect) return;
 
   function setPlaceholder(text) {
@@ -117,14 +160,28 @@
       });
   }
 
+  function filterTeams(projectId) {
+    if (!teamSelect) return;
+    Array.from(teamSelect.options).forEach(function (option) {
+      if (!option.value) {
+        option.hidden = false;
+        return;
+      }
+      option.hidden = option.getAttribute('data-project') !== projectId;
+    });
+    if (teamSelect.selectedOptions[0]?.hidden) teamSelect.value = '';
+  }
+
   projectSelect.addEventListener('change', function () {
     loadMembers(projectSelect.value);
+    filterTeams(projectSelect.value);
   });
 
   // hydrate on load if preselected
   if (projectSelect.value && assignedSelect.options.length <= 1) {
     loadMembers(projectSelect.value);
   }
+  filterTeams(projectSelect.value);
 })();
 </script>
 {% endblock %}

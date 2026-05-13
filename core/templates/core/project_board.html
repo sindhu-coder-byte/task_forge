@@ -1,4 +1,9 @@
 {% extends "core/app_shell.html" %}
+{% load static %}
+
+{% block shell_extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/board.css' %}">
+{% endblock %}
 
 {% block shell_title %}
 <span class="issue-shell-title">
@@ -16,12 +21,12 @@
       <a class="btn-ghost" href="{% url 'core:project_backlog' project.id %}">Backlog</a>
       <a class="btn-ghost" href="{% url 'core:project_team' project.id %}">Team</a>
       <a class="btn-ghost" href="{% url 'core:project_detail' project.id %}">Overview</a>
-      {% comment %} {% if can_manage_members %}
+      {% if can_manage_members %}
       <a class="btn-jira" href="{% url 'core:create_task' %}?project_id={{ project.id }}">
         <i class="ri-add-line"></i>
         Create Task
       </a>
-      {% endif %} {% endcomment %}
+      {% endif %}
 
 
     </div>
@@ -35,47 +40,203 @@
     <div class="board-progress-text"><span id="boardProgressText">{{ progress_percent }}%</span> complete</div>
   </div>
 
-  {% comment %} <div class="workflow-card">
-    <div class="workflow-card-head">
-      <div>
-        <div class="board-progress-label">Workflow engine</div>
-        <h3>Status transitions and role ownership</h3>
+  {% include "core/partials/progress_tracker.html" with project_timeline=project_timeline %}
+
+  <!-- ── WORKFLOW GUIDE ── -->
+  <div class="wf-card" id="workflowGuide">
+    <div class="wf-head" id="wfToggle">
+      <div class="wf-head-left">
+        <i class="ri-flow-chart"></i>
+        <div>
+          <div class="wf-head-title">Workflow Guide</div>
+          <div class="wf-head-sub">Status transitions · Role ownership · Testing flow</div>
+        </div>
       </div>
-      <div class="workflow-role-pill">Your role: {{ role_label }}</div>
+      <div class="wf-head-right">
+        <span class="wf-role-pill">
+          <i class="ri-user-line"></i> {{ role_label }}
+        </span>
+        <i class="ri-arrow-down-s-line wf-chevron" id="wfChevron"></i>
+      </div>
     </div>
-    <div class="workflow-note">
-      Developers move work from <strong>To Do</strong> to <strong>In Progress</strong> and then <strong>In Review</strong>.
-      Testers approve or send reviewed work back. Leads and admins can move any task they can see.
-    </div>
-    <div class="workflow-table-wrap">
-      <table class="workflow-table">
-        <thead>
-          <tr>
-            <th>From</th>
-            <th>To</th>
-            <th>Who can move</th>
-            <th>Policy</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in workflow_rows %}
-          <tr>
-            <td>{{ row.from_label }}</td>
-            <td>{{ row.to_label }}</td>
-            <td>
-              <div class="workflow-role-list">
-                {% for role_label in row.role_labels %}
-                <span class="workflow-chip">{{ role_label }}</span>
-                {% endfor %}
-              </div>
-            </td>
-            <td>{{ row.policy }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div> {% endcomment %}
+
+    <div class="wf-body" id="wfBody">
+
+      <!-- PIPELINE VISUALISER -->
+      <div class="wf-pipeline">
+        <div class="wf-pipe-step wf-pipe-step--todo">
+          <div class="wf-pipe-icon"><i class="ri-checkbox-blank-circle-line"></i></div>
+          <div class="wf-pipe-label">To Do</div>
+          <div class="wf-pipe-who">Developer · UI/UX · QA</div>
+        </div>
+        <div class="wf-pipe-arrow"><i class="ri-arrow-right-line"></i></div>
+        <div class="wf-pipe-step wf-pipe-step--inprogress">
+          <div class="wf-pipe-icon"><i class="ri-loader-3-line"></i></div>
+          <div class="wf-pipe-label">In Progress</div>
+          <div class="wf-pipe-who">Developer · UI/UX · QA</div>
+        </div>
+        <div class="wf-pipe-arrow"><i class="ri-arrow-right-line"></i></div>
+        <div class="wf-pipe-step wf-pipe-step--review">
+          <div class="wf-pipe-icon"><i class="ri-eye-line"></i></div>
+          <div class="wf-pipe-label">In Review / QA</div>
+          <div class="wf-pipe-who">Tester · QA</div>
+        </div>
+        <div class="wf-pipe-arrow"><i class="ri-arrow-right-line"></i></div>
+        <div class="wf-pipe-step wf-pipe-step--done">
+          <div class="wf-pipe-icon"><i class="ri-checkbox-circle-line"></i></div>
+          <div class="wf-pipe-label">Done</div>
+          <div class="wf-pipe-who">Tester · QA · Deploy</div>
+        </div>
+      </div>
+      <div class="wf-reject-note">
+        <i class="ri-arrow-go-back-line"></i>
+        Tester &amp; QA can reject from In Review or QA back to <strong>In Progress</strong>
+      </div>
+
+      <!-- ROLE EXAMPLES -->
+      <div class="wf-roles-grid">
+
+        <!-- Developer -->
+        <div class="wf-role-card {% if user_role == 'developer' %}wf-role-card--active{% endif %}">
+          <div class="wf-role-head wf-role-head--dev">
+            <i class="ri-code-line"></i>
+            <span>Developer</span>
+            {% if user_role == 'developer' %}<span class="wf-you">You</span>{% endif %}
+          </div>
+          <div class="wf-role-body">
+            <div class="wf-example-title">Typical flow</div>
+            <div class="wf-steps">
+              <div class="wf-step"><span class="wf-chip wf-chip--todo">To Do</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--inprogress">In Progress</span><span class="wf-step-note">Pick up the task</span></div>
+              <div class="wf-step"><span class="wf-chip wf-chip--inprogress">In Progress</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--review">In Review</span><span class="wf-step-note">Submit for code review</span></div>
+              <div class="wf-step"><span class="wf-chip wf-chip--inprogress">In Progress</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--qa">QA</span><span class="wf-step-note">Send directly to QA</span></div>
+            </div>
+            <div class="wf-rule"><i class="ri-information-line"></i> Must be the <strong>assigned person</strong> to drag cards.</div>
+          </div>
+        </div>
+
+        <!-- UI/UX Designer -->
+        <div class="wf-role-card {% if user_role == 'ui_ux_designer' %}wf-role-card--active{% endif %}">
+          <div class="wf-role-head wf-role-head--design">
+            <i class="ri-palette-line"></i>
+            <span>UI/UX Designer</span>
+            {% if user_role == 'ui_ux_designer' %}<span class="wf-you">You</span>{% endif %}
+          </div>
+          <div class="wf-role-body">
+            <div class="wf-example-title">Typical flow</div>
+            <div class="wf-steps">
+              <div class="wf-step"><span class="wf-chip wf-chip--todo">To Do</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--inprogress">In Progress</span><span class="wf-step-note">Start design work</span></div>
+              <div class="wf-step"><span class="wf-chip wf-chip--inprogress">In Progress</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--review">In Review</span><span class="wf-step-note">Submit for design review</span></div>
+            </div>
+            <div class="wf-rule"><i class="ri-information-line"></i> Must be the <strong>assigned person</strong> to drag cards.</div>
+          </div>
+        </div>
+
+        <!-- QA -->
+        <div class="wf-role-card {% if user_role == 'qa' %}wf-role-card--active{% endif %}">
+          <div class="wf-role-head wf-role-head--qa">
+            <i class="ri-test-tube-line"></i>
+            <span>QA</span>
+            {% if user_role == 'qa' %}<span class="wf-you">You</span>{% endif %}
+          </div>
+          <div class="wf-role-body">
+            <div class="wf-example-title">Testing flow</div>
+            <div class="wf-steps">
+              <div class="wf-step"><span class="wf-chip wf-chip--todo">To Do</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--inprogress">In Progress</span><span class="wf-step-note">QA picks up a task</span></div>
+              <div class="wf-step"><span class="wf-chip wf-chip--inprogress">In Progress</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--qa">QA</span><span class="wf-step-note">Move to QA column for testing</span></div>
+              <div class="wf-step wf-step--approve"><span class="wf-chip wf-chip--qa">QA</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--done">Done</span><span class="wf-step-note">Pass — approved</span></div>
+              <div class="wf-step wf-step--reject"><span class="wf-chip wf-chip--qa">QA</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--inprogress">In Progress</span><span class="wf-step-note">Fail — reject back</span></div>
+              <div class="wf-step wf-step--approve"><span class="wf-chip wf-chip--review">In Review</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--done">Done</span><span class="wf-step-note">Approve from review</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tester -->
+        <div class="wf-role-card {% if user_role == 'tester' %}wf-role-card--active{% endif %}">
+          <div class="wf-role-head wf-role-head--tester">
+            <i class="ri-bug-line"></i>
+            <span>Tester</span>
+            {% if user_role == 'tester' %}<span class="wf-you">You</span>{% endif %}
+          </div>
+          <div class="wf-role-body">
+            <div class="wf-example-title">Testing flow</div>
+            <div class="wf-steps">
+              <div class="wf-step wf-step--approve"><span class="wf-chip wf-chip--review">In Review</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--done">Done</span><span class="wf-step-note">Approve — tests passed</span></div>
+              <div class="wf-step wf-step--reject"><span class="wf-chip wf-chip--review">In Review</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--inprogress">In Progress</span><span class="wf-step-note">Reject — send back to dev</span></div>
+              <div class="wf-step wf-step--approve"><span class="wf-chip wf-chip--qa">QA</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--done">Done</span><span class="wf-step-note">QA column — sign off</span></div>
+              <div class="wf-step wf-step--reject"><span class="wf-chip wf-chip--qa">QA</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--inprogress">In Progress</span><span class="wf-step-note">QA column — reject</span></div>
+            </div>
+            <div class="wf-rule"><i class="ri-information-line"></i> Auto-assigned when developer moves task to <strong>In Review</strong>.</div>
+          </div>
+        </div>
+
+        <!-- Deployment Team -->
+        <div class="wf-role-card {% if user_role == 'deployment_team' %}wf-role-card--active{% endif %}">
+          <div class="wf-role-head wf-role-head--deploy">
+            <i class="ri-rocket-line"></i>
+            <span>Deployment</span>
+            {% if user_role == 'deployment_team' %}<span class="wf-you">You</span>{% endif %}
+          </div>
+          <div class="wf-role-body">
+            <div class="wf-example-title">Deploy flow</div>
+            <div class="wf-steps">
+              <div class="wf-step wf-step--approve"><span class="wf-chip wf-chip--review">In Review</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--done">Done</span><span class="wf-step-note">Shipped to production</span></div>
+              <div class="wf-step wf-step--approve"><span class="wf-chip wf-chip--qa">QA</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--done">Done</span><span class="wf-step-note">Post-QA deploy complete</span></div>
+            </div>
+            <div class="wf-rule"><i class="ri-information-line"></i> Can only <strong>close</strong> tasks — not re-open them.</div>
+          </div>
+        </div>
+
+        <!-- Lead / Admin -->
+        <div class="wf-role-card {% if user_role == 'project_lead' or user_role == 'admin' or user_role == 'delivery_team' %}wf-role-card--active{% endif %}">
+          <div class="wf-role-head wf-role-head--lead">
+            <i class="ri-shield-star-line"></i>
+            <span>Lead / Admin / Delivery</span>
+            {% if user_role == 'project_lead' or user_role == 'admin' or user_role == 'delivery_team' %}<span class="wf-you">You</span>{% endif %}
+          </div>
+          <div class="wf-role-body">
+            <div class="wf-example-title">Full override</div>
+            <div class="wf-steps">
+              <div class="wf-step"><span class="wf-chip wf-chip--todo">Any</span><i class="ri-arrow-right-s-line"></i><span class="wf-chip wf-chip--done">Any</span><span class="wf-step-note">Can move any visible task to any status</span></div>
+            </div>
+            <div class="wf-rule"><i class="ri-information-line"></i> Not restricted to being the assignee. Used to unblock stuck tasks.</div>
+          </div>
+        </div>
+
+      </div><!-- /roles grid -->
+
+      <!-- FULL TRANSITION TABLE -->
+      <details class="wf-table-details">
+        <summary>View full transition table</summary>
+        <div class="wf-table-wrap">
+          <table class="wf-table">
+            <thead>
+              <tr>
+                <th>From</th>
+                <th>→ To</th>
+                <th>Who can move</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in workflow_rows %}
+              <tr class="{% if user_role in row.roles %}wf-tr--mine{% endif %}">
+                <td><span class="wf-chip wf-chip--{{ row.from_status }}">{{ row.from_label }}</span></td>
+                <td><span class="wf-chip wf-chip--{{ row.to_status }}">{{ row.to_label }}</span></td>
+                <td>
+                  <div class="wf-chip-row">
+                    {% for rl in row.role_labels %}
+                    <span class="wf-table-chip">{{ rl }}</span>
+                    {% endfor %}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+    </div><!-- /wf-body -->
+  </div>
 
   <div class="board">
     {% for status, label in status_choices %}
@@ -252,312 +413,6 @@
 {% endblock %}
 
 {% block shell_foot_scripts %}
-<style>
-/* Minimal board styles (kept close to tasks.html for now) */
-.board-container{padding:24px;max-width:1400px;margin:auto}
-.board-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
-.board-title{font-size:18px;font-weight:650}
-.board-actions{display:flex;gap:10px;align-items:center}
-.btn-ghost{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;text-decoration:none;color:#111827;font-size:13px}
-.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
-.column{background:#f8fafc;border-radius:14px;padding:14px;max-height:calc(100vh - 180px);overflow-y:auto;border:1px solid #e5e7eb}
-.column.drag-over{background:#e6f4ff;border:2px dashed #1677ff}
-.column-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.count{font-size:12px;color:#666;background:#e0e0e0;padding:2px 8px;border-radius:10px}
-.task-card{background:#fff;padding:12px;border-radius:12px;margin-bottom:12px;border:1px solid #eee;transition:box-shadow .2s,border-color .2s}
-.task-card:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(0,0,0,.12);border-color:#1677ff}
-.task-card.dragging{opacity:.5}
-.task-card.task-card--revert-flash{animation:task-revert-flash .55s ease}
-@keyframes task-revert-flash{0%{box-shadow:0 0 0 2px #0052cc,0 8px 20px rgba(0,82,204,.25)}100%{box-shadow:none}}
-.task-title{font-weight:600;font-size:14px;margin-bottom:4px}
-.board-progress-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin:18px 0;box-shadow:0 1px 3px rgba(15,23,42,.06)}
-.board-progress-label{font-size:12px;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
-.board-progress-bar{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden}
-.board-progress-fill{height:100%;background:#10b981;transition:width .3s ease}
-.board-progress-text{margin-top:10px;font-size:13px;color:#111827;font-weight:600}
-.workflow-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin:0 0 18px;box-shadow:0 1px 3px rgba(15,23,42,.06)}
-.workflow-card-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:10px}
-.workflow-card-head h3{margin:4px 0 0;font-size:18px}
-.workflow-role-pill{padding:8px 12px;border-radius:999px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-size:12px;font-weight:700;white-space:nowrap}
-.workflow-note{font-size:13px;line-height:1.6;color:#475569;margin-bottom:14px}
-.workflow-table-wrap{overflow:auto}
-.workflow-table{width:100%;border-collapse:collapse;font-size:13px}
-.workflow-table th,.workflow-table td{padding:10px 12px;border-top:1px solid #e5e7eb;text-align:left;vertical-align:top}
-.workflow-table th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#64748b;background:#f8fafc}
-.workflow-role-list{display:flex;gap:6px;flex-wrap:wrap}
-.workflow-chip{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:#f1f5f9;color:#0f172a;font-size:11px;font-weight:700}
-
-.task-project{font-size:11px;color:#888}
-.task-labels{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.label{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:600;color:#fff;background:var(--label-color,#64748b)}
-.task-footer{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
-.priority{font-size:10px;padding:4px 8px;border-radius:20px}
-.priority.high{background:#ff4d4f;color:#fff}
-.priority.medium{background:#faad14;color:#fff}
-.priority.low{background:#52c41a;color:#fff}
-.avatar{width:28px;height:28px;border-radius:50%;background:#1677ff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
-.empty{text-align:center;font-size:13px;color:#aaa;margin-top:20px;font-style:italic}
-
-/* =========================
-   🧩 SIDEBAR (ported from tasks.html so Board sidebar works)
-========================= */
-.tk-sidebar{
-  position:fixed;
-  top:0;
-  right:-420px;
-  width:400px;
-  height:100%;
-  background:#fff;
-  box-shadow:-6px 0 24px rgba(0,0,0,0.08);
-  transition:right 0.3s ease;
-  z-index:1100;
-  display:flex;
-  flex-direction:column;
-  overflow-y:auto;
-}
-.tk-sidebar.open{ right:0; }
-.tk-sidebar > *{ padding:0 20px; }
-
-.tk-sidebar-header{
-  position:sticky;
-  top:0;
-  background:#fff;
-  z-index:10;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:16px 20px;
-  border-bottom:1px solid #eee;
-}
-.tk-sidebar-header-left h3{
-  font-size:16px;
-  font-weight:600;
-  margin:0;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.tk-sidebar-close{
-  font-size:20px;
-  cursor:pointer;
-  color:#888;
-  padding:4px;
-  border-radius:6px;
-  transition:0.2s;
-}
-.tk-sidebar-close:hover{ background:#f0f0f0; color:#000; }
-
-.tk-sidebar-desc{
-  font-size:13px;
-  color:#555;
-  line-height:1.5;
-  margin:15px 0;
-}
-.tk-sidebar-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:14px;
-  margin-bottom:16px;
-}
-.tk-sidebar-grid span{ font-size:11px; color:#888; display:block; }
-.tk-sidebar-grid strong{ font-size:13px; font-weight:600; color:#222; }
-
-.tk-badge{
-  padding:4px 8px;
-  font-size:11px;
-  border-radius:12px;
-  display:inline-block;
-}
-.tk-badge.high{ background:#ff4d4f; color:#fff; }
-.tk-badge.medium{ background:#faad14; color:#fff; }
-.tk-badge.low{ background:#52c41a; color:#fff; }
-.tk-badge.todo{ background:#f3f4f6; color:#374151; }
-.tk-badge.in_progress{ background:#0052cc; color:#fff; }
-.tk-badge.in_review{ background:#6554c0; color:#fff; }
-.tk-badge.done{ background:#22c55e; color:#fff; }
-
-.tk-divider{
-  border:none;
-  border-top:1px solid #eee;
-  margin:16px 0;
-}
-
-.tk-sidebar-actions{ display:flex; gap:10px; align-items:center; margin:6px 0 6px; }
-.tk-transition-panel h4{font-size:14px;margin:0 0 10px}
-.tk-transition-list{display:flex;gap:8px;flex-wrap:wrap}
-.tk-transition-hint{margin-top:10px;font-size:12px;color:#64748b;line-height:1.5}
-.tk-transition-chip{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#e0f2fe;color:#075985;font-size:12px;font-weight:700}
-.tk-btn-secondary{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:8px 14px;
-  border-radius:8px;
-  background:#f3f4f6;
-  font-size:13px;
-  cursor:pointer;
-  transition:0.2s;
-  border:1px solid #e5e7eb;
-  color:#111827;
-  text-decoration:none;
-}
-.tk-btn-secondary:hover{ background:#e5e7eb; }
-
-.tk-inline-update{ margin:16px 0; }
-.tk-inline-update label{ font-size:12px; color:#666; margin-bottom:4px; display:block; }
-.tk-inline-update select{
-  width:100%;
-  padding:8px;
-  border-radius:8px;
-  border:1px solid #ddd;
-  font-size:13px;
-}
-
-.tk-comments h4{ font-size:14px; margin-bottom:10px; }
-.tk-comments-list{
-  max-height:150px;
-  overflow-y:auto;
-  margin-bottom:10px;
-}
-.tk-comments-list .comment{
-  background:#f5f5f5;
-  padding:8px;
-  border-radius:6px;
-  margin-bottom:6px;
-  font-size:12px;
-}
-.tk-comment-input{
-  width:100%;
-  padding:8px;
-  border-radius:6px;
-  border:1px solid #ddd;
-  margin-bottom:8px;
-  box-sizing:border-box;
-}
-.tk-input{
-  width:100%;
-  padding:8px 10px;
-  border-radius:8px;
-  border:1px solid #ddd;
-  font-size:13px;
-  box-sizing:border-box;
-}
-.tk-upload-wrap{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
-.tk-file-input{display:none}
-.tk-file-list{font-size:12px;margin-top:10px}
-.tk-file-item{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;margin-bottom:8px}
-.tk-file-item a{color:#0052cc;text-decoration:none;word-break:break-word}
-.tk-file-item a:hover{text-decoration:underline}
-.tk-file-remove{border:1px solid #fee2e2;background:#fff;color:#b91c1c;border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer}
-.tk-file-remove:hover{background:#fef2f2}
-.tk-file-preview{margin-top:10px;border:1px solid #e5e7eb;border-radius:12px;padding:10px;background:#fff}
-.tk-file-preview img{max-width:100%;border-radius:10px;display:block}
-.tk-file-preview .meta{font-size:12px;color:#6b7280;margin-top:8px}
-.tk-activity-list .comment{font-size:12px;background:#fafafa;padding:6px;border-radius:6px;margin-bottom:6px}
-.tk-labels-actions,.tk-due-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0 10px}
-.tk-due-text{font-size:13px;color:#374151}
-
-@media (max-width: 768px){
-  .tk-sidebar{width:100%;right:-105%;max-width:420px}
-  .workflow-card-head{flex-direction:column}
-}
-
-.btn-jira{
-  padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;text-decoration:none;color:#111827;font-size:13px
-
-}
-.tk-btn-primary{
-  background:#0052cc;
-  color:#fff;
-  border:none;
-  padding:8px 14px;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:13px;
-  transition:0.2s;
-}
-.tk-btn-primary:hover{ background:#0747a6; }
-
-/* ===== MODAL OVERLAY ===== */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1200;
-}
-
-/* ===== MODAL BOX ===== */
-.modal-dialog {
-  width: 100%;
-  max-width: 420px;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 20px 45px rgba(0,0,0,0.15);
-  padding: 20px;
-  animation: modalFade 0.25s ease;
-}
-
-@keyframes modalFade {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-/* ===== HEADER ===== */
-.modal-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.modal-head h2 {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: #6b7280;
-}
-
-/* ===== INPUTS ===== */
-.input {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  font-size: 13px;
-  margin-bottom: 12px;
-}
-
-.input:focus {
-  outline: none;
-  border-color: #0052cc;
-  box-shadow: 0 0 0 2px rgba(0,82,204,0.15);
-}
-
-/* ===== ACTIONS ===== */
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-/* ===== ERROR ===== */
-.invite-error {
-  color: #dc2626;
-  font-size: 12px;
-  margin-top: 6px;
-}
-</style>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   const sidebar = document.getElementById("taskSidebar");
@@ -1017,6 +872,17 @@ document.querySelectorAll(".column").forEach(column => {
     btn.disabled = true;
     setTimeout(() => location.reload(), 500);
   };
+
+  // Workflow guide toggle
+  const wfToggle = document.getElementById("wfToggle");
+  const wfBody   = document.getElementById("wfBody");
+  const wfChevron= document.getElementById("wfChevron");
+  if (wfToggle) {
+    wfToggle.addEventListener("click", function () {
+      const open = wfBody.classList.toggle("open");
+      wfChevron.classList.toggle("open", open);
+    });
+  }
 
   refreshEmptyStates();
 

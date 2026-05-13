@@ -14,49 +14,113 @@
   {% include 'core/partials/app_sidebar.html' %}
 
   <main class="main main--shell">
+
+    <!-- ================================================
+         TOPBAR
+         ================================================ -->
     <div class="topbar topbar--shell">
+
+      <!-- LEFT: hamburger + title + search -->
       <div class="topbar-left">
         <button type="button" class="toggle-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
           <i class="ri-menu-line"></i>
         </button>
-        <div class="topbar-title">
-          <span>{% block shell_title %}TaskForge{% endblock %}</span>
+
+        <div class="topbar-brand">
+          <span class="topbar-title">{% block shell_title %}TaskForge{% endblock %}</span>
         </div>
+
+        <!-- SEARCH -->
         <div class="search-box" id="searchRoot" data-search-url="{% url 'core:search' %}">
-          <i class="ri-search-line"></i>
-          <input type="search" id="searchInput" name="q" placeholder="Search tasks, projects…" autocomplete="off" />
+          <i class="ri-search-line search-icon"></i>
+          <input type="search" id="searchInput" name="q"
+                 placeholder="Search tasks, projects…"
+                 autocomplete="off" aria-label="Search" />
+          <kbd class="search-kbd">⌘K</kbd>
           <div id="searchResults" class="search-results"></div>
         </div>
       </div>
 
+      <!-- RIGHT: notifications + user -->
       <div class="topbar-right">
-        <div class="icon-btn icon-btn--dropdown" id="notifBtn" title="Notifications" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
+
+        <!-- NOTIFICATION BELL -->
+        <div class="tb-icon-btn" id="notifBtn"
+             title="Notifications" role="button" tabindex="0"
+             aria-haspopup="true" aria-expanded="false">
           <i class="ri-notification-3-line"></i>
-          <span class="badge" id="notifBadge">0</span>
-          <div class="dropdown dropdown--notif" id="notifDropdown" role="menu" aria-label="Notifications">
-            <div class="dropdown-head">
-              <strong>Notifications</strong>
-              <span class="dropdown-sub"><span id="notifCount">0</span> pending</span>
+          <span class="tb-badge" id="notifBadge"
+                style="display:{% if notification_count > 0 %}flex{% else %}none{% endif %};">
+            {{ notification_count|default:0 }}
+          </span>
+
+          <!-- NOTIFICATION DROPDOWN -->
+          <div class="tb-dropdown tb-dropdown--notif" id="notifDropdown" role="menu">
+
+            <div class="tb-dd-head">
+              <span class="tb-dd-title">Notifications</span>
+              <span class="tb-dd-count"><span id="notifCount">{{ notification_count|default:0 }}</span> unread</span>
+              <button class="tb-dd-mark-all" onclick="markAllNotificationsRead(event)" title="Mark all read">
+                <i class="ri-check-double-line"></i>
+              </button>
             </div>
-            <div class="dropdown-body" id="notifBody">
-              <div class="dropdown-empty">Loading notifications...</div>
+
+            <div class="tb-dd-body" id="notifBody">
+              <div class="tb-dd-empty">
+                <i class="ri-notification-off-line"></i>
+                <span>No notifications yet</span>
+              </div>
             </div>
+
+            <div class="tb-dd-foot">
+              <a href="{% url 'core:get_notifications' %}" class="tb-dd-view-all">
+                View all notifications <i class="ri-arrow-right-line"></i>
+              </a>
+            </div>
+
           </div>
         </div>
-        <div class="icon-btn" title="Help">
-          <i class="ri-question-line"></i>
+
+        <!-- USER AVATAR DROPDOWN -->
+        <div class="tb-icon-btn tb-user-menu" id="userMenuBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
+          <div class="tb-avatar" title="{{ request.user.get_full_name|default:request.user.username }}">
+            {{ request.user.username|slice:":1"|upper }}
+          </div>
+
+          <div class="tb-dropdown tb-dropdown--user" id="userMenuDropdown" role="menu">
+            <div class="tb-um-header">
+              <div class="tb-um-avatar">{{ request.user.username|slice:":1"|upper }}</div>
+              <div class="tb-um-info">
+                <div class="tb-um-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+                <div class="tb-um-role">
+                  {% if request.user.profile.role == 'admin' %}
+                    <span class="tb-role-chip admin">Admin</span>
+                  {% elif request.user.profile.role == 'project_lead' or is_project_lead %}
+                    <span class="tb-role-chip lead">Project Lead</span>
+                  {% elif request.user.profile.role == 'developer' %}
+                    <span class="tb-role-chip dev">Developer</span>
+                  {% else %}
+                    <span class="tb-role-chip">{{ request.user.profile.get_role_display }}</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="tb-um-divider"></div>
+            <a href="{% url 'core:tasks' %}" class="tb-um-item">
+              <i class="ri-task-line"></i> My Tasks
+            </a>
+            <a href="{% url 'core:dashboard' %}" class="tb-um-item">
+              <i class="ri-dashboard-2-line"></i> Dashboard
+            </a>
+            <div class="tb-um-divider"></div>
+            <a href="{% url 'core:logout' %}" class="tb-um-item tb-um-item--danger">
+              <i class="ri-logout-box-r-line"></i> Sign out
+            </a>
+          </div>
         </div>
-        {% if request.user.is_authenticated %}
-        <div class="user-avatar" title="{{ request.user.username }}">
-          {{ request.user.username|slice:":1"|upper }}
-        </div>
-        {% endif %}
-        {% if request.user.is_authenticated and request.user.profile.role == 'admin' %}
-        <a href="{% url 'core:create_task' %}" class="create-btn">
-          <i class="ri-add-line"></i>
-          <span>Create</span>
-        </a>
-        {% elif request.user.is_authenticated and request.user.profile.role == 'project_lead' %}
+
+        <!-- CREATE / MY TASKS BUTTON -->
+        {% if request.user.is_authenticated and request.user.profile.role == 'admin' or request.user.is_authenticated and is_project_lead %}
         <a href="{% url 'core:create_task' %}" class="create-btn">
           <i class="ri-add-line"></i>
           <span>Create Task</span>
@@ -64,12 +128,15 @@
         {% elif request.user.is_authenticated %}
         <a href="{% url 'core:tasks' %}" class="create-btn create-btn--secondary">
           <i class="ri-task-line"></i>
-          <span>My tasks</span>
+          <span>My Tasks</span>
         </a>
         {% endif %}
+
       </div>
     </div>
+    <!-- /TOPBAR -->
 
+    <!-- PAGE CONTENT -->
     <div class="page-content page-content--shell">
       <div class="shell-layout" id="shellLayout">
         <div class="shell-main">
@@ -78,83 +145,448 @@
         <aside class="shell-right" id="shellRight">{% block shell_right %}{% endblock %}</aside>
       </div>
     </div>
+
   </main>
 </div>
 
+<style>
+/* ============================================================
+   TOPBAR IMPROVEMENTS (scoped, won't conflict with shell.css)
+   ============================================================ */
+
+/* Search kbd hint */
+.search-kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #9ca3af;
+  margin-left: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+@media (max-width: 680px) { .search-kbd { display: none; } }
+
+/* Topbar icon buttons */
+.tb-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: background .15s, color .15s;
+  user-select: none;
+}
+.tb-icon-btn:hover { background: #f3f4f6; color: #111827; }
+.tb-icon-btn > i  { font-size: 18px; }
+
+/* Notification badge */
+.tb-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  line-height: 1;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(239, 68, 68, 0.5);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* User avatar */
+.tb-avatar {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* ---- SHARED DROPDOWN ---- */
+.tb-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity .18s, transform .18s, visibility .18s;
+  z-index: 8000;
+  overflow: hidden;
+}
+.tb-dropdown.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* ---- NOTIFICATION DROPDOWN ---- */
+.tb-dropdown--notif {
+  width: 360px;
+  right: -8px;
+}
+.tb-dd-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.tb-dd-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  flex: 1;
+}
+.tb-dd-count {
+  font-size: 12px;
+  color: #6b7280;
+}
+.tb-dd-mark-all {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 16px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: .15s;
+}
+.tb-dd-mark-all:hover { background: #f3f4f6; color: #4f46e5; }
+
+.tb-dd-body {
+  max-height: 360px;
+  overflow-y: auto;
+}
+.tb-dd-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 20px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+.tb-dd-empty i { font-size: 28px; }
+
+/* Notification item */
+.tb-notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f9fafb;
+  cursor: pointer;
+  transition: background .15s;
+  text-decoration: none;
+  color: inherit;
+}
+.tb-notif-item:hover { background: #f9fafb; }
+.tb-notif-item.unread { background: #f0f4ff; }
+.tb-notif-item.unread:hover { background: #e8efff; }
+
+.tb-notif-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.tb-notif-icon.task_assigned    { background: #eff6ff; color: #2563eb; }
+.tb-notif-icon.task_updated     { background: #f0fdf4; color: #16a34a; }
+.tb-notif-icon.task_commented   { background: #fdf4ff; color: #9333ea; }
+.tb-notif-icon.member_added     { background: #fff7ed; color: #ea580c; }
+.tb-notif-icon.project_updated  { background: #fefce8; color: #ca8a04; }
+.tb-notif-icon.default          { background: #f3f4f6; color: #6b7280; }
+
+.tb-notif-content { flex: 1; min-width: 0; }
+.tb-notif-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tb-notif-msg {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tb-notif-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.tb-notif-time { font-size: 11px; color: #9ca3af; }
+.tb-notif-read-btn {
+  font-size: 11px;
+  color: #4f46e5;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+}
+.tb-notif-read-btn:hover { text-decoration: underline; }
+
+.tb-dd-foot {
+  padding: 10px 16px;
+  border-top: 1px solid #f3f4f6;
+}
+.tb-dd-view-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #4f46e5;
+  text-decoration: none;
+  font-weight: 500;
+  transition: .15s;
+}
+.tb-dd-view-all:hover { color: #4338ca; }
+
+/* ---- USER MENU DROPDOWN ---- */
+.tb-dropdown--user {
+  width: 220px;
+  right: 0;
+}
+.tb-um-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+.tb-um-avatar {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.tb-um-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+.tb-role-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: #374151;
+  margin-top: 3px;
+}
+.tb-role-chip.admin { background: #fef3c7; color: #92400e; }
+.tb-role-chip.lead  { background: #dbeafe; color: #1d4ed8; }
+.tb-role-chip.dev   { background: #ede9fe; color: #6d28d9; }
+
+.tb-um-divider { height: 1px; background: #f3f4f6; margin: 4px 0; }
+
+.tb-um-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #374151;
+  text-decoration: none;
+  transition: background .15s;
+}
+.tb-um-item i { font-size: 16px; color: #9ca3af; }
+.tb-um-item:hover { background: #f9fafb; }
+.tb-um-item--danger { color: #dc2626; }
+.tb-um-item--danger i { color: #dc2626; }
+.tb-um-item--danger:hover { background: #fef2f2; }
+</style>
+
 <script>
-// Load notifications dynamically
+/* ====================================================
+   NOTIFICATIONS
+   ==================================================== */
+var NOTIF_ICONS = {
+  task_assigned:   { cls: 'task_assigned',   icon: 'ri-task-line' },
+  task_updated:    { cls: 'task_updated',    icon: 'ri-edit-line' },
+  task_commented:  { cls: 'task_commented',  icon: 'ri-chat-3-line' },
+  member_added:    { cls: 'member_added',    icon: 'ri-user-add-line' },
+  project_updated: { cls: 'project_updated', icon: 'ri-folder-2-line' },
+};
+
+function _notifTypeInfo(type) {
+  return NOTIF_ICONS[type] || { cls: 'default', icon: 'ri-notification-3-line' };
+}
+
+function _relTime(iso) {
+  var d = new Date(iso);
+  var diff = Math.floor((Date.now() - d) / 1000);
+  if (diff < 60)  return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return Math.floor(diff / 86400) + 'd ago';
+}
+
 async function loadNotifications() {
   try {
-    const response = await fetch('{% url "core:get_notifications" %}', {
-      method: 'GET',
+    var res  = await fetch('{% url "core:get_notifications" %}', {
       headers: { 'X-CSRFToken': '{{ csrf_token }}' }
     });
-    
-    const data = await response.json();
-    
-    if (data.status === 'ok') {
-      const badge = document.getElementById('notifBadge');
-      const count = document.getElementById('notifCount');
-      const body = document.getElementById('notifBody');
-      
-      badge.textContent = data.count;
-      count.textContent = data.count;
-      
-      if (data.count === 0) {
-        body.innerHTML = '<div class="dropdown-empty">No new notifications.</div>';
-      } else {
-        body.innerHTML = data.notifications.map(n => `
-          <div class="dropdown-item" data-notif-id="${n.id}">
-            <div class="dropdown-item-title">${n.title}</div>
-            <div class="dropdown-item-sub">${n.message}</div>
-            <div style="margin-top: 8px; font-size: 12px; color: #999;">
-              ${new Date(n.created_at).toLocaleString()}
-            </div>
-            <a class="dropdown-link" href="#" onclick="markNotificationRead(${n.id}, event)">Mark as read</a>
-          </div>
-        `).join('');
-      }
+    var data = await res.json();
+    if (data.status !== 'ok') return;
+
+    var badge = document.getElementById('notifBadge');
+    var count = document.getElementById('notifCount');
+    var body  = document.getElementById('notifBody');
+
+    var n = data.count || 0;
+
+    /* Badge */
+    if (badge) {
+      badge.textContent = n > 99 ? '99+' : n;
+      badge.style.display = n > 0 ? 'flex' : 'none';
     }
+    if (count) count.textContent = n;
+
+    if (!body) return;
+
+    if (!data.notifications || !data.notifications.length) {
+      body.innerHTML = '<div class="tb-dd-empty"><i class="ri-notification-off-line"></i><span>No new notifications</span></div>';
+      return;
+    }
+
+    body.innerHTML = data.notifications.map(function (notif) {
+      var info = _notifTypeInfo(notif.notification_type || '');
+      return (
+        '<div class="tb-notif-item' + (notif.is_read ? '' : ' unread') + '" data-notif-id="' + notif.id + '">' +
+          '<div class="tb-notif-icon ' + info.cls + '"><i class="' + info.icon + '"></i></div>' +
+          '<div class="tb-notif-content">' +
+            '<div class="tb-notif-title">' + escHtml(notif.title) + '</div>' +
+            '<div class="tb-notif-msg">' + escHtml(notif.message) + '</div>' +
+            '<div class="tb-notif-meta">' +
+              '<span class="tb-notif-time">' + _relTime(notif.created_at) + '</span>' +
+              (!notif.is_read
+                ? '<button class="tb-notif-read-btn" onclick="markNotificationRead(' + notif.id + ', event)">Mark read</button>'
+                : '') +
+            '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
   } catch (err) {
-    console.log('Failed to load notifications:', err);
+    console.log('Notifications failed:', err);
   }
 }
 
-// Mark notification as read
 async function markNotificationRead(notifId, event) {
-  event.preventDefault();
-  
+  if (event) { event.preventDefault(); event.stopPropagation(); }
   try {
-    const response = await fetch(`/notifications/${notifId}/read/`, {
+    var res  = await fetch('/notifications/' + notifId + '/read/', {
       method: 'POST',
       headers: { 'X-CSRFToken': '{{ csrf_token }}' }
     });
-    
-    const data = await response.json();
-    
-    if (data.status === 'ok') {
-      // Reload notifications
-      loadNotifications();
-    }
-  } catch (err) {
-    console.log('Failed to mark notification as read:', err);
-  }
+    var data = await res.json();
+    if (data.status === 'ok') loadNotifications();
+  } catch (err) { console.log('Mark read failed:', err); }
 }
 
-// Load notifications on page load
-document.addEventListener('DOMContentLoaded', function() {
+async function markAllNotificationsRead(event) {
+  if (event) { event.preventDefault(); event.stopPropagation(); }
+  try {
+    await fetch('{% url "core:mark_all_notifications_read" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    });
+    loadNotifications();
+  } catch (err) { console.log('Mark all failed:', err); }
+}
+
+function escHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+document.addEventListener('DOMContentLoaded', function () {
   loadNotifications();
-  
-  // Reload notifications every 30 seconds
   setInterval(loadNotifications, 30000);
-  
-  // Reload when notification button is clicked
-  const notifBtn = document.getElementById('notifBtn');
-  if (notifBtn) {
-    notifBtn.addEventListener('click', function() {
-      loadNotifications();
+
+  /* ---- Generic dropdown helper ---- */
+  function makeDropdown(btnId, ddId) {
+    var btn = document.getElementById(btnId);
+    var dd  = document.getElementById(ddId);
+    if (!btn || !dd) return;
+
+    function openDd()  { dd.classList.add('open');    btn.setAttribute('aria-expanded', 'true'); }
+    function closeDd() { dd.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+    function toggleDd() { dd.classList.contains('open') ? closeDd() : openDd(); }
+
+    btn.addEventListener('click', function (e) { e.stopPropagation(); toggleDd(); });
+    btn.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleDd(); }
+      else if (e.key === 'Escape') closeDd();
+    });
+    document.addEventListener('click', function (e) {
+      if (!btn.contains(e.target) && !dd.contains(e.target)) closeDd();
     });
   }
+
+  makeDropdown('notifBtn',    'notifDropdown');
+  makeDropdown('userMenuBtn', 'userMenuDropdown');
+
+  /* Reload notifs on bell click */
+  var notifBtn = document.getElementById('notifBtn');
+  if (notifBtn) notifBtn.addEventListener('click', loadNotifications);
 });
 </script>
 

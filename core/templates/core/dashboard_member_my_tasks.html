@@ -1,0 +1,137 @@
+{% extends "core/app_shell.html" %}
+{% load static %}
+
+{% block shell_title %}My Tasks{% endblock %}
+
+{% block shell_page %}
+<div style="padding:24px;max-width:1200px;margin:auto;">
+  <div class="mt-head">
+    <div>
+      <h2 style="margin:0;font-size:20px;">My Tasks</h2>
+      <p style="margin:6px 0 0;color:#64748b;font-size:13px;">Fast status updates · due date countdown · email workflow notifications</p>
+    </div>
+    <div class="mt-actions">
+      <a class="btn-jira" href="{% url 'core:tasks' %}">All tasks</a>
+      <a class="btn-jira" href="{% url 'core:projects' %}">Projects</a>
+    </div>
+  </div>
+
+  <section class="card">
+    <div class="card-head">
+      <h3>Assigned to you</h3>
+      <span class="muted">{{ tasks|length }} tasks</span>
+    </div>
+    <div class="list">
+      {% for t in tasks %}
+        <div class="row" data-due="{{ t.due_date|date:'c' }}" data-task-id="{{ t.id }}">
+          <div class="row-main">
+            <div class="title">
+              <a href="{% url 'core:task_detail' t.id %}">{{ t.issue_key }}</a>
+              <span>{{ t.title }}</span>
+            </div>
+            <div class="sub muted">
+              {% if t.project %}{{ t.project.name }}{% else %}No project{% endif %}
+              {% if t.due_date %} · Due {{ t.due_date }}{% else %} · No due date{% endif %}
+            </div>
+          </div>
+
+          <div class="row-side">
+            <div class="countdown" data-countdown>—</div>
+            <span class="status-pill status-pill--{{ t.status }}">{{ t.get_status_display }}</span>
+            {% if t.primary_next_status %}
+              <button type="button" class="pill-btn" onclick="oneClickUpdate({{ t.id }}, '{{ t.primary_next_status }}', this)">
+                Move to {{ t.primary_next_status_label }}
+              </button>
+            {% else %}
+              <span class="muted">No actions</span>
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <div class="muted" style="padding:14px 16px;">No tasks assigned.</div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+
+<style>
+.btn-jira{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;text-decoration:none;color:#111827;font-size:13px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.06)}
+.muted{color:#64748b;font-size:12px}
+.mt-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.mt-actions{display:flex;gap:10px;flex-wrap:wrap}
+.card-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #e5e7eb}
+.card-head h3{margin:0;font-size:14px}
+.list{display:flex;flex-direction:column}
+.row{display:flex;justify-content:space-between;gap:16px;padding:14px 16px;border-bottom:1px solid #f1f5f9;align-items:center;flex-wrap:wrap}
+.row:last-child{border-bottom:none}
+.title{font-size:13px;font-weight:800;color:#0f172a;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.title a{text-decoration:none;color:#2563eb;font-weight:900}
+.title a:hover{text-decoration:underline}
+.row-side{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.countdown{font-size:12px;font-weight:800;padding:6px 10px;border-radius:999px;background:#f8fafc;border:1px solid #e5e7eb;color:#0f172a}
+.countdown.is-overdue{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+.status-pill{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800;background:#f4f5f7;color:#172b4d}
+.status-pill--todo{background:#f1f5f9;color:#334155}
+.status-pill--in_progress{background:#deebff;color:#0747a6}
+.status-pill--in_review{background:#eae6ff;color:#403294}
+.status-pill--qa{background:#fff7ed;color:#9a3412}
+.status-pill--done{background:#e3fcef;color:#006644}
+.pill-btn{padding:7px 10px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;font-size:12px;font-weight:900;cursor:pointer}
+.pill-btn:disabled{opacity:.6;cursor:not-allowed}
+</style>
+{% endblock %}
+
+{% block shell_foot_scripts %}
+<script>
+function oneClickUpdate(taskId, newStatus, btn){
+  if(!taskId || !newStatus) return;
+  btn.disabled = true;
+  fetch(`/api/tasks/${taskId}/transition/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token }}'
+    },
+    body: JSON.stringify({ new_status: newStatus })
+  }).then(r => r.json().then(j => ({ok:r.ok, j}))).then(({ok, j}) => {
+    if(!ok) throw new Error(j && j.error ? j.error : 'Failed');
+    location.reload();
+  }).catch((e) => {
+    btn.disabled = false;
+    alert('Status update failed.');
+  });
+}
+
+function formatCountdown(dueIso){
+  if(!dueIso) return { text: 'No due date', overdue: false };
+  const due = new Date(dueIso);
+  if(isNaN(due.getTime())) return { text: 'Invalid due date', overdue: false };
+  const now = new Date();
+  const diff = due.getTime() - now.getTime();
+  const overdue = diff < 0;
+  const abs = Math.abs(diff);
+  const days = Math.floor(abs / (1000*60*60*24));
+  const hours = Math.floor((abs % (1000*60*60*24)) / (1000*60*60));
+  if (days === 0 && hours === 0) return { text: overdue ? 'Due now (overdue)' : 'Due now', overdue };
+  const core = (days ? `${days}d ` : '') + `${hours}h`;
+  return { text: overdue ? `${core} overdue` : `${core} left`, overdue };
+}
+
+function tickCountdowns(){
+  document.querySelectorAll('[data-countdown]').forEach(el => {
+    const row = el.closest('.row');
+    const due = row ? row.dataset.due : '';
+    const out = formatCountdown(due);
+    el.textContent = out.text;
+    el.classList.toggle('is-overdue', out.overdue);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  tickCountdowns();
+  setInterval(tickCountdowns, 60000);
+});
+</script>
+{% endblock %}
+

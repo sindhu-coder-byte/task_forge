@@ -1,56 +1,176 @@
-<div style="font-family: Arial, sans-serif; background:#f4f5f7; padding:20px;">
-  <div style="max-width:500px;margin:auto;background:#fff;border-radius:10px;padding:20px;border:1px solid #e5e7eb;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task Status Changed – {{ task.issue_key }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;">
 
-    <h2 style="color:#172b4d;margin-bottom:10px;">
-      Task Status Changed: {{ task.issue_key }}
-    </h2>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:32px 16px;">
+  <tr>
+    <td align="center">
 
-    <p style="color:#44546f;font-size:14px;">
-      Hello {{ recipient.username }},
-    </p>
+      <!-- Card -->
+      <table width="520" cellpadding="0" cellspacing="0"
+             style="background:#ffffff;border-radius:10px;border:1px solid #e5e7eb;overflow:hidden;">
 
-    <p style="font-size:14px;">
-      The status of task <strong>{{ task.title }}</strong> has been changed.
-    </p>
+        <!-- HEADER STRIPE — colour by new status -->
+        <tr>
+          <td style="background:{% if new_status == 'done' %}#16a34a{% elif new_status == 'in_review' %}#6d28d9{% elif new_status == 'qa' %}#d97706{% elif new_status == 'in_progress' %}#2563eb{% else %}#374151{% endif %};padding:18px 28px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td>
+                  <span style="color:#ffffff;font-size:13px;font-weight:600;
+                               letter-spacing:0.5px;text-transform:uppercase;">
+                    🔄 Task Status Update
+                  </span>
+                </td>
+                <td align="right">
+                  <span style="
+                    background:rgba(255,255,255,0.22);
+                    color:#ffffff;
+                    font-size:11px;
+                    font-weight:700;
+                    padding:4px 10px;
+                    border-radius:999px;
+                    letter-spacing:.4px;
+                    text-transform:uppercase;">
+                    {{ new_status_label }}
+                  </span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
 
-    <div style="background:#f8f9fa;padding:15px;border-radius:6px;margin:15px 0;">
-      <p style="margin:5px 0;font-size:14px;">
-        <strong>Project:</strong> {{ task.project.name }}
-      </p>
-      <p style="margin:5px 0;font-size:14px;">
-        <strong>Old Status:</strong> {{ old_status }}
-      </p>
-      <p style="margin:5px 0;font-size:14px;">
-        <strong>New Status:</strong> <span style="color:#0052cc;">{{ new_status }}</span>
-      </p>
-      <p style="margin:5px 0;font-size:14px;">
-        <strong>Updated by:</strong> {{ updated_by.username }}
-      </p>
-    </div>
+        <!-- BODY -->
+        <tr>
+          <td style="padding:28px;">
 
-    <p style="font-size:14px;">
-      {% if new_status == 'In Review' %}
-      This task is now ready for testing. Please review the task and provide feedback.
-      {% elif new_status == 'Done' %}
-      This task has been completed. Thank you for your work on this.
-      {% elif new_status == 'In Progress' %}
-      This task is now in progress. Please proceed with the work.
-      {% else %}
-      Please review the task details and take any necessary action.
-      {% endif %}
-    </p>
+            <!-- Title -->
+            <h2 style="margin:0 0 6px;font-size:20px;color:#172b4d;">
+              {{ task.issue_key }}: {{ task.title }}
+            </h2>
 
-    <div style="margin:20px 0;text-align:center;">
-      <a href="{{ task_url }}"
-         style="background:#0052cc;color:#fff;padding:10px 18px;border-radius:6px;
-                text-decoration:none;font-size:14px;display:inline-block;">
-        View Task
-      </a>
-    </div>
+            <!-- Greeting -->
+            <p style="margin:0 0 20px;font-size:14px;color:#6b7280;">
+              Hello {{ recipient.get_full_name|default:recipient.username }},
+            </p>
 
-    <p style="font-size:12px;color:#6b7280;">
-      This is an automated notification from TaskForge.
-    </p>
+            <!-- Role-specific context message -->
+            <div style="background:#f8f9fa;border-left:4px solid
+              {% if new_status == 'done' %}#16a34a{% elif new_status == 'in_review' %}#6d28d9{% elif new_status == 'qa' %}#d97706{% elif new_status == 'in_progress' %}#2563eb{% else %}#374151{% endif %};
+              padding:14px 16px;border-radius:4px;margin-bottom:20px;">
+              <p style="margin:0;font-size:14px;color:#374151;">
+                {% if new_status == 'in_review' %}
+                  <strong>This task is ready for review.</strong>
+                  Please review the work and provide your feedback or approval before it proceeds to QA.
+                {% elif new_status == 'qa' %}
+                  <strong>This task has been sent to QA.</strong>
+                  Please validate and test this task. Report any issues before marking it complete.
+                {% elif new_status == 'done' %}
+                  <strong>This task has been marked complete.</strong>
+                  All work is finished and the task is closed. No further action is required.
+                {% elif new_status == 'in_progress' %}
+                  <strong>This task is now in progress.</strong>
+                  Development work has started. Track progress and ensure it stays on schedule.
+                {% else %}
+                  <strong>This task status has been updated.</strong>
+                  Please review the latest status and take any necessary action.
+                {% endif %}
+              </p>
+            </div>
 
-  </div>
-</div>
+            <!-- Status transition pill -->
+            <table cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+              <tr>
+                <td style="background:#f3f4f6;color:#374151;padding:6px 14px;
+                           border-radius:999px;font-size:12px;font-weight:700;">
+                  {{ old_status_label }}
+                </td>
+                <td style="padding:0 10px;color:#9ca3af;font-size:16px;">→</td>
+                <td style="background:{% if new_status == 'done' %}#dcfce7;color:#15803d{% elif new_status == 'in_review' %}#ede9fe;color:#6d28d9{% elif new_status == 'qa' %}#fef3c7;color:#92400e{% elif new_status == 'in_progress' %}#dbeafe;color:#1d4ed8{% else %}#f3f4f6;color:#374151{% endif %};
+                           padding:6px 14px;border-radius:999px;font-size:12px;font-weight:700;">
+                  {{ new_status_label }}
+                </td>
+              </tr>
+            </table>
+
+            <!-- Task metadata box -->
+            <table width="100%" cellpadding="0" cellspacing="0"
+                   style="background:#f8f9fa;border-radius:6px;margin-bottom:24px;">
+              <tr>
+                <td style="padding:16px;">
+                  <table width="100%" cellpadding="4" cellspacing="0"
+                         style="font-size:13px;color:#374151;">
+                    <tr>
+                      <td style="width:130px;color:#6b7280;font-weight:600;">Project</td>
+                      <td>{{ task.project.name }}</td>
+                    </tr>
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Task Key</td>
+                      <td>{{ task.issue_key }}</td>
+                    </tr>
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Updated By</td>
+                      <td>{{ updated_by.get_full_name|default:updated_by.username }}</td>
+                    </tr>
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Assigned To</td>
+                      <td>{{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:"Unassigned" }}</td>
+                    </tr>
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Priority</td>
+                      <td>{{ task.get_priority_display }}</td>
+                    </tr>
+                    {% if task.due_date %}
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Due Date</td>
+                      <td>{{ task.due_date }}</td>
+                    </tr>
+                    {% endif %}
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <!-- CTA button -->
+            <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+              <tr>
+                <td align="center"
+                    style="background:{% if new_status == 'done' %}#16a34a{% elif new_status == 'in_review' %}#6d28d9{% elif new_status == 'qa' %}#d97706{% elif new_status == 'in_progress' %}#2563eb{% else %}#374151{% endif %};
+                           border-radius:6px;">
+                  <a href="{{ task_url }}"
+                     style="display:inline-block;padding:11px 24px;
+                            color:#ffffff;font-size:14px;font-weight:600;
+                            text-decoration:none;letter-spacing:0.3px;">
+                    View Task →
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+          </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td style="background:#f8f9fa;padding:14px 28px;border-top:1px solid #e5e7eb;">
+            <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">
+              This is an automated notification from
+              <strong style="color:#6b7280;">TaskForge</strong>.
+              You received this because you are assigned to, leading, or reviewing this task.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+      <!-- /Card -->
+
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ email_subject }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:32px 16px;">
+  <tr>
+    <td align="center">
+
+      <!-- Card -->
+      <table width="520" cellpadding="0" cellspacing="0"
+             style="background:#ffffff;border-radius:10px;border:1px solid #e5e7eb;overflow:hidden;">
+
+        <!-- HEADER STRIPE -->
+        <tr>
+          <td style="background:{% if recipient_role == 'assignee' %}#2563eb{% elif recipient_role == 'project_lead' %}#0052cc{% else %}#374151{% endif %};padding:18px 28px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td>
+                  <span style="color:#ffffff;font-size:13px;font-weight:600;
+                               letter-spacing:0.5px;text-transform:uppercase;">
+                    {% if recipient_role == 'assignee' %}📋 Task Assigned{% elif recipient_role == 'project_lead' %}📁 New Task in Your Project{% else %}📌 New Task Created{% endif %}
+                  </span>
+                </td>
+                <td align="right">
+                  <span style="background:rgba(255,255,255,0.22);color:#ffffff;
+                               font-size:11px;font-weight:700;padding:4px 10px;
+                               border-radius:999px;letter-spacing:.4px;text-transform:uppercase;">
+                    {% if recipient_role == 'assignee' %}Assigned to You{% elif recipient_role == 'project_lead' %}Project Lead{% else %}FYI{% endif %}
+                  </span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- BODY -->
+        <tr>
+          <td style="padding:28px;">
+
+            <!-- Title -->
+            <h2 style="margin:0 0 6px;font-size:20px;color:#172b4d;">
+              {{ task.issue_key }}: {{ task.title }}
+            </h2>
+
+            <!-- Greeting -->
+            <p style="margin:0 0 20px;font-size:14px;color:#6b7280;">
+              Hello {{ recipient.get_full_name|default:recipient.username }},
+            </p>
+
+            <!-- Role-specific context block -->
+            <div style="background:#f0f4ff;border-left:4px solid
+              {% if recipient_role == 'assignee' %}#2563eb{% elif recipient_role == 'project_lead' %}#0052cc{% else %}#374151{% endif %};
+              padding:14px 16px;border-radius:4px;margin-bottom:20px;">
+              <p style="margin:0;font-size:14px;color:#374151;">
+                {% if recipient_role == 'assignee' %}
+                  <strong>You have a new task.</strong>
+                  {{ created_by.get_full_name|default:created_by.username }} assigned
+                  <strong>{{ task.issue_key }}</strong> to you in
+                  <strong>{{ project_name }}</strong>.
+                  Please review the task details and begin work according to the priority and due date.
+                {% elif recipient_role == 'project_lead' %}
+                  <strong>A new task was created in your project.</strong>
+                  {{ created_by.get_full_name|default:created_by.username }} created
+                  <strong>{{ task.issue_key }}</strong> in
+                  <strong>{{ project_name }}</strong>.
+                  {% if task.assigned_to %}
+                    It has been assigned to <strong>{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</strong>.
+                  {% else %}
+                    It is currently unassigned — please review and assign resources as needed.
+                  {% endif %}
+                {% else %}
+                  <strong>A new task has been created.</strong>
+                  {{ created_by.get_full_name|default:created_by.username }} created
+                  <strong>{{ task.issue_key }}</strong> in
+                  <strong>{{ project_name }}</strong>.
+                  This notification is for your awareness.
+                {% endif %}
+              </p>
+            </div>
+
+            <!-- Priority badge -->
+            <table cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+              <tr>
+                <td style="font-size:12px;color:#6b7280;font-weight:600;padding-right:8px;">
+                  Priority:
+                </td>
+                <td>
+                  <span style="
+                    background:{% if task.priority == 'critical' %}#fef2f2;color:#b91c1c{% elif task.priority == 'high' %}#fff7ed;color:#c2410c{% elif task.priority == 'medium' %}#fefce8;color:#854d0e{% else %}#f0fdf4;color:#166534{% endif %};
+                    padding:3px 12px;border-radius:999px;font-size:12px;font-weight:700;">
+                    {{ task.get_priority_display }}
+                  </span>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Task metadata box -->
+            <table width="100%" cellpadding="0" cellspacing="0"
+                   style="background:#f8f9fa;border-radius:6px;margin-bottom:24px;">
+              <tr>
+                <td style="padding:16px;">
+                  <table width="100%" cellpadding="4" cellspacing="0"
+                         style="font-size:13px;color:#374151;">
+                    <tr>
+                      <td style="width:130px;color:#6b7280;font-weight:600;">Project</td>
+                      <td>{{ project_name }}</td>
+                    </tr>
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Task Key</td>
+                      <td>{{ task.issue_key }}</td>
+                    </tr>
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Created By</td>
+                      <td>{{ created_by.get_full_name|default:created_by.username }}</td>
+                    </tr>
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Assigned To</td>
+                      <td>
+                        {% if task.assigned_to %}
+                          {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}
+                        {% else %}
+                          <span style="color:#9ca3af;">Unassigned</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Status</td>
+                      <td>
+                        <span style="background:#f3f4f6;color:#374151;padding:2px 8px;
+                                     border-radius:999px;font-size:11px;font-weight:600;">
+                          {{ task.get_status_display }}
+                        </span>
+                      </td>
+                    </tr>
+                    {% if task.due_date %}
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Due Date</td>
+                      <td style="color:#d97706;font-weight:600;">{{ task.due_date }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if task.team %}
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;">Team</td>
+                      <td>{{ task.team.name }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if task.description %}
+                    <tr>
+                      <td style="color:#6b7280;font-weight:600;vertical-align:top;">Description</td>
+                      <td style="color:#6b7280;">{{ task.description|truncatechars:200 }}</td>
+                    </tr>
+                    {% endif %}
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <!-- CTA button -->
+            <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+              <tr>
+                <td align="center"
+                    style="background:{% if recipient_role == 'assignee' %}#2563eb{% elif recipient_role == 'project_lead' %}#0052cc{% else %}#374151{% endif %};
+                           border-radius:6px;">
+                  <a href="{{ task_url }}"
+                     style="display:inline-block;padding:11px 24px;
+                            color:#ffffff;font-size:14px;font-weight:600;
+                            text-decoration:none;letter-spacing:0.3px;">
+                    View Task →
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+          </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td style="background:#f8f9fa;padding:14px 28px;border-top:1px solid #e5e7eb;">
+            <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">
+              This is an automated notification from
+              <strong style="color:#6b7280;">TaskForge</strong>.
+              You received this because you are
+              {% if recipient_role == 'assignee' %}the assigned developer for this task{% elif recipient_role == 'project_lead' %}a project lead for {{ project_name }}{% else %}a member of the {{ project_name }} project{% endif %}.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+      <!-- /Card -->
+
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

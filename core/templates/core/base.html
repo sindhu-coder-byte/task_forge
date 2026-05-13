@@ -3,238 +3,617 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>TaskForge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="TaskForge — Jira-style project and task management">
+  <title>{% block title %}TaskForge{% endblock %}</title>
 
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Poppins:wght@500;600&display=swap" rel="stylesheet">
-
-  <!-- Icons -->
+  <!-- Preconnect for speed -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-  <!-- CSS -->
+  <!-- App CSS -->
   <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
   <link rel="stylesheet" href="{% static 'core/css/auth.css' %}">
+
 {% block extra_css %}{% endblock %}
+
+<style>
+/* ============================================================
+   BASE — TOAST ALERTS
+   ============================================================ */
+.tf-toast-rack {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+.tf-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px 18px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+  border-left: 4px solid #4f46e5;
+  font-size: 14px;
+  color: #111827;
+  max-width: 360px;
+  pointer-events: all;
+  animation: tf-slide-in .25s ease forwards;
+}
+.tf-toast.success { border-color: #16a34a; }
+.tf-toast.error   { border-color: #dc2626; }
+.tf-toast.warning { border-color: #d97706; }
+.tf-toast.info    { border-color: #2563eb; }
+.tf-toast-icon { font-size: 18px; margin-top: 1px; flex-shrink: 0; }
+.tf-toast.success .tf-toast-icon { color: #16a34a; }
+.tf-toast.error   .tf-toast-icon { color: #dc2626; }
+.tf-toast.warning .tf-toast-icon { color: #d97706; }
+.tf-toast.info    .tf-toast-icon { color: #2563eb; }
+.tf-toast-body { flex: 1; line-height: 1.45; }
+.tf-toast-close {
+  cursor: pointer; color: #9ca3af; font-size: 16px;
+  border: none; background: none; padding: 0; margin-top: 1px;
+}
+.tf-toast-close:hover { color: #374151; }
+.tf-toast.leaving { animation: tf-slide-out .25s ease forwards; }
+@keyframes tf-slide-in {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes tf-slide-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(40px); }
+}
+
+/* ============================================================
+   BASE — AUTH MODAL
+   ============================================================ */
+.auth-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(15,23,42,.6);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.auth-modal.active { display: flex; }
+
+.auth-container {
+  background: #fff;
+  border-radius: 16px;
+  display: flex;
+  width: 820px;
+  max-width: 100%;
+  max-height: 92vh;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.2);
+  position: relative;
+}
+
+/* LEFT PANEL */
+.auth-left {
+  width: 310px;
+  flex-shrink: 0;
+  background: linear-gradient(150deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%);
+  padding: 44px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.forge-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 36px;
+}
+.forge-logo i {
+  font-size: 26px;
+  color: #fff;
+}
+.forge-logo h2 {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -.3px;
+}
+
+.auth-tagline {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+.auth-tagline-sub {
+  font-size: 13px;
+  color: rgba(255,255,255,.65);
+  margin: 0 0 32px;
+  line-height: 1.5;
+}
+
+.auth-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.auth-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: rgba(255,255,255,.85);
+}
+.auth-features li i {
+  width: 20px;
+  height: 20px;
+  background: rgba(255,255,255,.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.auth-note {
+  margin: 0 0 20px;
+  font-size: 12px;
+  color: rgba(255,255,255,.5);
+}
+
+/* Google button */
+.social-btn.google {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 11px 16px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  transition: box-shadow .2s, transform .15s;
+  width: 100%;
+  justify-content: center;
+}
+.social-btn.google:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,.18);
+  transform: translateY(-1px);
+}
+.google-icon { display: flex; align-items: center; flex-shrink: 0; }
+
+/* RIGHT PANEL (login form) */
+.auth-box {
+  flex: 1;
+  padding: 44px 40px;
+  overflow-y: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.close-btn {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  font-size: 22px;
+  color: #9ca3af;
+  cursor: pointer;
+  line-height: 1;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: .2s;
+}
+.close-btn:hover { background: #f3f4f6; color: #374151; }
+
+.tf-auth-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 6px;
+}
+.tf-auth-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 28px;
+}
+
+/* Divider */
+.tf-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+.tf-divider::before,
+.tf-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+.tf-divider span {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Form inputs */
+.input-group {
+  position: relative;
+  margin-bottom: 14px;
+}
+.input-group > i:first-child {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 16px;
+  pointer-events: none;
+}
+.input-group input {
+  width: 100%;
+  padding: 11px 42px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111827;
+  background: #fafafa;
+  transition: border-color .2s, box-shadow .2s;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.input-group input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+}
+.input-group input::placeholder { color: #9ca3af; }
+.input-group .toggle {
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 16px;
+}
+.input-group .toggle:hover { color: #374151; }
+
+/* Auth links */
+.tf-auth-links {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 18px;
+}
+.tf-auth-link {
+  font-size: 13px;
+  color: #4f46e5;
+  text-decoration: none;
+}
+.tf-auth-link:hover { text-decoration: underline; }
+
+/* Auth button */
+.tf-auth-btn {
+  width: 100%;
+  padding: 12px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s, transform .15s;
+  font-family: inherit;
+}
+.tf-auth-btn:hover { background: #4338ca; transform: translateY(-1px); }
+.tf-auth-btn:active { transform: translateY(0); }
+
+.tf-auth-footer {
+  margin: 18px 0 0;
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+/* Forgot password panel */
+.auth-fp-panel {
+  display: none;
+  flex-direction: column;
+  gap: 0;
+}
+.auth-fp-panel.active { display: flex; }
+.auth-fp-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 20px;
+  font-family: inherit;
+}
+.auth-fp-back:hover { color: #111827; }
+.auth-fp-note {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+/* Mobile */
+@media (max-width: 680px) {
+  .auth-left { display: none; }
+  .auth-box { padding: 40px 28px; }
+  .auth-container { width: 100%; border-radius: 12px; }
+}
+</style>
 </head>
 
 <body>
 
-  <!-- Alerts -->
-  {% if messages %}
-    <div class="alert-container">
-      {% for message in messages %}
-        <div class="alert {{ message.tags }}">
-          {{ message }}
-        </div>
-      {% endfor %}
+  <!-- TOAST RACK (for Django messages) -->
+  <div class="tf-toast-rack" id="tfToastRack">
+    {% for message in messages %}
+    <div class="tf-toast {{ message.tags }}" data-auto-close>
+      <i class="ri-{% if 'success' in message.tags %}checkbox-circle-fill{% elif 'error' in message.tags %}error-warning-fill{% elif 'warning' in message.tags %}alert-fill{% else %}information-fill{% endif %} tf-toast-icon"></i>
+      <span class="tf-toast-body">{{ message }}</span>
+      <button class="tf-toast-close" onclick="this.closest('.tf-toast').remove()">
+        <i class="ri-close-line"></i>
+      </button>
     </div>
-  {% endif %}
+    {% endfor %}
+  </div>
 
   {% block content %}{% endblock %}
 
-  <!-- AUTH MODAL -->
-<div id="authModal" class="auth-modal">
-  <div class="auth-container">
+  <!-- =====================================================
+       AUTH MODAL
+       ===================================================== -->
+  <div id="authModal" class="auth-modal" role="dialog" aria-modal="true" aria-label="Sign in">
+    <div class="auth-container">
 
-    <!-- LEFT SIDE -->
-    <div class="auth-left">
+      <!-- LEFT BRANDING PANEL -->
+      <div class="auth-left">
+        <div class="forge-logo">
+          <i class="ri-rocket-2-line"></i>
+          <h2>TaskForge</h2>
+        </div>
 
-      <div class="forge-logo">
-        <i class="ri-rocket-2-line"></i>
-        <h2>TaskForge</h2>
+        <p class="auth-tagline">Ship faster,<br>together.</p>
+        <p class="auth-tagline-sub">Jira-style project tracking built for modern teams.</p>
+
+        <ul class="auth-features">
+          <li><i class="ri-check-line"></i> Role-based dashboards</li>
+          <li><i class="ri-check-line"></i> Sprint & backlog management</li>
+          <li><i class="ri-check-line"></i> Real-time team collaboration</li>
+          <li><i class="ri-check-line"></i> Smart email notifications</li>
+        </ul>
+
+        <p class="auth-note">Sign in with your Google or work account</p>
+
+        <!-- GOOGLE LOGIN -->
+        {% get_providers as socialaccount_providers %}
+        {% for provider in socialaccount_providers %}
+          {% if provider.id == 'google' %}
+          <div class="social-login">
+            <a href="{% provider_login_url provider.id process='login' %}" class="social-btn google">
+              <span class="google-icon">
+                <svg viewBox="0 0 48 48" width="18" height="18">
+                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.72 1.22 9.22 3.6l6.9-6.9C35.7 2.2 30.3 0 24 0 14.64 0 6.44 5.4 2.56 13.28l8.04 6.24C12.52 13.14 17.82 9.5 24 9.5z"/>
+                  <path fill="#4285F4" d="M46.5 24c0-1.64-.14-3.22-.4-4.76H24v9.02h12.7c-.55 2.96-2.2 5.48-4.68 7.18l7.2 5.6C43.94 36.5 46.5 30.8 46.5 24z"/>
+                  <path fill="#FBBC05" d="M10.6 28.52A14.5 14.5 0 0 1 9.5 24c0-1.56.26-3.06.72-4.48l-8.04-6.24A23.97 23.97 0 0 0 0 24c0 3.86.92 7.5 2.56 10.72l8.04-6.2z"/>
+                  <path fill="#34A853" d="M24 48c6.3 0 11.6-2.08 15.48-5.66l-7.2-5.6c-2 1.34-4.56 2.12-8.28 2.12-6.18 0-11.48-3.64-13.4-8.88l-8.04 6.2C6.44 42.6 14.64 48 24 48z"/>
+                </svg>
+              </span>
+              Continue with Google
+            </a>
+          </div>
+          {% endif %}
+        {% endfor %}
       </div>
 
-      <ul class="auth-features">
-        <li><i class="ri-check-line"></i> Jira-style workflow</li>
-        <li><i class="ri-check-line"></i> Role-based dashboards</li>
-        <li><i class="ri-check-line"></i> Smart collaboration</li>
-      </ul>
+      <!-- RIGHT FORM PANEL -->
+      <div class="auth-box">
+        <button class="close-btn" onclick="closeAuth()" aria-label="Close">&times;</button>
 
-      <p class="auth-note">
-        🔓 Login using Google or your work account
-      </p>
+        <!-- LOGIN FORM VIEW -->
+        <div id="authLoginView">
+          <h3 class="tf-auth-title">Welcome back</h3>
+          <p class="tf-auth-subtitle">Sign in to your TaskForge account</p>
 
-      <!-- GOOGLE LOGIN -->
-      {% get_providers as socialaccount_providers %}
-      {% for provider in socialaccount_providers %}
-        {% if provider.id == 'google' %}
-        <div class="social-login">
-          <a href="{% provider_login_url provider.id process='login' %}" class="social-btn google">
-            <span class="google-icon">
-              <svg viewBox="0 0 48 48" width="18" height="18">
-                <path fill="#EA4335" d="M24 9.5c3.54 0 6.72 1.22 9.22 3.6l6.9-6.9C35.7 2.2 30.3 0 24 0 14.64 0 6.44 5.4 2.56 13.28l8.04 6.24C12.52 13.14 17.82 9.5 24 9.5z"/>
-                <path fill="#4285F4" d="M46.5 24c0-1.64-.14-3.22-.4-4.76H24v9.02h12.7c-.55 2.96-2.2 5.48-4.68 7.18l7.2 5.6C43.94 36.5 46.5 30.8 46.5 24z"/>
-                <path fill="#FBBC05" d="M10.6 28.52A14.5 14.5 0 0 1 9.5 24c0-1.56.26-3.06.72-4.48l-8.04-6.24A23.97 23.97 0 0 0 0 24c0 3.86.92 7.5 2.56 10.72l8.04-6.2z"/>
-                <path fill="#34A853" d="M24 48c6.3 0 11.6-2.08 15.48-5.66l-7.2-5.6c-2 1.34-4.56 2.12-8.28 2.12-6.18 0-11.48-3.64-13.4-8.88l-8.04 6.2C6.44 42.6 14.64 48 24 48z"/>
-              </svg>
-            </span>
-            Continue with Google
-          </a>
+          <div class="tf-divider"><span>or sign in with email</span></div>
+
+          <form id="loginForm" method="POST" action="{% url 'core:login' %}">
+            {% csrf_token %}
+
+            <div class="input-group">
+              <i class="ri-user-line"></i>
+              <input type="text" name="username" placeholder="Username or email" required autocomplete="username">
+            </div>
+
+            <div class="input-group">
+              <i class="ri-lock-line"></i>
+              <input type="password" id="loginPassword" name="password" placeholder="Password" required autocomplete="current-password">
+              <i class="ri-eye-line toggle" onclick="togglePassword('loginPassword')" title="Show password"></i>
+            </div>
+
+            <div class="tf-auth-links">
+              <a href="#" onclick="showForgotPanel(event)" class="tf-auth-link">Forgot password?</a>
+            </div>
+
+            <button type="submit" class="tf-auth-btn">Sign in</button>
+          </form>
+
+          <p class="tf-auth-footer">
+            <i class="ri-shield-check-line"></i>
+            Work or Google account required for full access
+          </p>
         </div>
-        {% endif %}
-      {% endfor %}
+
+        <!-- FORGOT PASSWORD VIEW -->
+        <div id="authFpView" class="auth-fp-panel">
+          <button class="auth-fp-back" onclick="hideForgotPanel()">
+            <i class="ri-arrow-left-line"></i> Back to sign in
+          </button>
+
+          <h3 class="tf-auth-title">Reset password</h3>
+          <p class="auth-fp-note">Enter your work email and we'll send you a reset link.</p>
+
+          <form id="forgotPasswordForm" method="POST" action="{% url 'core:password-reset' %}">
+            {% csrf_token %}
+            <div class="input-group">
+              <i class="ri-mail-line"></i>
+              <input type="email" id="fpEmail" name="email" placeholder="Work email address" required autocomplete="email">
+            </div>
+            <button type="submit" class="tf-auth-btn" style="background:#374151;">Send reset link</button>
+          </form>
+        </div>
+      </div>
 
     </div>
-
-    <!-- RIGHT SIDE -->
-    <div class="auth-box">
-
-      <span class="close-btn" onclick="closeAuth()">&times;</span>
-
-<h3 class="tf-auth-title">Login to your account</h3>
-
-    
-<!-- DIVIDER -->
-<div class="tf-divider">
-  <span>OR</span>
-</div>
-
-      <!-- EMAIL LOGIN -->
-      <form id="loginForm" method="POST" action="{% url 'core:login' %}">
-        {% csrf_token %}
-
-        <div class="input-group">
-          <i class="ri-mail-line"></i>
-          <input type="text" name="username" placeholder="Work email or username" required>
-        </div>
-
-        <div class="input-group">
-          <i class="ri-lock-line"></i>
-          <input type="password" id="loginPassword" name="password" placeholder="Password" required>
-          <i class="ri-eye-line toggle" onclick="togglePassword('loginPassword')"></i>
-        </div>
-
-<div class="tf-auth-links">
-  <a href="#" onclick="openForgotPassword();" class="tf-auth-link">Forgot password?</a>
-</div>
-<button type="submit" class="tf-auth-btn">Login</button>
-      </form>
-
- <p class="tf-auth-footer">
-  Work account required for full access
-</p>
-
-    </div>
-
   </div>
-</div>
-  <!-- Chart -->
+  <!-- /AUTH MODAL -->
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
+/* ---- TOAST AUTO-DISMISS ---- */
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll('.tf-toast[data-auto-close]').forEach(function (el) {
+    setTimeout(function () {
+      el.classList.add('leaving');
+      setTimeout(function () { el.remove(); }, 260);
+    }, 4500);
+  });
+});
+
+/* ---- AUTH MODAL ---- */
 document.addEventListener("DOMContentLoaded", function () {
 
-  // OPEN MODAL
-  window.openAuth = function(type) {
-    const modal = document.getElementById("authModal");
-
-    if (!modal) {
-      console.error("Modal not found ❌");
-      return;
-    }
-
-    modal.classList.add("active");
-    switchTab(type);
+  window.openAuth = function (type) {
+    var modal = document.getElementById("authModal");
+    if (modal) modal.classList.add("active");
+    if (typeof switchTab === "function") switchTab(type || "login");
   };
 
-  // CLOSE MODAL
-  window.closeAuth = function() {
-    const modal = document.getElementById("authModal");
+  window.closeAuth = function () {
+    var modal = document.getElementById("authModal");
     if (modal) modal.classList.remove("active");
   };
 
-  // SWITCH TAB
-  window.switchTab = function(type) {
-    const loginForm = document.getElementById("loginForm");
-    const registerForm = document.getElementById("registerForm");
+  /* Close on backdrop click */
+  var modal = document.getElementById("authModal");
+  if (modal) {
+    modal.addEventListener("click", function (e) {
+      if (e.target === modal) closeAuth();
+    });
+  }
 
-    const loginTab = document.getElementById("loginTab");
-    const registerTab = document.getElementById("registerTab");
-
-    if (!loginForm || !registerForm) {
-      console.error("Forms missing ❌");
-      return;
-    }
-
+  window.switchTab = function (type) {
+    /* Kept for backward-compat — currently only login tab exists */
+    var loginForm = document.getElementById("loginForm");
+    var registerForm = document.getElementById("registerForm");
+    var loginTab = document.getElementById("loginTab");
+    var registerTab = document.getElementById("registerTab");
+    if (!loginForm) return;
     if (type === "login") {
       loginForm.style.display = "block";
-      registerForm.style.display = "none";
-      loginTab.classList.add("active");
-      registerTab.classList.remove("active");
+      if (registerForm) registerForm.style.display = "none";
+      if (loginTab) loginTab.classList.add("active");
+      if (registerTab) registerTab.classList.remove("active");
     } else {
       loginForm.style.display = "none";
-      registerForm.style.display = "block";
-      registerTab.classList.add("active");
-      loginTab.classList.remove("active");
+      if (registerForm) { registerForm.style.display = "block"; }
+      if (loginTab) loginTab.classList.remove("active");
+      if (registerTab) registerTab.classList.add("active");
     }
   };
 
-  // PASSWORD TOGGLE
-  window.togglePassword = function(id) {
-    const input = document.getElementById(id);
+  window.togglePassword = function (id) {
+    var input = document.getElementById(id);
     if (!input) return;
-
-    input.type = input.type === "password" ? "text" : "password";
-  };
-
-  // FORGOT PASSWORD
-  window.openForgotPassword = function() {
-    const email = prompt("Enter your email address:");
-    if (email) {
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = "{% url 'core:password-reset' %}";
-      
-      const csrf = document.querySelector("[name=csrfmiddlewaretoken]");
-      if (csrf) form.appendChild(csrf.cloneNode(true));
-      
-      const emailInput = document.createElement("input");
-      emailInput.type = "hidden";
-      emailInput.name = "email";
-      emailInput.value = email;
-      form.appendChild(emailInput);
-      
-      document.body.appendChild(form);
-      form.submit();
-      document.body.removeChild(form);
+    var isText = input.type === "text";
+    input.type = isText ? "password" : "text";
+    /* Toggle icon on the sibling .toggle element */
+    var toggle = input.parentElement.querySelector('.toggle');
+    if (toggle) {
+      toggle.classList.toggle('ri-eye-line', isText);
+      toggle.classList.toggle('ri-eye-off-line', !isText);
     }
   };
 
+  /* Forgot password — now uses a panel, no prompt() */
+  window.openForgotPassword = function () {
+    showForgotPanel(null);
+  };
+
+  window.showForgotPanel = function (e) {
+    if (e) e.preventDefault();
+    document.getElementById('authLoginView').style.display = 'none';
+    var fp = document.getElementById('authFpView');
+    fp.classList.add('active');
+    var em = document.getElementById('fpEmail');
+    if (em) em.focus();
+  };
+
+  window.hideForgotPanel = function () {
+    document.getElementById('authLoginView').style.display = '';
+    document.getElementById('authFpView').classList.remove('active');
+  };
+
+  /* Close on Escape */
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeAuth();
+  });
 });
 
-const blockedDomains = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com"];
-
+/* ---- REGISTER VALIDATION (backward compat) ---- */
+var blockedDomains = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com"];
 function isWorkEmail(email) {
-  const domain = email.split("@")[1]?.toLowerCase();
+  var domain = (email.split("@")[1] || "").toLowerCase();
   return domain && !blockedDomains.includes(domain);
 }
-
-// REGISTER VALIDATION (FIXED)
 document.addEventListener("DOMContentLoaded", function () {
-
-  const form = document.getElementById("registerForm");
-  const error = document.getElementById("emailError");
-  const emailInput = document.getElementById("registerEmail");
-
-  if (!form || !emailInput) return; // prevent console error
-
+  var form = document.getElementById("registerForm");
+  var error = document.getElementById("emailError");
+  var emailInput = document.getElementById("registerEmail");
+  if (!form || !emailInput) return;
   form.addEventListener("submit", function (e) {
-
-    const email = emailInput.value.trim();
-
+    var email = emailInput.value.trim();
     if (!isWorkEmail(email)) {
       e.preventDefault();
-      if (error) {
-        error.innerText = "Please use your work email (company email only)";
-      }
+      if (error) error.innerText = "Please use your work email (company email only)";
     } else {
       if (error) error.innerText = "";
     }
-
   });
-
 });
 </script>
 </body>

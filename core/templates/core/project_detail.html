@@ -38,7 +38,7 @@
         </a>
       {% endif %}
 
-      {% if role == 'team_lead' %}
+      {% if role == 'delivery_team' %}
         <a class="btn-secondary-sm"
            href="{% url 'core:project_team' project.id %}">
           <i class="ri-eye-line"></i>
@@ -112,48 +112,131 @@
 </div>
 
 <!-- ========================= -->
-<!-- ✅ STATS -->
+<!-- ✅ PROJECT COMMAND CENTER -->
 <!-- ========================= -->
-<div class="card" style="margin-top:14px;">
-  <div class="card-body">
+<section class="card pcc" style="margin-top:14px;" aria-label="Project Command Center">
 
-    <div class="stats-row">
-      <div class="stat">Total: <strong>{{ tasks|length }}</strong></div>
-      <div class="stat">To Do: <strong>{{ status_counts.todo|default:0 }}</strong></div>
-      <div class="stat">In Progress: <strong>{{ status_counts.in_progress|default:0 }}</strong></div>
-      <div class="stat">In Review: <strong>{{ status_counts.in_review|default:0 }}</strong></div>
-      <div class="stat">Done: <strong>{{ status_counts.done|default:0 }}</strong></div>
+  <!-- TIER 1: HEADER -->
+  <div class="pcc-t1">
+    <div class="pcc-title-group">
+      <div class="pcc-kicker">Project Command Center</div>
+      <h2 class="pcc-name">{{ project.name }}</h2>
+    </div>
+    <div class="pcc-badges">
 
-      <div class="stat">
-        Members:
-        <strong>
-          {% if selected_team %}
-            {{ selected_team.members.count }}
-          {% else %}
-            {{ project.members.count }}
-          {% endif %}
-        </strong>
+      <span class="pcc-role pcc-role--{{ role }}">
+        {% if role == 'project_lead' %}<i class="ri-shield-star-line"></i> Project Lead
+        {% elif role == 'developer' %}<i class="ri-code-line"></i> Developer
+        {% elif role == 'tester' %}<i class="ri-bug-2-line"></i> Tester
+        {% elif role == 'qa' %}<i class="ri-checkbox-circle-line"></i> QA
+        {% elif role == 'ui_ux_designer' %}<i class="ri-palette-line"></i> Designer
+        {% elif role == 'delivery_team' %}<i class="ri-truck-line"></i> Delivery
+        {% elif role == 'admin' %}<i class="ri-admin-line"></i> Admin
+        {% else %}<i class="ri-user-line"></i> Member{% endif %}
+      </span>
+
+      <span class="pcc-health pcc-health--{{ project_timeline.health }}">
+        <span class="pcc-health-dot"></span>
+        {% if project_timeline.health == 'delivered' %}Delivered
+        {% elif project_timeline.health == 'not_started' %}Not Started
+        {% else %}On Track{% endif %}
+      </span>
+
+    </div>
+  </div>
+
+  <!-- TIER 2: INTERACTIVE PIPELINE -->
+  <div class="pcc-pipeline" role="list"
+       data-active="{{ project_timeline.active_stage_id }}"
+       data-total="{{ tasks|length }}"
+       data-done="{{ status_counts.done|default:0 }}"
+       data-inprogress="{{ status_counts.in_progress|default:0 }}"
+       data-inreview="{{ status_counts.in_review|default:0 }}"
+       data-qa="{{ status_counts.qa|default:0 }}">
+
+    {% for stage in project_timeline.stages %}
+
+    <div class="pcc-stage{% if stage.complete %} is-done{% elif stage.id == project_timeline.active_stage_id %} is-active{% endif %}"
+         role="listitem"
+         data-stage-id="{{ stage.id }}"
+         data-stage-label="{{ stage.label }}"
+         data-count="{{ stage.total }}"
+         data-done-count="{{ stage.done }}"
+         style="--stage-color:{{ stage.color }};">
+      <div class="pcc-dot">
+        {% if stage.id == "initiated" %}<i class="ri-flag-2-line pcc-dot-icon"></i>
+        {% elif stage.id == "uiux" %}<i class="ri-palette-line pcc-dot-icon"></i>
+        {% elif stage.id == "dev" %}<i class="ri-code-s-slash-line pcc-dot-icon"></i>
+        {% elif stage.id == "qa" %}<i class="ri-bug-line pcc-dot-icon"></i>
+        {% elif stage.id == "deployment" %}<i class="ri-server-line pcc-dot-icon"></i>
+        {% elif stage.id == "delivery" %}<i class="ri-rocket-line pcc-dot-icon"></i>
+        {% endif %}
+      </div>
+      <div class="pcc-meta">
+        <div class="pcc-stage-lbl">{{ stage.label }}</div>
+        <div class="pcc-stage-sub">{% if stage.total %}{{ stage.total }} task{{ stage.total|pluralize }}{% else %}&mdash;{% endif %}</div>
       </div>
     </div>
 
-    {% if tasks %}
-    <div class="progress-box">
-      <div class="progress-label">Progress</div>
-
-      <div class="progress-bar">
-        <div class="progress-fill"
-             style="width:{{ progress_percent }}%"></div>
-      </div>
-
-      <div class="progress-text">
-        {{ status_counts.done|default:0|add:status_counts.in_review|default:0 }}
-        of {{ tasks|length }} complete
-      </div>
-    </div>
+    {% if not forloop.last %}
+    <div class="pcc-connector{% if stage.complete %} is-lit{% endif %}"
+         style="--conn-color:{{ stage.color }};"></div>
     {% endif %}
 
+    {% endfor %}
+
+  </div><!-- /pcc-pipeline -->
+
+  <!-- TIER 3: CONTEXTUAL DETAIL STRIP -->
+  <div class="pcc-detail" id="pccDetail">
+    <span class="pcc-detail-icon" id="pccDetailIcon"><i class="ri-loader-4-line"></i></span>
+    <div class="pcc-detail-text">
+      <strong id="pccDetailName">—</strong>
+      <span id="pccDetailDesc">Hover or click a stage to see details.</span>
+    </div>
+    {% if project.project_lead %}
+    <span class="pcc-detail-lead">
+      <i class="ri-user-star-line"></i>
+      <span id="pccDetailOwner">{{ project.project_lead.get_full_name|default:project.project_lead.username }}</span>
+    </span>
+    {% endif %}
   </div>
-</div>
+
+  <div class="pcc-progress-row">
+    <div class="pcc-progress-track">
+      <div class="pcc-progress-fill" id="pccFill"></div>
+    </div>
+    <span class="pcc-progress-pct" id="pccPct">{{ progress_percent }}%</span>
+    <span class="pcc-progress-lbl">overall completion</span>
+  </div>
+
+  <!-- TIER 4: STATS FOOTER -->
+  <div class="pcc-stats"
+       data-inprogress="{{ status_counts.in_progress|default:0 }}"
+       data-inreview="{{ status_counts.in_review|default:0 }}"
+       data-qa="{{ status_counts.qa|default:0 }}">
+    <div class="pcc-stat-item">
+      <span class="pcc-stat-val">{{ tasks|length }}</span>
+      <span class="pcc-stat-lbl">Total Tasks</span>
+    </div>
+    <div class="pcc-stat-sep"></div>
+    <div class="pcc-stat-item">
+      <span class="pcc-stat-val" id="pccInFlight">—</span>
+      <span class="pcc-stat-lbl">In Flight</span>
+    </div>
+    <div class="pcc-stat-sep"></div>
+    <div class="pcc-stat-item">
+      <span class="pcc-stat-val pcc-stat--green">{{ status_counts.done|default:0 }}</span>
+      <span class="pcc-stat-lbl">Completed</span>
+    </div>
+    <div class="pcc-stat-sep"></div>
+    <div class="pcc-stat-item">
+      <span class="pcc-stat-val">{% if selected_team %}{{ selected_team.members.count }}{% else %}{{ project.members.count }}{% endif %}</span>
+      <span class="pcc-stat-lbl">Members</span>
+    </div>
+  </div>
+
+</section><!-- /pcc -->
 
 <!-- ========================= -->
 <!-- ✅ RECENT TASKS -->
@@ -191,50 +274,375 @@
 </div>
 
 <!-- ========================= -->
-<!-- ✅ CREATE TEAM MODAL -->
+<!-- CREATE TEAM MODAL -->
 <!-- ========================= -->
-<div id="teamModal" class="modal">
-  <div class="modal-content">
 
-    <div class="modal-header">
-      <h3>Create Team</h3>
-      <span class="close" id="closeTeamModal">&times;</span>
+<div id="teamModal" class="team-modal-overlay">
+
+  <div class="team-modal-container">
+
+    <!-- HEADER -->
+    <div class="team-modal-header">
+
+      <div>
+
+        <div class="team-modal-icon">
+          <i class="ri-team-line"></i>
+        </div>
+
+        <div>
+
+          <h2>Create New Team</h2>
+
+          <p>
+            Organize members into focused delivery teams.
+          </p>
+
+        </div>
+
+      </div>
+
+      <button
+        type="button"
+        id="closeTeamModal"
+        class="team-modal-close"
+      >
+        <i class="ri-close-line"></i>
+      </button>
+
     </div>
 
-    <form method="POST" action="{% url 'core:create_team' project.id %}">
+    <!-- FORM -->
+    <form
+      method="POST"
+      action="{% url 'core:create_team' project.id %}"
+      class="team-modal-form"
+      id="teamCreateForm"
+    >
+
       {% csrf_token %}
 
-      <div class="form-group">
-        <label>Team Name</label>
-        <input type="text" name="name" required>
+      <!-- PROJECT BANNER -->
+      <div class="team-project-banner">
+
+        <div>
+
+          <div class="mini-label">
+            PROJECT
+          </div>
+
+          <strong>
+            {{ project.name }}
+          </strong>
+
+        </div>
+
+        <div class="project-banner-right">
+
+          {% if project.department %}
+          <span class="team-department-badge">
+            {{ project.department }}
+          </span>
+          {% endif %}
+
+          <span class="team-type-badge">
+            {{ project.get_project_type_display }}
+          </span>
+
+        </div>
+
       </div>
 
-      <div class="form-group">
-        <label>Team Lead</label>
-        <select name="lead" id="leadSelect">
-          <option value="">Select Lead</option>
-          {% for member in lead_candidates %}
-            <option value="{{ member.id }}">{{ member.username }}</option>
-          {% endfor %}
-        </select>
+      <!-- GRID -->
+      <div class="team-form-grid">
+
+        <!-- TEAM NAME -->
+        <div class="team-form-group">
+
+          <label>
+            Team Name
+          </label>
+
+          <input
+            type="text"
+            name="name"
+            id="teamNameInput"
+            class="team-input"
+            placeholder="Example: Backend Squad"
+            required
+          >
+
+        </div>
+
+        <!-- TEAM TYPE -->
+        <div class="team-form-group">
+
+          <label>
+            Team Type
+          </label>
+
+          <select
+            name="team_type"
+            class="team-input"
+          >
+
+            <option value="development">
+              Development
+            </option>
+
+            <option value="qa">
+              QA Team
+            </option>
+
+            <option value="design">
+              UI/UX Design
+            </option>
+
+            <option value="deployment">
+              Deployment
+            </option>
+
+            <option value="delivery">
+              Delivery
+            </option>
+
+          </select>
+
+        </div>
+
       </div>
 
-      <div class="form-group">
-        <label>Team Members</label>
-        <select name="members" id="membersSelect" multiple>
+      <!-- DESCRIPTION -->
+      <div class="team-form-group">
+
+        <label>
+          Team Description
+        </label>
+
+        <textarea
+          name="description"
+          rows="3"
+          class="team-input"
+          placeholder="Describe the responsibilities of this team..."
+        ></textarea>
+
+      </div>
+
+      <!-- LEAD + CAPACITY -->
+      <div class="team-form-grid">
+
+        <!-- LEAD -->
+        <div class="team-form-group">
+
+          <label>
+            Team Lead
+          </label>
+
+          <select
+            name="lead"
+            id="leadSelect"
+            class="team-input"
+            required
+          >
+
+            <option value="">
+              Select Team Lead
+            </option>
+
+            {% for member in lead_candidates %}
+
+            <option value="{{ member.id }}">
+
+              {{ member.username }}
+
+              {% if member.profile.oauth_provider == 'google' %}
+                · Google
+              {% endif %}
+
+            </option>
+
+            {% endfor %}
+
+          </select>
+
+          <div class="team-field-help">
+            Team lead receives delivery permissions.
+          </div>
+
+        </div>
+
+        <!-- CAPACITY -->
+        <div class="team-form-group">
+
+          <label>
+            Team Capacity
+          </label>
+
+          <input
+            type="number"
+            name="capacity"
+            class="team-input"
+            value="10"
+            min="1"
+            max="100"
+          >
+
+        </div>
+
+      </div>
+
+      <!-- SEARCH + STATS -->
+      <div class="team-members-toolbar">
+
+        <div class="team-search-wrap">
+
+          <i class="ri-search-line"></i>
+
+          <input
+            type="text"
+            id="memberSearch"
+            placeholder="Search members by username, email, or role..."
+          >
+
+        </div>
+
+        <div class="team-member-stats">
+
+          <div class="member-stat-box">
+
+            <span>
+              Selected
+            </span>
+
+            <strong id="selectedMembersCount">
+              0
+            </strong>
+
+          </div>
+
+          <div class="member-stat-box">
+
+            <span>
+              Available
+            </span>
+
+            <strong id="totalMembersCount">
+              {{ valid_members|length }}
+            </strong>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- MEMBERS -->
+      <div class="team-members-grid-wrap">
+
+        <div class="team-members-grid">
+
           {% for member in valid_members %}
-            <option value="{{ member.id }}">{{ member.username }}</option>
+
+          <label
+            class="team-member-card"
+            data-username="{{ member.username|lower }}"
+            data-email="{{ member.email|lower }}"
+            data-role="{{ member.profile.role|lower }}"
+          >
+
+            <input
+              type="checkbox"
+              name="members"
+              value="{{ member.id }}"
+              class="team-member-checkbox"
+            >
+
+            <!-- AVATAR -->
+            <div
+              class="team-member-avatar
+              {% if member.profile.oauth_provider == 'google' %}
+                google-avatar
+              {% endif %}"
+            >
+              {{ member.username|slice:":1"|upper }}
+            </div>
+
+            <!-- INFO -->
+            <div class="team-member-info">
+
+              <div class="team-member-name">
+
+                {{ member.username }}
+
+                {% if member.profile.oauth_provider == 'google' %}
+                <span class="oauth-badge">
+                  Google
+                </span>
+                {% endif %}
+
+              </div>
+
+              <div class="team-member-email">
+                {{ member.email }}
+              </div>
+
+              <div class="team-member-role">
+                {{ member.profile.get_role_display }}
+              </div>
+
+            </div>
+
+          </label>
+
+          {% empty %}
+
+          <div class="team-empty-state">
+
+            <i class="ri-user-search-line"></i>
+
+            <p>
+              No available members found.
+            </p>
+
+          </div>
+
           {% endfor %}
-        </select>
+
+        </div>
+
       </div>
 
-      <div class="modal-actions">
-        <button type="submit" class="btn-primary-sm">Create</button>
+      <!-- FOOTER -->
+      <div class="team-modal-footer">
+
+        <button
+          type="button"
+          class="btn-ghost"
+          id="closeTeamModalBtn"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="submit"
+          class="btn-primary-sm"
+          id="createTeamBtn"
+        >
+
+          <i class="ri-add-line"></i>
+
+          <span>
+            Create Team
+          </span>
+
+        </button>
+
       </div>
 
     </form>
 
   </div>
+
 </div>
 
 {% endblock %}
@@ -242,10 +650,12 @@
 {% block shell_extra_css %}
 <style>
 .btn-ghost{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;text-decoration:none;color:#111827;font-size:13px}
-{% comment %} .btn-primary-sm{padding:8px 12px;border-radius:8px;border:none;background:#4F46E5;color:#fff;text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
-.btn-primary-sm:hover{background:#6366F1;} {% endcomment %}
-{% comment %} .btn-secondary-sm{padding:8px 12px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#111827;text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
-.btn-secondary-sm:hover{background:#f9fafb;border-color:#d1d5db;} {% endcomment %}
+/* Legacy button styles (kept for reference)
+.btn-primary-sm{padding:8px 12px;border-radius:8px;border:none;background:#4F46E5;color:#fff;text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary-sm:hover{background:#6366F1;}
+.btn-secondary-sm{padding:8px 12px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#111827;text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.btn-secondary-sm:hover{background:#f9fafb;border-color:#d1d5db;}
+*/
 .stat{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;font-size:13px;color:#111827}
 .chip{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:650;background:#f4f5f7;color:#172b4d}
 .chip--todo{background:#f4f5f7;color:#42526e}
@@ -253,253 +663,1445 @@
 .chip--in_review{background:#eae6ff;color:#403294}
 .chip--done{background:#e3fcef;color:#006644}
 
+/* =========================================================
+   ✅ OVERVIEW / ACTIONS
+========================================================= */
+
 .overview-header{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  gap:12px;
+  gap:16px;
   flex-wrap:wrap;
 }
 
 .action-bar{
   display:flex;
   align-items:center;
-  gap:8px;
+  gap:10px;
   flex-wrap:wrap;
 }
 
 .action-divider{
   width:1px;
-  height:22px;
+  height:26px;
   background:#e5e7eb;
-  margin:0 4px;
+}
+
+.btn-primary-sm,
+.btn-secondary-sm,
+.btn-ghost{
+  border:none;
+  outline:none;
+  cursor:pointer;
+  transition:.25s ease;
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  font-weight:600;
 }
 
 .btn-primary-sm{
-  padding:8px 14px;
-  border-radius:8px;
-  background:#4F46E5;
+  background:linear-gradient(135deg,#4f46e5,#7c3aed);
   color:#fff;
-  font-size:13px;
-  font-weight:500;
-  display:flex;
-  align-items:center;
-  gap:6px;
-  text-decoration:none;
+  padding:10px 16px;
+  border-radius:12px;
+  box-shadow:0 10px 24px rgba(79,70,229,.18);
 }
 
 .btn-primary-sm:hover{
-  background:#6366F1;
+  transform:translateY(-1px);
+  box-shadow:0 14px 30px rgba(79,70,229,.25);
 }
 
 .btn-secondary-sm{
-  padding:8px 12px;
-  border-radius:8px;
-  border:1px solid #e5e7eb;
   background:#fff;
+  border:1px solid #e5e7eb;
   color:#111827;
-  font-size:13px;
-  display:flex;
-  align-items:center;
-  gap:6px;
-  text-decoration:none;
+  padding:10px 14px;
+  border-radius:12px;
 }
 
 .btn-secondary-sm:hover{
+  border-color:#c7d2fe;
+  background:#f8faff;
+}
+
+.btn-ghost{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  color:#374151;
+  padding:10px 14px;
+  border-radius:12px;
+}
+
+.btn-ghost:hover{
   background:#f9fafb;
 }
 
-.modal{
-  display:none;
-  position:fixed;
-  z-index:1000;
-  left:0;
-  top:0;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.4);
-}
-
-.modal-content{
-  background:#fff;
-  margin:10% auto;
-  padding:20px;
-  width:400px;
-  border-radius:12px;
-}
-
-.modal-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-.modal-actions{
-  margin-top:16px;
-  display:flex;
-  justify-content:flex-end;
-}
-
-.close{
-  cursor:pointer;
-  font-size:20px;
-}
-
-.form-group{
-  margin-bottom:12px;
-}
-
-.form-group input,
-.form-group select{
-  width:100%;
-  padding:8px;
-  border:1px solid #ddd;
-  border-radius:8px;
-}
+/* =========================================================
+   ✅ TEAM GRID
+========================================================= */
 
 .team-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:12px;
-  margin-top:12px;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:18px;
+  margin-top:18px;
 }
 
 .team-card{
-  padding:14px;
-  border:1px solid #e5e7eb;
-  border-radius:12px;
+  position:relative;
+  overflow:hidden;
+  border-radius:22px;
   background:#fff;
+  border:1px solid #e5e7eb;
+  transition:.28s ease;
+}
+
+.team-card:hover{
+  transform:translateY(-4px);
+  border-color:#c7d2fe;
+  box-shadow:0 20px 40px rgba(15,23,42,.08);
+}
+
+.team-card.active{
+  border-color:#6366f1;
+  box-shadow:0 0 0 4px rgba(99,102,241,.08);
+}
+
+.team-card::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  width:100%;
+  height:5px;
+  background:linear-gradient(
+    90deg,
+    #4f46e5,
+    #7c3aed
+  );
 }
 
 .team-header{
-  margin-bottom:8px;
+  padding:18px 18px 12px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.team-title-wrap{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.team-title{
+  font-size:17px;
+  font-weight:700;
+  color:#111827;
 }
 
 .team-lead{
-  font-size:12px;
+  font-size:13px;
   color:#6b7280;
 }
 
+.team-member-count{
+  background:#eef2ff;
+  color:#4338ca;
+  padding:7px 12px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+  white-space:nowrap;
+}
+
 .team-members{
+  padding:0 18px 18px;
   display:flex;
   flex-wrap:wrap;
-  gap:6px;
-  margin-bottom:10px;
+  gap:8px;
 }
 
 .member-chip{
-  background:#f4f5f7;
-  padding:4px 8px;
+  background:#f4f4f5;
+  color:#374151;
   border-radius:999px;
-  font-size:11px;
+  padding:7px 12px;
+  font-size:12px;
+  font-weight:600;
 }
 
 .view-team-btn{
-  display:block;
-  text-align:center;
-  padding:6px;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin:0 18px 18px;
+  padding:8px 18px;
   border-radius:8px;
-  background:#eef2ff;
-  color:#4338ca;
-  text-decoration:none;
   font-size:12px;
+  font-weight:600;
+  color:#2563eb;
+  background:#eff6ff;
+  border:1px solid #bfdbfe;
+  text-decoration:none;
+  transition:background .2s, color .2s, border-color .2s, box-shadow .2s;
+}
+
+.view-team-btn:hover{
+  background:#2563eb;
+  color:#fff;
+  border-color:#2563eb;
+  box-shadow:0 4px 12px rgba(37,99,235,.25);
+}
+
+.view-team-btn::after{
+  content:'→';
+  font-size:13px;
+  transition:transform .2s;
+}
+
+.view-team-btn:hover::after{
+  transform:translateX(3px);
+}
+
+.team-footer{
+  padding:16px 18px;
+  border-top:1px solid #f3f4f6;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.team-footer-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+
+/* =========================================================
+   ✅ TASKS
+========================================================= */
+
+.task-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  padding:16px 0;
+  border-bottom:1px solid #f3f4f6;
+}
+
+.task-row:last-child{
+  border-bottom:none;
+}
+
+.task-title{
+  text-decoration:none;
+  color:#111827;
+  font-weight:700;
+}
+
+.task-title:hover{
+  color:#4f46e5;
+}
+
+.task-meta{
+  margin-top:6px;
+  color:#6b7280;
+  font-size:13px;
+}
+
+.chip{
+  padding:7px 12px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+}
+
+.chip--todo{
+  background:#f3f4f6;
+  color:#374151;
+}
+
+.chip--in_progress{
+  background:#dbeafe;
+  color:#1d4ed8;
+}
+
+.chip--in_review{
+  background:#ede9fe;
+  color:#6d28d9;
+}
+
+.chip--done{
+  background:#dcfce7;
+  color:#166534;
+}
+
+/* =========================================================
+   ✅ TEAM MODAL
+========================================================= */
+
+.team-modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.6);
+  backdrop-filter:blur(6px);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+  padding:24px;
+}
+
+.team-modal-overlay.active{
+  display:flex;
+  animation:fadeIn .2s ease;
+}
+
+.team-modal-container{
+  width:min(980px,100%);
+  max-height:92vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:28px;
+  box-shadow:0 40px 90px rgba(0,0,0,.2);
+  animation:modalUp .25s ease;
+}
+
+.team-modal-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  padding:26px;
+  border-bottom:1px solid #eef2f7;
+}
+
+.team-modal-header > div{
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
+
+.team-modal-icon{
+  width:62px;
+  height:62px;
+  border-radius:18px;
+  background:linear-gradient(
+    135deg,
+    #4f46e5,
+    #7c3aed
+  );
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:28px;
+  flex-shrink:0;
+}
+
+.team-modal-header h2{
+  margin:0;
+  font-size:24px;
+  color:#111827;
+}
+
+.team-modal-header p{
+  margin-top:6px;
+  color:#6b7280;
+  font-size:14px;
+}
+
+.team-modal-close{
+  width:42px;
+  height:42px;
+  border:none;
+  border-radius:12px;
+  background:#f3f4f6;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.team-modal-close:hover{
+  background:#e5e7eb;
+}
+
+.team-modal-form{
+  padding:26px;
+}
+
+.team-project-banner{
+  padding:18px 20px;
+  border-radius:20px;
+  background:linear-gradient(
+    135deg,
+    #eef2ff,
+    #f5f3ff
+  );
+  border:1px solid #dbeafe;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:22px;
+}
+
+.mini-label{
+  font-size:11px;
+  font-weight:700;
+  color:#6366f1;
+  letter-spacing:.5px;
+  margin-bottom:6px;
+}
+
+.project-banner-right{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.team-department-badge,
+.team-type-badge{
+  padding:8px 14px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+}
+
+.team-department-badge{
+  background:#dbeafe;
+  color:#1d4ed8;
+}
+
+.team-type-badge{
+  background:#ede9fe;
+  color:#6d28d9;
+}
+
+.team-form-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:18px;
+}
+
+.team-form-group{
+  margin-bottom:20px;
+}
+
+.team-form-group label{
+  display:block;
+  margin-bottom:8px;
+  font-size:13px;
+  font-weight:700;
+  color:#111827;
+}
+
+.team-input{
+  width:100%;
+  border:1px solid #d1d5db;
+  border-radius:14px;
+  padding:13px 14px;
+  font-size:14px;
+  transition:.2s ease;
+  background:#fff;
+}
+
+.team-input:focus{
+  outline:none;
+  border-color:#6366f1;
+  box-shadow:0 0 0 4px rgba(99,102,241,.12);
+}
+
+textarea.team-input{
+  resize:vertical;
+  min-height:100px;
+}
+
+.team-field-help{
+  margin-top:7px;
+  color:#6b7280;
+  font-size:12px;
+}
+
+.team-members-toolbar{
+  margin:24px 0 18px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  flex-wrap:wrap;
+}
+
+.team-search-wrap{
+  flex:1;
+  min-width:260px;
+  position:relative;
+}
+
+.team-search-wrap i{
+  position:absolute;
+  left:14px;
+  top:50%;
+  transform:translateY(-50%);
+  color:#9ca3af;
+}
+
+.team-search-wrap input{
+  width:100%;
+  padding:13px 14px 13px 42px;
+  border-radius:14px;
+  border:1px solid #d1d5db;
+}
+
+.team-member-stats{
+  display:flex;
+  gap:12px;
+}
+
+.member-stat-box{
+  min-width:100px;
+  padding:12px;
+  border-radius:16px;
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  text-align:center;
+}
+
+.member-stat-box span{
+  display:block;
+  font-size:11px;
+  color:#6b7280;
+  margin-bottom:4px;
+}
+
+.member-stat-box strong{
+  font-size:18px;
+}
+
+.team-members-grid-wrap{
+  border:1px solid #e5e7eb;
+  border-radius:22px;
+  padding:18px;
+  max-height:420px;
+  overflow:auto;
+  background:#fafafa;
+}
+
+.team-members-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:16px;
+}
+
+.team-member-card{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:16px;
+  background:#fff;
+  border-radius:18px;
+  border:1px solid #e5e7eb;
+  transition:.25s ease;
+  cursor:pointer;
+}
+
+.team-member-card:hover{
+  border-color:#6366f1;
+  transform:translateY(-2px);
+  box-shadow:0 14px 24px rgba(99,102,241,.08);
+}
+
+.team-member-card.selected{
+  border-color:#6366f1;
+  background:#f5f3ff;
+}
+
+.team-member-checkbox{
+  width:18px;
+  height:18px;
+}
+
+.team-member-avatar{
+  width:52px;
+  height:52px;
+  border-radius:50%;
+  background:linear-gradient(
+    135deg,
+    #4f46e5,
+    #7c3aed
+  );
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  font-weight:700;
+  flex-shrink:0;
+}
+
+.google-avatar{
+  background:linear-gradient(
+    135deg,
+    #4285F4,
+    #34A853
+  );
+}
+
+.team-member-info{
+  min-width:0;
+}
+
+.team-member-name{
+  font-weight:700;
+  color:#111827;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.team-member-email{
+  margin-top:4px;
+  font-size:12px;
+  color:#6b7280;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.team-member-role{
+  margin-top:6px;
+  font-size:12px;
+  color:#4f46e5;
+  font-weight:600;
+}
+
+.oauth-badge{
+  background:#dbeafe;
+  color:#1d4ed8;
+  border-radius:999px;
+  padding:3px 8px;
+  font-size:10px;
+  font-weight:700;
+}
+
+.team-empty-state{
+  text-align:center;
+  padding:40px 20px;
+  color:#6b7280;
+}
+
+.team-empty-state i{
+  font-size:42px;
+  margin-bottom:12px;
+  display:block;
+}
+
+.team-modal-footer{
+  margin-top:24px;
+  display:flex;
+  justify-content:flex-end;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+/* =========================================================
+   ✅ ANIMATION
+========================================================= */
+
+@keyframes fadeIn{
+  from{
+    opacity:0;
+  }
+  to{
+    opacity:1;
+  }
+}
+
+@keyframes modalUp{
+  from{
+    opacity:0;
+    transform:translateY(20px) scale(.98);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+}
+
+/* =========================================================
+   ✅ RESPONSIVE
+========================================================= */
+
+@media (max-width:768px){
+
+  .team-modal-form,
+  .team-modal-header{
+    padding:18px;
+  }
+
+  .team-members-toolbar{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .team-member-stats{
+    width:100%;
+  }
+
+  .member-stat-box{
+    flex:1;
+  }
+
+  .team-header,
+  .team-footer{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .task-row{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+}
+
+/* =========================================================
+   ✅ PROJECT COMMAND CENTER
+========================================================= */
+
+.pcc{ padding:24px; }
+
+/* ── Tier 1: Header ── */
+.pcc-t1{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:24px;
+}
+
+.pcc-kicker{
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.7px;
+  text-transform:uppercase;
+  color:#9ca3af;
+  margin-bottom:4px;
+}
+
+.pcc-name{
+  margin:0;
+  font-size:20px;
+  font-weight:800;
+  color:#111827;
+  line-height:1.2;
+}
+
+.pcc-badges{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  flex-shrink:0;
+}
+
+/* Role badge */
+.pcc-role{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:5px 14px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+  background:#f1f5f9;
+  color:#374151;
+  border:1px solid #e2e8f0;
+}
+
+.pcc-role--project_lead{ background:#dbeafe; color:#1e40af; border-color:#bfdbfe; }
+.pcc-role--admin        { background:#fce7f3; color:#9d174d; border-color:#fbcfe8; }
+.pcc-role--developer    { background:#ede9fe; color:#5b21b6; border-color:#ddd6fe; }
+.pcc-role--tester,
+.pcc-role--qa           { background:#fef3c7; color:#92400e; border-color:#fde68a; }
+.pcc-role--ui_ux_designer{ background:#f3e8ff; color:#7e22ce; border-color:#e9d5ff; }
+.pcc-role--delivery_team { background:#d1fae5; color:#065f46; border-color:#a7f3d0; }
+
+/* Health badge */
+.pcc-health{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:5px 14px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+  border:1px solid transparent;
+}
+
+.pcc-health-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  flex-shrink:0;
+}
+
+.pcc-health--on_track{
+  background:#dcfce7;
+  color:#166534;
+  border-color:#bbf7d0;
+}
+
+.pcc-health--on_track .pcc-health-dot{
+  background:#22c55e;
+  box-shadow:0 0 0 3px rgba(34,197,94,.2);
+  animation:pccPulse 2s ease infinite;
+}
+
+.pcc-health--at_risk{
+  background:#fef3c7;
+  color:#92400e;
+  border-color:#fde68a;
+}
+
+.pcc-health--at_risk .pcc-health-dot{ background:#f59e0b; }
+
+.pcc-health--delivered{
+  background:#dbeafe;
+  color:#1e40af;
+  border-color:#bfdbfe;
+}
+
+.pcc-health--delivered .pcc-health-dot{ background:#2563eb; }
+
+.pcc-health--not_started{
+  background:#f3f4f6;
+  color:#6b7280;
+  border-color:#e5e7eb;
+}
+
+.pcc-health--not_started .pcc-health-dot{ background:#9ca3af; }
+
+@keyframes pccPulse{
+  0%,100%{ box-shadow:0 0 0 0 rgba(34,197,94,.4); }
+  50%    { box-shadow:0 0 0 5px rgba(34,197,94,0); }
+}
+
+/* ── Tier 2: Pipeline ── */
+.pcc-pipeline{
+  display:flex;
+  align-items:flex-start;
+  overflow-x:auto;
+  padding:8px 0 16px;
+  gap:0;
+  scrollbar-width:none;
+}
+
+.pcc-pipeline::-webkit-scrollbar{ display:none; }
+
+.pcc-stage{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  min-width:88px;
+  flex:1;
+  cursor:pointer;
+  position:relative;
+  transition:opacity .2s;
+}
+
+.pcc-stage:hover{ opacity:.85; }
+
+.pcc-dot{
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  border:2.5px solid var(--stage-color,#94a3b8);
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--stage-color,#94a3b8);
+  font-size:20px;
+  transition:background .25s,box-shadow .25s,transform .2s;
+  position:relative;
+  z-index:2;
+}
+
+.pcc-stage:hover .pcc-dot{
+  transform:translateY(-2px);
+  box-shadow:0 4px 12px color-mix(in srgb,var(--stage-color) 30%,transparent);
+}
+
+/* Active */
+.pcc-stage.is-active .pcc-dot{
+  background:var(--stage-color);
+  color:#fff;
+  box-shadow:0 0 0 5px color-mix(in srgb,var(--stage-color) 18%,transparent);
+}
+
+.pcc-stage.is-active .pcc-dot::after{
+  content:'';
+  position:absolute;
+  inset:-7px;
+  border-radius:50%;
+  border:2px solid var(--stage-color);
+  opacity:0;
+  animation:pccRing 2s ease-out infinite;
+}
+
+@keyframes pccRing{
+  0%  { transform:scale(.82); opacity:.6; }
+  100%{ transform:scale(1.4);  opacity:0; }
+}
+
+/* Done */
+.pcc-stage.is-done .pcc-dot{
+  background:var(--stage-color);
+  color:#fff;
+  border-color:var(--stage-color);
+}
+
+/* Connector */
+.pcc-connector{
+  flex:1;
+  height:2px;
+  background:#e5e7eb;
+  margin-top:23px;
+  min-width:16px;
+  transition:background .4s;
+}
+
+.pcc-connector.is-lit{ background:var(--conn-color,#e5e7eb); }
+
+/* Meta labels */
+.pcc-meta{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  margin-top:8px;
+  text-align:center;
+}
+
+.pcc-stage-lbl{
+  font-size:12px;
+  font-weight:700;
+  color:#374151;
+  transition:color .2s;
+}
+
+.pcc-stage-sub{
+  font-size:11px;
+  color:#9ca3af;
+}
+
+.pcc-stage.is-active .pcc-stage-lbl{ color:var(--stage-color); }
+
+/* ── Tier 3: Detail strip ── */
+.pcc-detail{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+  background:#f8f9fa;
+  border-radius:10px;
+  border-left:4px solid #e5e7eb;
+  padding:14px 18px;
+  margin-bottom:16px;
+  transition:border-color .3s;
+}
+
+.pcc-detail-icon{
+  font-size:22px;
+  color:#9ca3af;
+  flex-shrink:0;
+  transition:color .3s;
+}
+
+.pcc-detail-text{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+
+.pcc-detail-text strong{ font-size:14px; font-weight:700; color:#111827; }
+.pcc-detail-text span  { font-size:12px; color:#6b7280; }
+
+.pcc-detail-lead{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-size:12px;
+  font-weight:600;
+  color:#374151;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  padding:5px 12px;
+  border-radius:999px;
+  flex-shrink:0;
+}
+
+.pcc-detail-lead i{ color:#9ca3af; }
+
+/* ── Progress bar ── */
+.pcc-progress-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:18px;
+}
+
+.pcc-progress-track{
+  flex:1;
+  height:8px;
+  background:#f3f4f6;
+  border-radius:999px;
+  overflow:hidden;
+}
+
+.pcc-progress-fill{
+  height:100%;
+  width:0;
+  border-radius:999px;
+  background:linear-gradient(90deg,#2563eb,#8b5cf6);
+  transition:width .8s cubic-bezier(.4,0,.2,1);
+}
+
+.pcc-progress-pct{
+  font-size:13px;
+  font-weight:700;
+  color:#111827;
+  min-width:36px;
+  text-align:right;
+}
+
+.pcc-progress-lbl{
+  font-size:11px;
+  color:#9ca3af;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+}
+
+/* ── Tier 4: Stats footer ── */
+.pcc-stats{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  background:#f8f9fa;
+  border-radius:10px;
+  padding:16px 20px;
+  gap:0;
+}
+
+.pcc-stat-item{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  padding:4px 28px;
+}
+
+.pcc-stat-val{
+  font-size:22px;
+  font-weight:800;
+  color:#111827;
+  line-height:1;
+}
+
+.pcc-stat--green{ color:#166534; }
+
+.pcc-stat-lbl{
+  font-size:11px;
+  color:#6b7280;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+}
+
+.pcc-stat-sep{
+  width:1px;
+  height:40px;
+  background:#e5e7eb;
+}
+
+@media(max-width:768px){
+  .pcc-stage{ min-width:68px; }
+  .pcc-stat-item{ padding:4px 14px; }
+  .pcc-progress-lbl{ display:none; }
+  .pcc-t1{ flex-direction:column; gap:12px; }
 }
 </style>
 {% endblock %}
 
 {% block shell_foot_scripts %}
 <script>
-document.addEventListener("DOMContentLoaded", function () {
 
-  // ===== Progress Update =====
-  async function updateProgress() {
-    try {
-      const res = await fetch('/projects/{{ project.id }}/progress/');
-      const data = await res.json();
+document.addEventListener("DOMContentLoaded", () => {
 
-      if (data.status === 'ok') {
-        const progressBar = document.querySelector('.progress-fill');
-        if (progressBar) {
-          progressBar.style.width = data.progress_percent + '%';
-        }
+  // =====================================================
+  // ELEMENTS
+  // =====================================================
 
-        const statElements = document.querySelectorAll('.stat');
-        statElements.forEach(stat => {
-          const text = stat.textContent;
+  const modal =
+    document.getElementById("teamModal");
 
-          if (text.includes('Total:')) {
-            stat.innerHTML = 'Total: <strong>' + data.total_tasks + '</strong>';
-          }
+  const openBtn =
+    document.getElementById("openTeamModal");
 
-          if (text.includes('Done:')) {
-            stat.innerHTML = 'Done: <strong>' + data.done_tasks + '</strong>';
-          }
-        });
-      }
-    } catch (err) {
-      console.log("Progress update failed:", err);
+  const closeBtns = [
+    document.getElementById("closeTeamModal"),
+    document.getElementById("closeTeamModalBtn")
+  ];
+
+  const form =
+    document.getElementById("teamCreateForm");
+
+  const leadSelect =
+    document.getElementById("leadSelect");
+
+  const memberSearch =
+    document.getElementById("memberSearch");
+
+  const memberCards =
+    document.querySelectorAll(".team-member-card");
+
+  const checkboxes =
+    document.querySelectorAll(".team-member-checkbox");
+
+  const selectedCount =
+    document.getElementById("selectedMembersCount");
+
+  const createBtn =
+    document.getElementById("createTeamBtn");
+
+
+  // =====================================================
+  // MODAL OPEN
+  // =====================================================
+
+  function openModal() {
+
+    modal.classList.add("active");
+
+    document.body.style.overflow = "hidden";
+
+    setTimeout(() => {
+
+      document
+        .getElementById("teamNameInput")
+        ?.focus();
+
+    }, 100);
+  }
+
+  // =====================================================
+  // MODAL CLOSE
+  // =====================================================
+
+  function closeModal() {
+
+    modal.classList.remove("active");
+
+    document.body.style.overflow = "";
+
+    if (form) {
+
+      form.reset();
+
+      checkboxes.forEach(cb => {
+        cb.disabled = false;
+      });
+
+      updateSelectedCount();
+
+      clearMemberSearch();
     }
   }
 
-  // OPTIONAL: auto refresh progress every 10 sec
-  setInterval(updateProgress, 10000);
+  // =====================================================
+  // OPEN EVENT
+  // =====================================================
 
+  openBtn?.addEventListener(
+    "click",
+    (e) => {
 
-  // ===== Team Modal =====
-  const modal = document.getElementById("teamModal");
-  const openBtn = document.getElementById("openTeamModal");
-  const closeBtn = document.getElementById("closeTeamModal");
-  const form = modal ? modal.querySelector("form") : null;
-
-  if (openBtn && modal) {
-    openBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      modal.style.display = "block";
+
+      openModal();
+    }
+  );
+
+  // =====================================================
+  // CLOSE EVENTS
+  // =====================================================
+
+  closeBtns.forEach(btn => {
+
+    btn?.addEventListener(
+      "click",
+      closeModal
+    );
+  });
+
+  // =====================================================
+  // OUTSIDE CLICK
+  // =====================================================
+
+  modal?.addEventListener(
+    "click",
+    (e) => {
+
+      if (e.target === modal) {
+        closeModal();
+      }
+    }
+  );
+
+  // =====================================================
+  // ESC CLOSE
+  // =====================================================
+
+  document.addEventListener(
+    "keydown",
+    (e) => {
+
+      if (
+        e.key === "Escape" &&
+        modal.classList.contains("active")
+      ) {
+
+        closeModal();
+      }
+    }
+  );
+
+  // =====================================================
+  // MEMBER SEARCH
+  // =====================================================
+
+  memberSearch?.addEventListener(
+    "input",
+    function () {
+
+      const value =
+        this.value.toLowerCase().trim();
+
+      memberCards.forEach(card => {
+
+        const username =
+          card.dataset.username || "";
+
+        const email =
+          card.dataset.email || "";
+
+        const role =
+          card.dataset.role || "";
+
+        const visible =
+          username.includes(value) ||
+          email.includes(value) ||
+          role.includes(value);
+
+        card.style.display =
+          visible ? "flex" : "none";
+      });
+    }
+  );
+
+  function clearMemberSearch() {
+
+    if (!memberSearch) return;
+
+    memberSearch.value = "";
+
+    memberCards.forEach(card => {
+      card.style.display = "flex";
     });
   }
 
-  if (closeBtn && modal) {
-    closeBtn.addEventListener("click", () => {
-      modal.style.display = "none";
-      if (form) form.reset(); // reset form on close
-    });
-  }
+  // =====================================================
+  // SELECTED COUNT
+  // =====================================================
 
-  window.addEventListener("click", (e) => {
-    if (modal && e.target === modal) {
-      modal.style.display = "none";
-      if (form) form.reset();
-    }
-  });
+  function updateSelectedCount() {
 
-  // Close with ESC key
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && modal) {
-      modal.style.display = "none";
-      if (form) form.reset();
-    }
-  });
+    let count = 0;
 
+    checkboxes.forEach(cb => {
 
-  // ===== Lead vs Members Logic =====
-  const leadSelect = document.getElementById("leadSelect");
-  const membersSelect = document.getElementById("membersSelect");
-
-  if (leadSelect && membersSelect) {
-    leadSelect.addEventListener("change", function () {
-      let leadId = this.value;
-
-      for (let opt of membersSelect.options) {
-        if (opt.value === leadId) {
-          opt.disabled = true;
-          opt.selected = false; // remove if already selected
-        } else {
-          opt.disabled = false;
-        }
+      if (cb.checked) {
+        count++;
       }
     });
+
+    if (selectedCount) {
+      selectedCount.textContent = count;
+    }
   }
+
+  checkboxes.forEach(cb => {
+
+    cb.addEventListener(
+      "change",
+      updateSelectedCount
+    );
+  });
+
+  updateSelectedCount();
+
+  // =====================================================
+  // LEAD EXCLUDE
+  // =====================================================
+
+  leadSelect?.addEventListener(
+    "change",
+    function () {
+
+      const leadId = this.value;
+
+      checkboxes.forEach(cb => {
+
+        if (cb.value === leadId) {
+
+          cb.checked = false;
+          cb.disabled = true;
+
+          cb.closest(".team-member-card")
+            ?.classList.add("disabled");
+
+        } else {
+
+          cb.disabled = false;
+
+          cb.closest(".team-member-card")
+            ?.classList.remove("disabled");
+        }
+      });
+
+      updateSelectedCount();
+    }
+  );
+
+  // =====================================================
+  // FORM SUBMIT
+  // =====================================================
+
+  form?.addEventListener(
+    "submit",
+    function () {
+
+      createBtn.disabled = true;
+
+      createBtn.innerHTML = `
+        <i class="ri-loader-4-line rotating"></i>
+        <span>Creating Team...</span>
+      `;
+    }
+  );
 
 });
+
+// =====================================================
+// PROJECT COMMAND CENTER
+// =====================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  const pipeline = document.querySelector(".pcc-pipeline");
+  if (!pipeline) return;
+
+  const stages     = Array.from(pipeline.querySelectorAll(".pcc-stage"));
+  const connectors = Array.from(pipeline.querySelectorAll(".pcc-connector"));
+  const detail     = document.getElementById("pccDetail");
+  const detailIcon = document.getElementById("pccDetailIcon");
+  const detailName = document.getElementById("pccDetailName");
+  const detailDesc = document.getElementById("pccDetailDesc");
+  const detailOwner= document.getElementById("pccDetailOwner");
+  const fill       = document.getElementById("pccFill");
+  const pctLabel   = document.getElementById("pccPct");
+  const inFlightEl = document.getElementById("pccInFlight");
+
+  // ── Stats ──
+  const stats    = pipeline;
+  const ipCnt    = parseInt(pipeline.dataset.inprogress) || 0;
+  const irCnt    = parseInt(pipeline.dataset.inreview)   || 0;
+  const qaCnt    = parseInt(pipeline.dataset.qa)         || 0;
+  const doneCnt  = parseInt(pipeline.dataset.done)       || 0;
+  const total    = parseInt(pipeline.dataset.total)      || 0;
+
+  if (inFlightEl) inFlightEl.textContent = ipCnt + irCnt + qaCnt;
+
+  // ── Progress bar (value already rendered in template; animate on load) ──
+  if (fill && pctLabel) {
+    const pct = parseInt(pctLabel.textContent) || 0;
+    setTimeout(() => { fill.style.width = `${pct}%`; }, 150);
+  }
+
+  // ── Stage descriptions ──
+  const stageDescs = {
+    "initiated":  "Project scope, requirements, and planning defined.",
+    "uiux":       "Wireframes, prototypes, and design system finalized.",
+    "dev":        "Feature development and core implementation underway.",
+    "qa":         "Testing, bug triage, and quality validation in progress.",
+    "deployment": "Staging, CI/CD pipeline, and production deployment.",
+    "delivery":   "Features delivered and handed off to stakeholders.",
+  };
+
+  // ── Populate detail strip for a given stage ──
+  function showStageDetail(stage) {
+    if (!detail) return;
+    const color   = stage.style.getPropertyValue("--stage-color").trim();
+    const stageId = stage.dataset.stageId;
+    const label   = stage.dataset.stageLabel;
+    const iconEl  = stage.querySelector(".pcc-dot-icon");
+
+    detail.style.borderLeftColor = color || "#e5e7eb";
+
+    if (detailIcon && iconEl) {
+      detailIcon.innerHTML   = iconEl.outerHTML;
+      detailIcon.style.color = color;
+    }
+
+    if (detailName) detailName.textContent = label;
+    if (detailDesc) detailDesc.textContent = stageDescs[stageId] || "";
+  }
+
+  // ── Seed detail strip with active stage on load ──
+  const activeStage = pipeline.querySelector(".pcc-stage.is-active")
+                   || pipeline.querySelector(".pcc-stage.is-done:last-of-type")
+                   || stages[0];
+
+  if (activeStage) showStageDetail(activeStage);
+
+  // ── Hover / click → update detail strip ──
+  stages.forEach(stage => {
+    stage.addEventListener("mouseenter", () => showStageDetail(stage));
+    stage.addEventListener("click",      () => showStageDetail(stage));
+  });
+
+  // ── Revert to active stage on mouse leave from pipeline ──
+  pipeline.addEventListener("mouseleave", () => {
+    if (activeStage) showStageDetail(activeStage);
+  });
+
+});
+
 </script>
 {% endblock %}

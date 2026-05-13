@@ -7,7 +7,7 @@
     </div>
 
     <nav>
-      {% with url_name=request.resolver_match.url_name project_id=request.resolver_match.kwargs.project_id %}
+      {% with url_name=request.resolver_match.url_name project_id=request.resolver_match.kwargs.project_id profile_role=profile_role is_project_lead=is_project_lead|default:False %}
 
       <!-- ================= GLOBAL ================= -->
       <div class="sidebar-section-label">Global</div>
@@ -50,7 +50,7 @@
       </a>
 
       <!-- ONLY LEADS / ADMIN -->
-      {% if request.user.profile.role == 'project_lead' or request.user.profile.role == 'admin' %}
+      {% if profile_role == 'project_lead' or profile_role == 'admin' or is_project_lead %}
       <a href="{% url 'core:project_team' project_id %}"
          class="{% if url_name == 'project_team' %}active{% endif %}">
         <i class="ri-user-settings-line"></i>
@@ -68,7 +68,7 @@
 
 
       <!-- ================= TEAMS ================= -->
-      {% if request.user.profile.role != 'user' %}
+      {% if profile_role != 'user' or is_project_lead %}
       <div class="sidebar-section-label">Teams</div>
 
       <a href="{% url 'core:teams' %}"
@@ -80,13 +80,19 @@
 
 
       <!-- ================= ADMIN ================= -->
-      {% if request.user.profile.role == 'admin' %}
+      {% if profile_role == 'admin' %}
       <div class="sidebar-section-label">Admin</div>
 
       <a href="{% url 'core:user_list' %}"
-         class="{% if 'user_' in url_name %}active{% endif %}">
+         class="{% if url_name == 'user_list' or url_name == 'user_update' or url_name == 'user_delete' %}active{% endif %}">
         <i class="ri-group-line"></i>
         <span class="nav-label">Users</span>
+      </a>
+
+      <a href="{% url 'core:user_create' %}"
+         class="{% if url_name == 'user_create' %}active{% endif %}">
+        <i class="ri-user-add-line"></i>
+        <span class="nav-label">Create User</span>
       </a>
       {% endif %}
 

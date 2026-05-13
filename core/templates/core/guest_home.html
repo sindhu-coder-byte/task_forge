@@ -1,171 +1,577 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
+{% block title %}TaskForge — Plan. Track. Ship.{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'core/css/guest_home.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="guest-shell">
+<div class="lp-root">
 
-  <!-- ===== SIDEBAR ===== -->
-  <aside class="guest-sidebar">
-    <div class="guest-sidebar-top">
-      <div class="guest-logo">
-        <i class="ri-rocket-2-line"></i>
+  <!-- ===================== NAVBAR ===================== -->
+  <nav class="lp-nav">
+    <div class="lp-nav-inner">
+      <div class="lp-nav-brand">
+        <div class="lp-nav-logo"><i class="ri-rocket-2-line"></i></div>
+        <span class="lp-nav-name">TaskForge</span>
       </div>
-      <div class="guest-appname">TaskForge</div>
+      <div class="lp-nav-links">
+        <a href="#features" class="lp-nav-link">Features</a>
+        <a href="#workflow" class="lp-nav-link">How it works</a>
+        <a href="#pricing" class="lp-nav-link">Pricing</a>
+      </div>
+      <div class="lp-nav-cta">
+        <button class="lp-btn lp-btn--ghost" onclick="openAuth('login')">Sign in</button>
+        <button class="lp-btn lp-btn--primary" onclick="openAuth('register')">Get started free</button>
+      </div>
     </div>
+  </nav>
 
-    {% comment %} <div class="guest-sidebar-actions">
-      <button class="guest-btn guest-btn--primary" onclick="openAuth('login')">Login</button>
-      <button class="guest-btn guest-btn--ghost" onclick="openAuth('register')">Register</button>
-    </div> {% endcomment %}
+  <!-- ===================== HERO ===================== -->
+  <section class="lp-hero">
+    <div class="lp-hero-bg-glow lp-hero-bg-glow--l"></div>
+    <div class="lp-hero-bg-glow lp-hero-bg-glow--r"></div>
 
-    <div class="guest-sidebar-foot">
-      <div class="guest-muted">Built for modern product teams.</div>
-    </div>
-  </aside>
-
-
-  <!-- ===== MAIN ===== -->
-  <main class="guest-main">
-
-    <!-- HERO -->
-    <section class="guest-hero">
-      <div class="guest-badge">✨ New • Smarter workflow system</div>
-
-      <h1 class="guest-title">
-        Plan. Track. Ship — <span class="guest-gradient">Without Chaos</span>
+    <div class="lp-hero-text">
+      <div class="lp-hero-badge">
+        <span class="lp-badge-dot"></span>
+        New — Sprint planning &amp; team sync built in
+      </div>
+      <h1 class="lp-hero-title">
+        Ship projects faster<br>
+        <span class="lp-gradient">without the chaos</span>
       </h1>
-
-      <p class="guest-tagline">
-        A Jira-inspired workspace with modern UX. Manage tasks, teams, and timelines — all in one clean interface.
+      <p class="lp-hero-sub">
+        TaskForge brings your team's work together — tasks, boards, timelines, and reports — in one
+        clean workspace inspired by the best of Jira, built for modern teams.
       </p>
-
-      <div class="guest-cta-row">
-        <button class="guest-btn guest-btn--primary" onclick="openAuth('register')">
-          Start for free
+      <div class="lp-hero-cta">
+        <button class="lp-btn lp-btn--primary lp-btn--lg" onclick="openAuth('register')">
+          <i class="ri-rocket-2-line"></i> Start for free
         </button>
-        <button class="guest-btn guest-btn--ghost" onclick="openAuth('login')">
-          Login
+        <button class="lp-btn lp-btn--ghost lp-btn--lg" onclick="openAuth('login')">
+          Sign in <i class="ri-arrow-right-line"></i>
         </button>
       </div>
-    </section>
+      <div class="lp-hero-note">No credit card &nbsp;·&nbsp; Free forever &nbsp;·&nbsp; 2-min setup</div>
+    </div>
+
+    <!-- BIG KANBAN BOARD MOCKUP -->
+    <div class="lp-hero-screen" data-sr data-sr-delay="80">
+      <div class="lp-screen-bar">
+        <span class="lp-dot lp-dot--red"></span>
+        <span class="lp-dot lp-dot--yellow"></span>
+        <span class="lp-dot lp-dot--green"></span>
+        <div class="lp-screen-addr">taskforge.app / projects / alpha-v2 / board</div>
+        <div class="lp-screen-icons">
+          <i class="ri-refresh-line"></i>&nbsp;<i class="ri-star-line"></i>
+        </div>
+      </div>
+
+      <!-- PROJECT HEADER -->
+      <div class="lp-kb-topbar">
+        <div class="lp-kb-topbar-left">
+          <span class="lp-kb-proj-dot"></span>
+          <span class="lp-kb-proj-name">Alpha v2 &nbsp;·&nbsp; Sprint 4</span>
+          <span class="lp-kb-proj-tag">15 tasks</span>
+        </div>
+        <div class="lp-kb-topbar-right">
+          <div class="lp-kb-avatar-stack">
+            <div class="lp-kb-avatar">JD</div>
+            <div class="lp-kb-avatar lp-kb-avatar--purple">SM</div>
+            <div class="lp-kb-avatar lp-kb-avatar--green">AL</div>
+            <div class="lp-kb-avatar lp-kb-avatar--amber">RK</div>
+          </div>
+          <div class="lp-kb-filter-btn"><i class="ri-filter-3-line"></i> Filter</div>
+        </div>
+      </div>
+
+      <!-- COLUMNS -->
+      <div class="lp-kanban">
+
+        <!-- TODO -->
+        <div class="lp-kb-col">
+          <div class="lp-kb-col-head">
+            <span class="lp-kb-chip lp-kb-chip--todo">TODO</span>
+            <span class="lp-kb-count">4</span>
+          </div>
+          <div class="lp-kb-card">
+            <div class="lp-kb-card-top">
+              <span class="lp-kb-pri lp-kb-pri--high">HIGH</span>
+              <span class="lp-kb-key">TF-14</span>
+            </div>
+            <div class="lp-kb-card-title">Set up CI/CD pipeline</div>
+            <div class="lp-kb-card-foot">
+              <div class="lp-kb-avatar" style="width:20px;height:20px;font-size:8px">JD</div>
+              <span class="lp-kb-due">May 18</span>
+            </div>
+          </div>
+          <div class="lp-kb-card">
+            <div class="lp-kb-card-top">
+              <span class="lp-kb-pri lp-kb-pri--medium">MED</span>
+              <span class="lp-kb-key">TF-15</span>
+            </div>
+            <div class="lp-kb-card-title">Write API documentation</div>
+            <div class="lp-kb-card-foot">
+              <div class="lp-kb-avatar lp-kb-avatar--purple" style="width:20px;height:20px;font-size:8px">SM</div>
+              <span class="lp-kb-due">May 21</span>
+            </div>
+          </div>
+          <div class="lp-kb-card">
+            <div class="lp-kb-card-top">
+              <span class="lp-kb-pri lp-kb-pri--low">LOW</span>
+              <span class="lp-kb-key">TF-16</span>
+            </div>
+            <div class="lp-kb-card-title">Update onboarding guide</div>
+            <div class="lp-kb-card-foot">
+              <div class="lp-kb-avatar lp-kb-avatar--green" style="width:20px;height:20px;font-size:8px">AL</div>
+              <span class="lp-kb-due">Jun 1</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- IN PROGRESS -->
+        <div class="lp-kb-col">
+          <div class="lp-kb-col-head">
+            <span class="lp-kb-chip lp-kb-chip--prog">IN PROGRESS</span>
+            <span class="lp-kb-count">3</span>
+          </div>
+          <div class="lp-kb-card lp-kb-card--active">
+            <div class="lp-kb-card-top">
+              <span class="lp-kb-pri lp-kb-pri--high">HIGH</span>
+              <span class="lp-kb-key">TF-09</span>
+            </div>
+            <div class="lp-kb-card-title">Redesign task detail modal</div>
+            <div class="lp-kb-prog-row">
+              <div class="lp-kb-prog-bar"><div class="lp-kb-prog-fill" style="width:65%"></div></div>
+              <span class="lp-kb-prog-pct">65%</span>
+            </div>
+            <div class="lp-kb-card-foot">
+              <div class="lp-kb-avatar lp-kb-avatar--amber" style="width:20px;height:20px;font-size:8px">RK</div>
+              <span class="lp-kb-due lp-kb-due--warn">May 14</span>
+            </div>
+          </div>
+          <div class="lp-kb-card lp-kb-card--active">
+            <div class="lp-kb-card-top">
+              <span class="lp-kb-pri lp-kb-pri--medium">MED</span>
+              <span class="lp-kb-key">TF-11</span>
+            </div>
+            <div class="lp-kb-card-title">Email notification system</div>
+            <div class="lp-kb-prog-row">
+              <div class="lp-kb-prog-bar"><div class="lp-kb-prog-fill" style="width:40%"></div></div>
+              <span class="lp-kb-prog-pct">40%</span>
+            </div>
+            <div class="lp-kb-card-foot">
+              <div class="lp-kb-avatar lp-kb-avatar--purple" style="width:20px;height:20px;font-size:8px">SM</div>
+              <span class="lp-kb-due">May 19</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- IN REVIEW -->
+        <div class="lp-kb-col">
+          <div class="lp-kb-col-head">
+            <span class="lp-kb-chip lp-kb-chip--review">REVIEW</span>
+            <span class="lp-kb-count">2</span>
+          </div>
+          <div class="lp-kb-card">
+            <div class="lp-kb-card-top">
+              <span class="lp-kb-pri lp-kb-pri--medium">MED</span>
+              <span class="lp-kb-key">TF-07</span>
+            </div>
+            <div class="lp-kb-card-title">Add dark mode toggle</div>
+            <div class="lp-kb-card-foot">
+              <div class="lp-kb-avatar lp-kb-avatar--green" style="width:20px;height:20px;font-size:8px">AL</div>
+              <span class="lp-kb-due">May 13</span>
+            </div>
+          </div>
+          <div class="lp-kb-card">
+            <div class="lp-kb-card-top">
+              <span class="lp-kb-pri lp-kb-pri--low">LOW</span>
+              <span class="lp-kb-key">TF-08</span>
+            </div>
+            <div class="lp-kb-card-title">Optimize DB queries</div>
+            <div class="lp-kb-card-foot">
+              <div class="lp-kb-avatar" style="width:20px;height:20px;font-size:8px">JD</div>
+              <span class="lp-kb-due">May 15</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- DONE -->
+        <div class="lp-kb-col">
+          <div class="lp-kb-col-head">
+            <span class="lp-kb-chip lp-kb-chip--done">DONE</span>
+            <span class="lp-kb-count">6</span>
+          </div>
+          <div class="lp-kb-card lp-kb-card--done">
+            <div class="lp-kb-card-top">
+              <span class="lp-kb-pri lp-kb-pri--high">HIGH</span>
+              <span class="lp-kb-key">TF-01</span>
+            </div>
+            <div class="lp-kb-card-title">User auth &amp; OAuth setup</div>
+            <div class="lp-kb-card-foot">
+              <div class="lp-kb-avatar" style="width:20px;height:20px;font-size:8px">JD</div>
+              <span class="lp-kb-done-tag"><i class="ri-check-line"></i> Done</span>
+            </div>
+          </div>
+          <div class="lp-kb-card lp-kb-card--done">
+            <div class="lp-kb-card-top">
+              <span class="lp-kb-pri lp-kb-pri--medium">MED</span>
+              <span class="lp-kb-key">TF-03</span>
+            </div>
+            <div class="lp-kb-card-title">Project dashboard layout</div>
+            <div class="lp-kb-card-foot">
+              <div class="lp-kb-avatar lp-kb-avatar--purple" style="width:20px;height:20px;font-size:8px">SM</div>
+              <span class="lp-kb-done-tag"><i class="ri-check-line"></i> Done</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /lp-kanban -->
+    </div><!-- /lp-hero-screen -->
+  </section>
 
 
-    <!-- ===== PRODUCT PREVIEW ===== -->
-    <!-- ===== INTERACTIVE WORKFLOW (JIRA STYLE) ===== -->
-<section class="guest-workflow">
+  <!-- ===================== STATS BAR ===================== -->
+  <section class="lp-stats" data-sr data-sr-delay="0">
+    <div class="lp-stats-inner">
+      <div class="lp-stat">
+        <div class="lp-stat-val">10x</div>
+        <div class="lp-stat-label">Faster delivery</div>
+      </div>
+      <div class="lp-stat-sep"></div>
+      <div class="lp-stat">
+        <div class="lp-stat-val">5 roles</div>
+        <div class="lp-stat-label">Permission levels</div>
+      </div>
+      <div class="lp-stat-sep"></div>
+      <div class="lp-stat">
+        <div class="lp-stat-val">100%</div>
+        <div class="lp-stat-label">Real-time visibility</div>
+      </div>
+      <div class="lp-stat-sep"></div>
+      <div class="lp-stat">
+        <div class="lp-stat-val">Free</div>
+        <div class="lp-stat-label">No credit card</div>
+      </div>
+    </div>
+  </section>
 
-  <div class="workflow-intro">
-    <h2>Everything your team needs — in one place</h2>
-    <p>From planning to delivery, manage your entire workflow with clarity and control.</p>
-  </div>
 
-  <div class="workflow-steps">
+  <!-- ===================== HOW IT WORKS ===================== -->
+  <section id="workflow" class="lp-workflow">
+
+    <div class="lp-section-head" data-sr data-sr-delay="0">
+      <div class="lp-section-pill">How it works</div>
+      <h2>From idea to delivery — in three steps</h2>
+      <p>Ditch spreadsheets and disconnected tools. One place to plan, track, and ship.</p>
+    </div>
 
     <!-- STEP 1 -->
-    <div class="workflow-step">
-      <div class="step-badge">01</div>
-      <h3>Plan your work</h3>
-      <p>Create tasks, set priorities, and organize projects effortlessly.</p>
-
-      <div class="step-preview">
-        <div class="mini-card">+ Create Task</div>
-        <div class="mini-card">Set Priority</div>
-        <div class="mini-card">Assign Team</div>
+    <div class="lp-step lp-step--ltr" data-sr data-sr-delay="0">
+      <div class="lp-step-text">
+        <div class="lp-step-num">01</div>
+        <h3>Plan your sprint</h3>
+        <p>Create tasks with rich detail — priorities, assignees, due dates, file attachments, and descriptions. Organize everything into projects in seconds.</p>
+        <ul class="lp-step-list">
+          <li><i class="ri-check-line"></i> Priority levels: Critical, High, Medium, Low</li>
+          <li><i class="ri-check-line"></i> Assign by role: Dev, QA, UI/UX, Delivery</li>
+          <li><i class="ri-check-line"></i> File attachments &amp; comments per task</li>
+          <li><i class="ri-check-line"></i> Auto email on every assignment</li>
+        </ul>
+      </div>
+      <div class="lp-step-visual">
+        <div class="lp-mockup">
+          <div class="lp-mockup-bar">
+            <span class="lp-dot lp-dot--red"></span>
+            <span class="lp-dot lp-dot--yellow"></span>
+            <span class="lp-dot lp-dot--green"></span>
+            <div class="lp-mockup-addr">taskforge.app / tasks / new</div>
+          </div>
+          <div class="lp-mockup-body">
+            <div class="lp-form-mock">
+              <div class="lp-fm-header">
+                <span class="lp-fm-tag">TF-17</span>
+                <span class="lp-fm-title">Create New Task</span>
+              </div>
+              <div class="lp-fm-field">
+                <div class="lp-fm-label">Title</div>
+                <div class="lp-fm-input lp-fm-input--filled">Integrate Stripe payment gateway</div>
+              </div>
+              <div class="lp-fm-row">
+                <div class="lp-fm-field lp-fm-field--half">
+                  <div class="lp-fm-label">Priority</div>
+                  <div class="lp-fm-select lp-fm-select--high"><i class="ri-alarm-warning-line"></i> High</div>
+                </div>
+                <div class="lp-fm-field lp-fm-field--half">
+                  <div class="lp-fm-label">Assignee</div>
+                  <div class="lp-fm-select">
+                    <div class="lp-kb-avatar lp-kb-avatar--purple" style="width:16px;height:16px;font-size:8px;flex-shrink:0">RK</div>
+                    Riya Kumar
+                  </div>
+                </div>
+              </div>
+              <div class="lp-fm-row">
+                <div class="lp-fm-field lp-fm-field--half">
+                  <div class="lp-fm-label">Status</div>
+                  <div class="lp-fm-select">
+                    <span class="lp-kb-chip lp-kb-chip--todo" style="font-size:9px;padding:2px 7px">TODO</span>
+                  </div>
+                </div>
+                <div class="lp-fm-field lp-fm-field--half">
+                  <div class="lp-fm-label">Due date</div>
+                  <div class="lp-fm-select"><i class="ri-calendar-line"></i> May 22, 2026</div>
+                </div>
+              </div>
+              <div class="lp-fm-field">
+                <div class="lp-fm-label">Description</div>
+                <div class="lp-fm-textarea">Implement Stripe checkout, webhook handling, and subscription management for the premium tier...</div>
+              </div>
+              <div class="lp-fm-actions">
+                <div class="lp-fm-btn-ghost">Cancel</div>
+                <div class="lp-fm-btn-primary"><i class="ri-add-line"></i> Create Task</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- STEP 2 -->
-    <div class="workflow-step">
-      <div class="step-badge">02</div>
-      <h3>Track progress</h3>
-      <p>Visualize work with boards and keep everyone aligned in real time.</p>
-
-      <div class="step-preview">
-        <div class="mini-column">
-          <span>To Do</span>
+    <div class="lp-step lp-step--rtl" data-sr data-sr-delay="0">
+      <div class="lp-step-visual">
+        <div class="lp-mockup lp-mockup--purple">
+          <div class="lp-mockup-bar">
+            <span class="lp-dot lp-dot--red"></span>
+            <span class="lp-dot lp-dot--yellow"></span>
+            <span class="lp-dot lp-dot--green"></span>
+            <div class="lp-mockup-addr">taskforge.app / projects / alpha / board</div>
+          </div>
+          <div class="lp-mockup-body lp-mockup-body--cols">
+            <div class="lp-mini-col">
+              <div class="lp-mini-col-head" style="color:#64748b">Todo · 3</div>
+              <div class="lp-mini-task"><span class="lp-mini-pri lp-mini-pri--h">HIGH</span><div class="lp-mini-title">Stripe integration</div></div>
+              <div class="lp-mini-task"><span class="lp-mini-pri lp-mini-pri--m">MED</span><div class="lp-mini-title">Write API docs</div></div>
+              <div class="lp-mini-task"><span class="lp-mini-pri lp-mini-pri--l">LOW</span><div class="lp-mini-title">Update README</div></div>
+            </div>
+            <div class="lp-mini-col lp-mini-col--active">
+              <div class="lp-mini-col-head" style="color:#818cf8">In Progress · 2</div>
+              <div class="lp-mini-task lp-mini-task--glow">
+                <span class="lp-mini-pri lp-mini-pri--h">HIGH</span>
+                <div class="lp-mini-title">Redesign modal</div>
+                <div class="lp-mini-prog"><div style="width:65%"></div></div>
+              </div>
+              <div class="lp-mini-task lp-mini-task--glow">
+                <span class="lp-mini-pri lp-mini-pri--m">MED</span>
+                <div class="lp-mini-title">Email notifications</div>
+                <div class="lp-mini-prog"><div style="width:40%"></div></div>
+              </div>
+            </div>
+            <div class="lp-mini-col">
+              <div class="lp-mini-col-head" style="color:#64748b">Review · 1</div>
+              <div class="lp-mini-task"><span class="lp-mini-pri lp-mini-pri--m">MED</span><div class="lp-mini-title">Dark mode toggle</div></div>
+            </div>
+            <div class="lp-mini-col" style="opacity:.5">
+              <div class="lp-mini-col-head" style="color:#22c55e">Done · 6</div>
+              <div class="lp-mini-task lp-mini-task--done"><div class="lp-mini-title">User auth setup</div></div>
+              <div class="lp-mini-task lp-mini-task--done"><div class="lp-mini-title">Dashboard layout</div></div>
+            </div>
+          </div>
         </div>
-        <div class="mini-column active">
-          <span>In Progress</span>
-        </div>
-        <div class="mini-column done">
-          <span>Done</span>
-        </div>
+      </div>
+      <div class="lp-step-text">
+        <div class="lp-step-num lp-step-num--purple">02</div>
+        <h3>Track with boards</h3>
+        <p>Drag tasks across a visual Kanban board — Todo, In Progress, In Review, QA, and Done. Every move is tracked and logged automatically.</p>
+        <ul class="lp-step-list">
+          <li><i class="ri-check-line"></i> 5 workflow stages out of the box</li>
+          <li><i class="ri-check-line"></i> Progress bars per task</li>
+          <li><i class="ri-check-line"></i> Overdue detection &amp; highlights</li>
+          <li><i class="ri-check-line"></i> Role-based board views</li>
+        </ul>
       </div>
     </div>
 
     <!-- STEP 3 -->
-    <div class="workflow-step">
-      <div class="step-badge">03</div>
-      <h3>Deliver faster</h3>
-      <p>Analyze performance and remove blockers to ship on time.</p>
-
-      <div class="step-preview">
-        <div class="mini-stat">
-          <strong>85%</strong>
-          <span>Completion</span>
-        </div>
-        <div class="mini-stat">
-          <strong>12</strong>
-          <span>Tasks Done</span>
+    <div class="lp-step lp-step--ltr" data-sr data-sr-delay="0">
+      <div class="lp-step-text">
+        <div class="lp-step-num lp-step-num--green">03</div>
+        <h3>Deliver with insights</h3>
+        <p>Get a bird's-eye view of project health. See overdue tasks, team velocity, and completion rates — so you can unblock delivery before deadlines slip.</p>
+        <ul class="lp-step-list">
+          <li><i class="ri-check-line"></i> Project progress digest emails</li>
+          <li><i class="ri-check-line"></i> Overdue &amp; due-soon alerts</li>
+          <li><i class="ri-check-line"></i> Per-member task summaries</li>
+          <li><i class="ri-check-line"></i> Completion rate tracking</li>
+        </ul>
+      </div>
+      <div class="lp-step-visual">
+        <div class="lp-mockup lp-mockup--green">
+          <div class="lp-mockup-bar">
+            <span class="lp-dot lp-dot--red"></span>
+            <span class="lp-dot lp-dot--yellow"></span>
+            <span class="lp-dot lp-dot--green"></span>
+            <div class="lp-mockup-addr">taskforge.app / projects / dashboard</div>
+          </div>
+          <div class="lp-mockup-body lp-mockup-body--dash">
+            <div class="lp-dash-stats">
+              <div class="lp-dash-stat lp-dash-stat--blue">
+                <div class="lp-dash-val" style="color:#818cf8">15</div>
+                <div class="lp-dash-lbl">Total</div>
+              </div>
+              <div class="lp-dash-stat lp-dash-stat--green">
+                <div class="lp-dash-val" style="color:#4ade80">6</div>
+                <div class="lp-dash-lbl">Done</div>
+              </div>
+              <div class="lp-dash-stat lp-dash-stat--red">
+                <div class="lp-dash-val" style="color:#f87171">2</div>
+                <div class="lp-dash-lbl">Overdue</div>
+              </div>
+              <div class="lp-dash-stat lp-dash-stat--amber">
+                <div class="lp-dash-val" style="color:#fbbf24">5</div>
+                <div class="lp-dash-lbl">Due Soon</div>
+              </div>
+            </div>
+            <div class="lp-dash-prog-section">
+              <div class="lp-dash-prog-label">Overall Progress &nbsp;<span style="color:#4ade80">40%</span></div>
+              <div class="lp-dash-prog-track">
+                <div class="lp-dash-prog-fill" style="width:40%">
+                  <div class="lp-dash-prog-thumb"></div>
+                </div>
+              </div>
+            </div>
+            <div class="lp-dash-team-label">Team Activity</div>
+            <div class="lp-dash-team">
+              <div class="lp-activity-row">
+                <div class="lp-kb-avatar" style="width:22px;height:22px;font-size:9px;flex-shrink:0">RK</div>
+                <div class="lp-act-info">
+                  <div class="lp-act-name">Riya Kumar</div>
+                  <div class="lp-act-sub">3 tasks in progress</div>
+                </div>
+                <div class="lp-act-bar"><div style="width:75%;background:#6366f1"></div></div>
+              </div>
+              <div class="lp-activity-row">
+                <div class="lp-kb-avatar lp-kb-avatar--purple" style="width:22px;height:22px;font-size:9px;flex-shrink:0">SM</div>
+                <div class="lp-act-info">
+                  <div class="lp-act-name">Sam Miller</div>
+                  <div class="lp-act-sub">2 done · 1 in review</div>
+                </div>
+                <div class="lp-act-bar"><div style="width:50%;background:#a78bfa"></div></div>
+              </div>
+              <div class="lp-activity-row">
+                <div class="lp-kb-avatar lp-kb-avatar--green" style="width:22px;height:22px;font-size:9px;flex-shrink:0">AL</div>
+                <div class="lp-act-info">
+                  <div class="lp-act-name">Alex Lee</div>
+                  <div class="lp-act-sub">1 overdue · 2 todo</div>
+                </div>
+                <div class="lp-act-bar lp-act-bar--warn"><div style="width:30%;background:#f87171"></div></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-  </div>
-
-</section>
+  </section>
 
 
-    <!-- ===== FEATURES ===== -->
-    <section class="guest-features">
-
-      <div class="guest-feature-card">
-        <i class="ri-layout-grid-line"></i>
-        <h3>Kanban Boards</h3>
-        <p>Visual workflows with smooth drag-and-drop experience.</p>
+  <!-- ===================== FEATURES GRID ===================== -->
+  <section id="features" class="lp-features">
+    <div class="lp-section-head" data-sr data-sr-delay="0">
+      <div class="lp-section-pill">Features</div>
+      <h2>Everything your team needs to ship</h2>
+      <p>No bloat. No unnecessary clicks. Just the tools that matter.</p>
+    </div>
+    <div class="lp-feat-grid">
+      <div class="lp-feat-card" data-sr data-sr-delay="0">
+        <div class="lp-feat-icon lp-feat-icon--blue"><i class="ri-layout-grid-line"></i></div>
+        <h4>Kanban Boards</h4>
+        <p>Visual drag-and-drop workflows across 5 stages — Todo, In Progress, Review, QA, Done.</p>
       </div>
-
-      <div class="guest-feature-card">
-        <i class="ri-flashlight-line"></i>
-        <h3>Smart Workflow</h3>
-        <p>Automate progress tracking and reduce manual updates.</p>
+      <div class="lp-feat-card" data-sr data-sr-delay="60">
+        <div class="lp-feat-icon lp-feat-icon--purple"><i class="ri-team-line"></i></div>
+        <h4>Role-Based Access</h4>
+        <p>Project leads, developers, testers, QA, UI/UX — each role sees exactly what they need.</p>
       </div>
-
-      <div class="guest-feature-card">
-        <i class="ri-team-line"></i>
-        <h3>Team Sync</h3>
-        <p>Collaborate in real time with roles & permissions.</p>
+      <div class="lp-feat-card" data-sr data-sr-delay="120">
+        <div class="lp-feat-icon lp-feat-icon--green"><i class="ri-mail-send-line"></i></div>
+        <h4>Email Notifications</h4>
+        <p>HTML digest emails for task assignments, comments, file uploads, and progress reports.</p>
       </div>
-
-      <div class="guest-feature-card">
-        <i class="ri-bar-chart-line"></i>
-        <h3>Insights</h3>
-        <p>Track productivity, blockers, and delivery speed.</p>
+      <div class="lp-feat-card" data-sr data-sr-delay="180">
+        <div class="lp-feat-icon lp-feat-icon--amber"><i class="ri-alarm-warning-line"></i></div>
+        <h4>Overdue Alerts</h4>
+        <p>Daily sweeps flag overdue tasks and notify leads before deadlines slip.</p>
       </div>
+      <div class="lp-feat-card" data-sr data-sr-delay="240">
+        <div class="lp-feat-icon lp-feat-icon--cyan"><i class="ri-attachment-line"></i></div>
+        <h4>File Attachments</h4>
+        <p>Upload designs, documents, and screenshots directly to tasks — no third-party storage.</p>
+      </div>
+      <div class="lp-feat-card" data-sr data-sr-delay="300">
+        <div class="lp-feat-icon lp-feat-icon--pink"><i class="ri-google-line"></i></div>
+        <h4>Google Sign-In</h4>
+        <p>One-click OAuth via Google. No separate passwords, no friction for your team.</p>
+      </div>
+    </div>
+  </section>
 
-    </section>
 
-
-    <!-- ===== TRUST STRIP ===== -->
-    <section class="guest-trust">
-      <p>Trusted by developers, testers, and product teams</p>
-    </section>
-
-
-    <!-- ===== CTA ===== -->
-    <section class="guest-bottom-cta">
-      <h2>Start managing projects like a pro</h2>
-      <p>No credit card required • Free forever plan</p>
-
-      <button class="guest-btn guest-btn--primary" onclick="openAuth('register')">
-        Create your workspace
+  <!-- ===================== BOTTOM CTA ===================== -->
+  <section class="lp-cta" data-sr data-sr-delay="0">
+    <div class="lp-cta-glow lp-cta-glow--l"></div>
+    <div class="lp-cta-glow lp-cta-glow--r"></div>
+    <div class="lp-section-pill">Get started today</div>
+    <h2>Your team is waiting for a better workflow</h2>
+    <p>Free forever plan &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; 2-minute setup</p>
+    <div class="lp-cta-btns">
+      <button class="lp-btn lp-btn--primary lp-btn--lg" onclick="openAuth('register')">
+        <i class="ri-rocket-2-line"></i> Create free workspace
       </button>
-    </section>
+      <button class="lp-btn lp-btn--ghost lp-btn--lg" onclick="openAuth('login')">
+        Sign in <i class="ri-arrow-right-line"></i>
+      </button>
+    </div>
+  </section>
 
-  </main>
-</div>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="lp-footer">
+    <div class="lp-footer-inner">
+      <div class="lp-footer-brand">
+        <div class="lp-nav-logo" style="width:30px;height:30px;font-size:.95rem"><i class="ri-rocket-2-line"></i></div>
+        <span class="lp-nav-name" style="font-size:.9rem">TaskForge</span>
+      </div>
+      <div class="lp-footer-copy">© 2026 TaskForge &nbsp;·&nbsp; Built for modern product teams</div>
+    </div>
+  </footer>
+
+</div><!-- /lp-root -->
+
+<!-- SCROLL-REVEAL -->
+<script>
+(function () {
+  if (!('IntersectionObserver' in window)) {
+    document.querySelectorAll('[data-sr]').forEach(function (el) { el.style.opacity = '1'; });
+    return;
+  }
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      var el = entry.target;
+      var delay = parseInt(el.dataset.srDelay || '0', 10);
+      setTimeout(function () { el.classList.add('sr--revealed'); }, delay);
+      observer.unobserve(el);
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('[data-sr]').forEach(function (el) {
+    el.classList.add('sr--hidden');
+    observer.observe(el);
+  });
+})();
+</script>
+
 {% endblock %}

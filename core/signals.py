@@ -3,6 +3,7 @@ from django.dispatch import receiver
 from django.contrib.auth.models import User
 from core.models import Profile
 
+
 @receiver(pre_social_login)
 def handle_google_login(request, sociallogin, **kwargs):
     email = sociallogin.account.extra_data.get('email')
@@ -12,13 +13,33 @@ def handle_google_login(request, sociallogin, **kwargs):
 
     user = User.objects.filter(email__iexact=email).first()
 
-    # ✅ If user already exists → normal flow
+    # =========================
+    # ✅ EXISTING USER
+    # =========================
     if user:
         sociallogin.connect(request, user)
+
+        # Ensure profile exists
+        profile, _ = Profile.objects.get_or_create(user=user)
+
+        # ✅ Update OAuth info
+        profile.oauth_provider = "google"
+        profile.oauth_id = sociallogin.account.uid
+        profile.save()
+
         return
 
-    # ✅ NEW: Allow random Google login → create user
+    # =========================
+    # ✅ NEW USER (Google Signup)
+    # =========================
     username = email.split("@")[0]
+
+    # Prevent duplicate username
+    base_username = username
+    counter = 1
+    while User.objects.filter(username=username).exists():
+        username = f"{base_username}{counter}"
+        counter += 1
 
     user = User.objects.create_user(
         username=username,
@@ -27,10 +48,15 @@ def handle_google_login(request, sociallogin, **kwargs):
     user.set_unusable_password()
     user.save()
 
-    # 🔒 Assign SAFE default role
-    profile, _ = Profile.objects.get_or_create(user=user)
-    profile.role = "guest"   # VERY IMPORTANT
-    profile.save()
+    # =========================
+    # ✅ CREATE PROFILE
+    # =========================
+    profile = Profile.objects.create(
+        user=user,
+        role="guest",   # 🔒 SAFE DEFAULT
+        oauth_provider="google",
+        oauth_id=sociallogin.account.uid
+    )
 
     sociallogin.connect(request, user)
 
@@ -40,7 +66,6 @@ def handle_google_login(request, sociallogin, **kwargs):
 # ============================================================
 
 from django.db.models.signals import post_save, pre_save
-from django.contrib.auth.models import User
 from core.models import Task, TaskActivity
 from core.notifications import NotificationService
 
@@ -62,6 +87,7 @@ def task_status_change_handler(sender, instance, **kwargs):
         # Store old values for post_save to use
         instance._old_status = old_status
         instance._old_assigned_to = old_task.assigned_to
+        instance._old_due_date = old_task.due_date
     except Task.DoesNotExist:
         pass
 
@@ -71,14 +97,12 @@ def task_after_save_handler(sender, instance, created, **kwargs):
     """Handle task save events and send notifications"""
     # Check for status change
     if hasattr(instance, '_old_status') and instance._old_status != instance.status:
-        # Get the user who made the change (from request if available)
-        # For now, we'll use created_by as the updater
-        updated_by = instance.created_by
+        updated_by = getattr(instance, '_updated_by', None) or instance.created_by
         
         notification_service.notify_status_change(
             task=instance,
             old_status=instance._old_status,
-            new_status=instance.get_status_display(),
+            new_status=instance.status,
             updated_by=updated_by
         )
     

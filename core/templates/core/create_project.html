@@ -130,7 +130,7 @@ textarea {
 
 {% block content %}
 
-<div class="cp-wrap">
+<div class="cp-wrap" role="main" aria-label="Create Project Form">
 
   <div class="cp-card">
 
@@ -141,13 +141,13 @@ textarea {
     </div>
 
     <!-- FORM -->
-    <form method="POST" class="form">
+    <form method="POST" class="form" enctype="multipart/form-data" role="form" aria-label="Project creation form">
       {% csrf_token %}
 
       <!-- NAME -->
       <div class="form-group">
-        <label>Project Name</label>
-        <input type="text" name="name" placeholder="Enter project name" required>
+        <label>Project Name *</label>
+        <input type="text" name="name" id="project_name" placeholder="Enter project name" required>
       </div>
 
       <!-- DESCRIPTION -->
@@ -156,31 +156,119 @@ textarea {
         <textarea name="description" placeholder="Describe your project..."></textarea>
       </div>
 
+      <!-- PROJECT TYPE -->
       <div class="form-group">
-        <label>Project type</label>
+        <label>Project Type</label>
         <select name="project_type" class="input">
           <option value="kanban" selected>Kanban</option>
           <option value="scrum">Scrum</option>
         </select>
       </div>
 
-<div class="pm-field">
-  <label>Project Lead</label>
-  <select name="project_lead" required>
-    <option value="">Select Lead</option>
-    {% for user in users %}
-      <option value="{{ user.id }}">{{ user.username }}</option>
-    {% endfor %}
-  </select>
-</div>
-
+      <!-- KEY PREFIX -->
       <div class="form-group">
-        <label>Key prefix</label>
-        <input type="text" name="key_prefix" placeholder="TF" maxlength="10" value="TF">
+        <label>Key Prefix</label>
+        <input type="text" name="key_prefix" id="key_prefix" placeholder="Auto" maxlength="10">
       </div>
 
+      <!-- PROJECT OWNER -->
+      <div class="pm-field">
+        <label>Project Owner / Lead</label>
+        <select name="project_lead">
+          <option value="">Select owner (optional)</option>
+          {% for user in users %}
+            <option value="{{ user.id }}">{{ user.username }}</option>
+          {% endfor %}
+        </select>
+        <small style="color:#64748b;font-size:12px;">Google-authenticated users are listed first.</small>
+      </div>
 
-      
+      <!-- ========== METADATA & CATEGORIZATION ========== -->
+      <hr style="margin:20px 0; border:none; border-top:1px solid #dfe1e6;">
+      <div style="font-size:12px; font-weight:600; color:#5e6c84; margin-bottom:12px; text-transform:uppercase;">Metadata & Categorization</div>
+
+      <!-- CATEGORY -->
+      <div class="form-group">
+        <label>Category</label>
+        <select name="category">
+          <option value="other">Other</option>
+          <option value="engineering">Engineering</option>
+          <option value="marketing">Marketing</option>
+          <option value="sales">Sales</option>
+          <option value="product">Product</option>
+          <option value="design">Design</option>
+          <option value="operations">Operations</option>
+          <option value="hr">HR</option>
+          <option value="finance">Finance</option>
+        </select>
+      </div>
+
+      <!-- PROJECT URL -->
+      <div class="form-group">
+        <label>Documentation / Repository URL</label>
+        <input type="url" name="project_url" placeholder="https://github.com/org/repo">
+      </div>
+
+      <!-- ========== VISUAL IDENTITY ========== -->
+      <hr style="margin:20px 0; border:none; border-top:1px solid #dfe1e6;">
+      <div style="font-size:12px; font-weight:600; color:#5e6c84; margin-bottom:12px; text-transform:uppercase;">Visual Identity</div>
+
+      <!-- PROJECT AVATAR -->
+      <div class="form-group">
+        <label>Project Avatar / Icon</label>
+        <input type="file" name="avatar" accept="image/*" placeholder="Upload project icon">
+        <small style="color:#64748b;font-size:12px;">Max 2MB. JPG, PNG, GIF allowed.</small>
+      </div>
+
+      <!-- ========== TIMELINE & PRIORITY ========== -->
+      <hr style="margin:20px 0; border:none; border-top:1px solid #dfe1e6;">
+      <div style="font-size:12px; font-weight:600; color:#5e6c84; margin-bottom:12px; text-transform:uppercase;">Timeline & Priority</div>
+
+      <!-- START DATE -->
+      <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" name="start_date" id="start_date" value="{{ default_start_date }}">
+      </div>
+
+      <!-- TARGET END DATE -->
+      <div class="form-group">
+        <label>Due Date</label>
+        <input type="date" name="target_end_date" id="target_end_date" min="{{ default_start_date }}">
+      </div>
+
+      <!-- PRIORITY -->
+      <div class="form-group">
+        <label>Priority Level</label>
+        <select name="priority">
+          <option value="p4">P4 - Low</option>
+          <option value="p3" selected>P3 - Medium</option>
+          <option value="p2">P2 - High</option>
+          <option value="p1">P1 - Critical</option>
+        </select>
+      </div>
+
+      <!-- ========== SECURITY & GOVERNANCE ========== -->
+      <hr style="margin:20px 0; border:none; border-top:1px solid #dfe1e6;">
+      <div style="font-size:12px; font-weight:600; color:#5e6c84; margin-bottom:12px; text-transform:uppercase;">Security & Governance</div>
+
+      <!-- PRIVACY TOGGLE -->
+      <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+        <input type="checkbox" name="is_private" id="is_private">
+        <label for="is_private" style="margin-bottom:0;">Private Project</label>
+        <small style="color:#64748b;font-size:12px;">Only team members can access</small>
+      </div>
+
+      <!-- DEFAULT ASSIGNEE -->
+      <div class="form-group">
+        <label>Default Assignee</label>
+        <select name="default_assignee">
+          <option value="">None - Manual assignment</option>
+          {% for user in users %}
+            <option value="{{ user.id }}">{{ user.username }}</option>
+          {% endfor %}
+        </select>
+        <small style="color:#64748b;font-size:12px;">New tasks will auto-assign to this person.</small>
+      </div>
 
       <!-- ACTIONS -->
       <div class="cp-actions">
@@ -193,5 +281,40 @@ textarea {
   </div>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const nameInput = document.getElementById('project_name');
+  const keyInput = document.getElementById('key_prefix');
+  const startInput = document.getElementById('start_date');
+  const dueInput = document.getElementById('target_end_date');
+
+  function generateKeyPrefix(name) {
+    const words = (name || '').trim().split(/\s+/).filter(Boolean);
+    const prefix = words.length > 1
+      ? words.map(word => word[0]).join('')
+      : (name || '').replace(/[^a-z0-9]/gi, '').slice(0, 3);
+    return (prefix || 'TF').toUpperCase().slice(0, 10);
+  }
+
+  function syncKeyPrefix() {
+    if (!keyInput || !nameInput || keyInput.dataset.touched === 'true') return;
+    keyInput.value = generateKeyPrefix(nameInput.value);
+  }
+
+  nameInput?.addEventListener('input', syncKeyPrefix);
+  keyInput?.addEventListener('input', function () {
+    keyInput.dataset.touched = keyInput.value ? 'true' : 'false';
+    keyInput.value = keyInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+  });
+  startInput?.addEventListener('change', function () {
+    if (!dueInput) return;
+    dueInput.min = startInput.value;
+    if (dueInput.value && dueInput.value < startInput.value) dueInput.value = startInput.value;
+  });
+
+  syncKeyPrefix();
+});
+</script>
 
 {% endblock %}

@@ -2,102 +2,279 @@
 {% load static %}
 
 {% block shell_extra_css %}
-<link rel="stylesheet" href="{% static 'core/css/user.css' %}">
 <link href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css" rel="stylesheet">
 {% endblock %}
 
-{% block shell_title %}Users{% endblock %}
+{% block shell_title %}Edit User{% endblock %}
 
 {% block shell_page %}
-<div class="user-page">
+<style>
+/* ========================
+   USER UPDATE (uu-*) STYLES
+   ======================== */
+.uu-page { padding: 24px; max-width: 720px; margin: 0 auto; }
 
-    <div class="user-preview">
-  <div class="avatar big">
-    {{ user_obj.username|first|upper }}
-  </div>
-  <div>
-    <h3>{{ user_obj.username }}</h3>
-    <p>{{ user_obj.email }}</p>
-  </div>
-</div>
+.uu-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 24px; gap: 12px; flex-wrap: wrap;
+}
+.uu-header-left { display: flex; align-items: center; gap: 16px; }
+.uu-avatar {
+  width: 52px; height: 52px; border-radius: 14px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 22px; font-weight: 700; flex-shrink: 0;
+}
+.uu-title { font-size: 20px; font-weight: 700; color: #111827; margin: 0; }
+.uu-sub   { font-size: 13px; color: #6b7280; margin: 2px 0 0; }
+
+.uu-btn-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border-radius: 8px; background: #f3f4f6;
+  color: #374151; font-size: 13px; font-weight: 500;
+  text-decoration: none; transition: 0.2s; white-space: nowrap;
+}
+.uu-btn-back:hover { background: #e5e7eb; }
+
+.uu-msg {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 20px;
+}
+.uu-msg.success { background: #f0fdf4; border: 1px solid #86efac; color: #15803d; }
+.uu-msg.error   { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; }
+
+/* USER IDENTITY STRIP */
+.uu-identity {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 20px; background: #fff;
+  border: 1px solid #e5e7eb; border-radius: 12px;
+  margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.uu-id-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff; font-size: 18px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.uu-id-name  { font-size: 15px; font-weight: 600; color: #111827; }
+.uu-id-email { font-size: 12px; color: #6b7280; margin-top: 2px; }
+.uu-id-badge {
+  margin-left: auto; padding: 4px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 600;
+  background: #eef2ff; color: #4338ca;
+}
+
+/* CARDS */
+.uu-card {
+  background: #fff; border-radius: 12px; margin-bottom: 20px;
+  border: 1px solid #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,.05); overflow: hidden;
+}
+.uu-card-hd {
+  padding: 14px 20px; border-bottom: 1px solid #f3f4f6;
+  font-size: 14px; font-weight: 600; color: #374151;
+  display: flex; align-items: center; gap: 8px;
+}
+.uu-card-bd { padding: 20px; }
+
+/* FORM */
+.uu-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 560px) { .uu-row { grid-template-columns: 1fr; } }
+
+.uu-group { margin-bottom: 18px; }
+.uu-lbl {
+  display: block; font-size: 13px; font-weight: 600;
+  color: #374151; margin-bottom: 6px;
+}
+.uu-hint { font-size: 12px; color: #9ca3af; margin-top: 4px; display: block; }
+.uu-err  { font-size: 12px; color: #b91c1c; margin-top: 4px; display: block; }
+
+.uu-group input[type="text"],
+.uu-group input[type="email"],
+.uu-group select {
+  width: 100%; padding: 10px 12px; border: 1px solid #d1d5db;
+  border-radius: 8px; font-size: 14px; color: #111827;
+  transition: border-color 0.2s, box-shadow 0.2s; box-sizing: border-box;
+  background: #fff;
+}
+.uu-group input:focus,
+.uu-group select:focus {
+  outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
+}
+
+/* MULTI-SELECT */
+.uu-group select[multiple] {
+  height: 130px; padding: 8px;
+}
+.uu-group select[multiple] option { padding: 6px 8px; border-radius: 4px; }
+.uu-group select[multiple] option:checked { background: #4f46e5; color: #fff; }
+
+/* CHECKBOX */
+.uu-check-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; background: #f9fafb;
+  border-radius: 8px; border: 1px solid #f3f4f6;
+}
+.uu-check-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #4f46e5; cursor: pointer; }
+.uu-check-lbl { font-size: 13px; font-weight: 500; color: #374151; cursor: pointer; }
+
+/* ACTIONS */
+.uu-footer {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding-top: 20px; border-top: 1px solid #f3f4f6; margin-top: 4px;
+}
+.uu-btn-cancel {
+  padding: 10px 20px; border-radius: 8px; background: #f3f4f6;
+  color: #374151; font-size: 14px; font-weight: 500;
+  text-decoration: none; border: none; cursor: pointer; transition: 0.2s;
+}
+.uu-btn-cancel:hover { background: #e5e7eb; }
+.uu-btn-save {
+  padding: 10px 24px; border-radius: 8px; background: #4f46e5;
+  color: #fff; font-size: 14px; font-weight: 600;
+  border: none; cursor: pointer; transition: 0.2s;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.uu-btn-save:hover { background: #4338ca; }
+</style>
+
+<div class="uu-page">
 
   <!-- HEADER -->
-  <div class="header-row">
-    <div>
-      <h2>Edit User</h2>
-      <p class="sub-text">Update user details</p>
+  <div class="uu-header">
+    <div class="uu-header-left">
+      <div class="uu-avatar">{{ user_obj.username|first|upper }}</div>
+      <div>
+        <h2 class="uu-title">Edit User</h2>
+        <p class="uu-sub">@{{ user_obj.username }} · Update details and project assignments</p>
+      </div>
     </div>
-
-    <a href="{% url 'core:user_list' %}" class="btn-add">
-      <i class="ri-arrow-left-line"></i> Back
+    <a href="{% url 'core:user_list' %}" class="uu-btn-back">
+      <i class="ri-arrow-left-line"></i> Back to Users
     </a>
   </div>
 
-  <!-- FORM -->
-  <div class="card form-card">
+  <!-- MESSAGES -->
+  {% for msg in messages %}
+  <div class="uu-msg {{ msg.tags }}">
+    <i class="ri-{% if 'success' in msg.tags %}checkbox-circle-line{% else %}error-warning-line{% endif %}"></i>
+    {{ msg }}
+  </div>
+  {% endfor %}
 
-    <form method="POST" class="user-form">
-      {% csrf_token %}
-
-      <!-- Errors -->
-      {% if form.non_field_errors %}
-        <div class="form-error">
-          {{ form.non_field_errors }}
-        </div>
-      {% endif %}
-
-      <!-- Username -->
-      <div class="form-group">
-        <label>Username</label>
-        {{ form.username }}
-        {% if form.username.errors %}
-          <small class="error">{{ form.username.errors.0 }}</small>
-        {% endif %}
-      </div>
-
-      <!-- Email -->
-      <div class="form-group">
-        <label>Email</label>
-        {{ form.email }}
-        {% if form.email.errors %}
-          <small class="error">{{ form.email.errors.0 }}</small>
-        {% endif %}
-      </div>
-
-      <!-- Role -->
-      <div class="form-group">
-        <label>Role</label>
-        {{ form.role }}
-      </div>
-
-      <!-- Assigned Projects -->
-      <div class="form-group">
-        <label>Assigned Projects</label>
-        {{ form.assigned_projects }}
-        <small class="help-text">Hold Ctrl/Cmd to select multiple projects</small>
-        {% if form.assigned_projects.errors %}
-          <small class="error">{{ form.assigned_projects.errors.0 }}</small>
-        {% endif %}
-      </div>
-
-      <!-- Active -->
-      <div class="form-group checkbox">
-        <label>
-          {{ form.is_active }} Active User
-        </label>
-      </div>
-
-      <!-- Submit -->
-      <div class="form-actions">
-        <button type="submit" class="btn-primary">
-          <i class="ri-save-line"></i> Update User
-        </button>
-      </div>
-
-    </form>
-
+  <!-- IDENTITY STRIP -->
+  <div class="uu-identity">
+    <div class="uu-id-avatar">{{ user_obj.username|first|upper }}</div>
+    <div>
+      <div class="uu-id-name">{{ user_obj.get_full_name|default:user_obj.username }}</div>
+      <div class="uu-id-email">{{ user_obj.email|default:"No email set" }}</div>
+    </div>
+    <span class="uu-id-badge">
+      {% if user_obj.profile.role %}{{ user_obj.profile.get_role_display }}{% else %}No Role{% endif %}
+    </span>
   </div>
 
+  <form method="POST">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="uu-msg error">
+      <i class="ri-error-warning-line"></i>
+      {{ form.non_field_errors }}
+    </div>
+    {% endif %}
+
+    <!-- ACCOUNT DETAILS CARD -->
+    <div class="uu-card">
+      <div class="uu-card-hd">
+        <i class="ri-user-line" style="color:#4f46e5;"></i>
+        Account Details
+      </div>
+      <div class="uu-card-bd">
+        <div class="uu-row">
+          <!-- USERNAME -->
+          <div class="uu-group">
+            <label class="uu-lbl" for="{{ form.username.id_for_label }}">Username</label>
+            {{ form.username }}
+            {% if form.username.errors %}
+              <span class="uu-err">{{ form.username.errors.0 }}</span>
+            {% endif %}
+          </div>
+          <!-- EMAIL -->
+          <div class="uu-group">
+            <label class="uu-lbl" for="{{ form.email.id_for_label }}">Email</label>
+            {{ form.email }}
+            {% if form.email.errors %}
+              <span class="uu-err">{{ form.email.errors.0 }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- ACTIVE -->
+        <div class="uu-group">
+          <div class="uu-check-row">
+            {{ form.is_active }}
+            <label class="uu-check-lbl" for="{{ form.is_active.id_for_label }}">
+              Active — user can log in
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROLE & PROJECTS CARD -->
+    <div class="uu-card">
+      <div class="uu-card-hd">
+        <i class="ri-folder-user-line" style="color:#4f46e5;"></i>
+        Role &amp; Project Assignments
+      </div>
+      <div class="uu-card-bd">
+
+        <!-- ROLE -->
+        <div class="uu-group">
+          <label class="uu-lbl" for="{{ form.role.id_for_label }}">System Role</label>
+          {{ form.role }}
+          {% if form.role.errors %}
+            <span class="uu-err">{{ form.role.errors.0 }}</span>
+          {% endif %}
+        </div>
+
+        <!-- ASSIGNED PROJECTS -->
+        <div class="uu-group">
+          <label class="uu-lbl" for="{{ form.assigned_projects.id_for_label }}">Assigned Projects</label>
+          {{ form.assigned_projects }}
+          <span class="uu-hint">
+            <i class="ri-information-line"></i>
+            Hold <kbd style="padding:1px 5px;background:#f3f4f6;border-radius:4px;font-size:11px;">Ctrl</kbd>
+            / <kbd style="padding:1px 5px;background:#f3f4f6;border-radius:4px;font-size:11px;">⌘</kbd>
+            to select multiple projects
+          </span>
+          {% if form.assigned_projects.errors %}
+            <span class="uu-err">{{ form.assigned_projects.errors.0 }}</span>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="uu-footer">
+      <a href="{% url 'core:user_list' %}" class="uu-btn-cancel">Cancel</a>
+      <button type="submit" class="uu-btn-save">
+        <i class="ri-save-line"></i> Save Changes
+      </button>
+    </div>
+
+  </form>
+
 </div>
+
+<script>
+setTimeout(() => {
+  document.querySelectorAll('.uu-msg').forEach(el => {
+    el.style.transition = '0.3s'; el.style.opacity = '0';
+    setTimeout(() => el.remove(), 300);
+  });
+}, 4000);
+</script>
 
 {% endblock shell_page %}

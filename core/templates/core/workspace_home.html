@@ -8,60 +8,198 @@
 {% block shell_title %}Home{% endblock %}
 
 {% block shell_page %}
-<div class="workspace">
-  <header class="workspace-header">
-    <h1>Your workspace</h1>
-    <p class="workspace-lede">
-      {{ total_projects }} project{{ total_projects|pluralize }} ·
-      {{ total_tasks }} task{{ total_tasks|pluralize }} in your view
-    </p>
+<div class="ws-root">
+
+  <!-- ── HEADER ── -->
+  <header class="ws-header">
+    <div class="ws-header-left">
+      <div class="ws-greeting-avatar">{{ request.user.username|slice:":1"|upper }}</div>
+      <div>
+        <h1 class="ws-greeting">Good day, {{ request.user.first_name|default:request.user.username }} 👋</h1>
+        <p class="ws-lede">
+          You have <strong>{{ total_tasks }}</strong> task{{ total_tasks|pluralize }} across
+          <strong>{{ total_projects }}</strong> project{{ total_projects|pluralize }}.
+        </p>
+      </div>
+    </div>
+    <div class="ws-header-actions">
+      {% if request.user.profile.role == 'admin' or is_project_lead %}
+      <a href="{% url 'core:create_task' %}" class="ws-btn ws-btn--primary">
+        <i class="ri-add-line"></i> New task
+      </a>
+      {% endif %}
+      <a href="{% url 'core:dashboard' %}" class="ws-btn ws-btn--ghost">
+        <i class="ri-bar-chart-2-line"></i> Dashboard
+      </a>
+    </div>
   </header>
 
-  <section class="workspace-section" aria-labelledby="ws-projects-heading">
-    <div class="workspace-section-head">
-      <h2 id="ws-projects-heading" class="workspace-h2">Projects</h2>
-      <a href="{% url 'core:projects' %}" class="ws-link">View all</a>
-    </div>
-    <div class="project-grid">
-      {% for row in workspace_projects %}
-      <a class="project-tile card-elevated" href="{% url 'core:project_detail' row.project.id %}">
-        <div class="project-tile-icon" aria-hidden="true"><i class="ri-folder-3-fill"></i></div>
-        <div class="project-tile-body">
-          <h3>{{ row.project.name }}</h3>
-          <p class="project-tile-meta">{{ row.task_count }} issue{{ row.task_count|pluralize }}</p>
-          <div class="progress workspace-progress"><span data-progress="{{ row.progress }}"></span></div>
-        </div>
-      </a>
-      {% empty %}
-      <p class="workspace-empty">No projects yet.
-        {% if request.user.profile.role == 'admin' %}
-        <a href="{% url 'core:create_project' %}">Create a project</a>
-        {% else %}
-        <a href="{% url 'core:projects' %}">View projects</a>
-        {% endif %}
-        or ask an admin for access.</p>
-      {% endfor %}
-    </div>
-  </section>
+  <!-- ── STAT CARDS ── -->
+  <div class="ws-stats">
 
-  <section class="workspace-section" aria-labelledby="ws-recent-heading">
-    <div class="workspace-section-head">
-      <h2 id="ws-recent-heading" class="workspace-h2">Recent work</h2>
-      <a href="{% url 'core:tasks' %}" class="ws-link">All tasks</a>
+    <div class="ws-stat-card">
+      <div class="ws-stat-icon ws-stat-icon--blue">
+        <i class="ri-folder-3-line"></i>
+      </div>
+      <div class="ws-stat-body">
+        <div class="ws-stat-value">{{ total_projects }}</div>
+        <div class="ws-stat-label">Projects</div>
+      </div>
+      <a href="{% url 'core:projects' %}" class="ws-stat-link">View all <i class="ri-arrow-right-line"></i></a>
     </div>
-    <ul class="recent-work-list card-elevated">
-      {% for task in recent_work %}
-      <li>
-        <a href="{% url 'core:task_detail' task.id %}" class="recent-work-key">{{ task.issue_key }}</a>
-        <a href="{% url 'core:task_detail' task.id %}" class="recent-work-title">{{ task.title }}</a>
-        {% if task.project %}
-        <span class="recent-work-proj">{{ task.project.name }}</span>
-        {% endif %}
-      </li>
-      {% empty %}
-      <li class="workspace-empty">No recent tasks in your scope.</li>
-      {% endfor %}
-    </ul>
-  </section>
+
+    <div class="ws-stat-card">
+      <div class="ws-stat-icon ws-stat-icon--indigo">
+        <i class="ri-task-line"></i>
+      </div>
+      <div class="ws-stat-body">
+        <div class="ws-stat-value">{{ total_tasks }}</div>
+        <div class="ws-stat-label">Total tasks</div>
+      </div>
+      <a href="{% url 'core:tasks' %}" class="ws-stat-link">View all <i class="ri-arrow-right-line"></i></a>
+    </div>
+
+    <div class="ws-stat-card">
+      <div class="ws-stat-icon ws-stat-icon--amber">
+        <i class="ri-alarm-warning-line"></i>
+      </div>
+      <div class="ws-stat-body">
+        <div class="ws-stat-value">{{ delayed_tasks_count }}</div>
+        <div class="ws-stat-label">Overdue tasks</div>
+      </div>
+      <a href="{% url 'core:tasks' %}?status=overdue" class="ws-stat-link">Review <i class="ri-arrow-right-line"></i></a>
+    </div>
+
+    <div class="ws-stat-card">
+      <div class="ws-stat-icon ws-stat-icon--green">
+        <i class="ri-notification-3-line"></i>
+      </div>
+      <div class="ws-stat-body">
+        <div class="ws-stat-value">{{ notification_count }}</div>
+        <div class="ws-stat-label">Unread notifications</div>
+      </div>
+      <span class="ws-stat-link ws-stat-link--muted">In topbar bell</span>
+    </div>
+
+  </div>
+
+
+  <!-- ── MAIN GRID (projects + recent work) ── -->
+  <div class="ws-grid">
+
+    <!-- LEFT: PROJECTS -->
+    <section class="ws-section ws-section--projects">
+      <div class="ws-section-head">
+        <h2 class="ws-section-title">
+          <i class="ri-folder-3-line"></i> Projects
+        </h2>
+        <a href="{% url 'core:projects' %}" class="ws-link">View all</a>
+      </div>
+
+      <div class="ws-project-list">
+        {% for row in workspace_projects %}
+        <a class="ws-project-card" href="{% url 'core:project_detail' row.project.id %}">
+
+          <div class="ws-project-icon">
+            {{ row.project.name|slice:":1"|upper }}
+          </div>
+
+          <div class="ws-project-body">
+            <div class="ws-project-name">{{ row.project.name }}</div>
+            <div class="ws-project-meta">
+              <span>{{ row.task_count }} task{{ row.task_count|pluralize }}</span>
+              <span class="ws-project-dot"></span>
+              <span>{{ row.progress }}% done</span>
+            </div>
+
+            <div class="ws-project-bar">
+              <div class="ws-project-bar-fill"
+                   style="width:{{ row.progress }}%;
+                          background: {% if row.progress == 100 %}#22c55e{% elif row.progress >= 60 %}#6366f1{% elif row.progress >= 30 %}#f59e0b{% else %}#ef4444{% endif %}">
+              </div>
+            </div>
+          </div>
+
+          <div class="ws-project-ring">
+            <!-- SVG progress ring -->
+            <svg width="44" height="44" viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r="18" fill="none" stroke="#e5e7eb" stroke-width="4"/>
+              <circle cx="22" cy="22" r="18" fill="none"
+                      stroke="{% if row.progress == 100 %}#22c55e{% elif row.progress >= 60 %}#6366f1{% elif row.progress >= 30 %}#f59e0b{% else %}#ef4444{% endif %}"
+                      stroke-width="4"
+                      stroke-dasharray="{{ row.progress|floatformat:0 }} 100"
+                      stroke-dasharray="113.1"
+                      stroke-dashoffset="{% widthratio row.progress 100 113.1 %}"
+                      stroke-linecap="round"
+                      transform="rotate(-90 22 22)"
+                      style="stroke-dasharray: {% widthratio row.progress 100 113 %} 113; stroke-dashoffset: 0;"/>
+              <text x="22" y="26" text-anchor="middle" font-size="9" font-weight="700"
+                    fill="{% if row.progress == 100 %}#22c55e{% elif row.progress >= 60 %}#6366f1{% elif row.progress >= 30 %}#f59e0b{% else %}#94a3b8{% endif %}">
+                {{ row.progress }}%
+              </text>
+            </svg>
+          </div>
+
+        </a>
+        {% empty %}
+        <div class="ws-empty">
+          <i class="ri-folder-open-line"></i>
+          <p>No projects yet.</p>
+          {% if request.user.profile.role == 'admin' %}
+          <a href="{% url 'core:create_project' %}" class="ws-btn ws-btn--primary">Create a project</a>
+          {% else %}
+          <a href="{% url 'core:projects' %}" class="ws-btn ws-btn--ghost">Browse projects</a>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+
+    <!-- RIGHT: RECENT WORK -->
+    <section class="ws-section ws-section--recent">
+      <div class="ws-section-head">
+        <h2 class="ws-section-title">
+          <i class="ri-history-line"></i> Recent work
+        </h2>
+        <a href="{% url 'core:tasks' %}" class="ws-link">All tasks</a>
+      </div>
+
+      <div class="ws-recent-list">
+        {% for task in recent_work %}
+        <a class="ws-task-row" href="{% url 'core:task_detail' task.id %}">
+
+          <!-- Status dot -->
+          <span class="ws-task-dot ws-task-dot--{{ task.status }}"></span>
+
+          <div class="ws-task-main">
+            <div class="ws-task-title">{{ task.title }}</div>
+            <div class="ws-task-meta">
+              <span class="ws-task-key">{{ task.issue_key }}</span>
+              {% if task.project %}
+              <span class="ws-task-sep">·</span>
+              <span class="ws-task-proj">{{ task.project.name }}</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="ws-task-right">
+            <span class="ws-pri ws-pri--{{ task.priority|lower }}">{{ task.get_priority_display }}</span>
+            <span class="ws-status-chip ws-status-chip--{{ task.status }}">
+              {{ task.get_status_display }}
+            </span>
+          </div>
+
+        </a>
+        {% empty %}
+        <div class="ws-empty">
+          <i class="ri-checkbox-circle-line"></i>
+          <p>No tasks in your scope yet.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+  </div>
 </div>
 {% endblock %}

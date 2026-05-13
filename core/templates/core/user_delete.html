@@ -2,64 +2,201 @@
 {% load static %}
 
 {% block shell_extra_css %}
-<link rel="stylesheet" href="{% static 'core/css/user.css' %}">
 <link href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css" rel="stylesheet">
 {% endblock %}
 
-{% block shell_title %}Users{% endblock %}
+{% block shell_title %}Delete User{% endblock %}
 
 {% block shell_page %}
-<div class="user-page">
+<style>
+/* ========================
+   USER DELETE (ud-*) STYLES
+   ======================== */
+.ud-page { padding: 24px; max-width: 560px; margin: 0 auto; }
+
+.ud-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 24px; gap: 12px; flex-wrap: wrap;
+}
+.ud-header-left { display: flex; align-items: center; gap: 16px; }
+.ud-icon {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.ud-icon i { color: #fff; font-size: 22px; }
+.ud-title { font-size: 20px; font-weight: 700; color: #111827; margin: 0; }
+.ud-sub   { font-size: 13px; color: #6b7280; margin: 2px 0 0; }
+
+.ud-btn-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border-radius: 8px; background: #f3f4f6;
+  color: #374151; font-size: 13px; font-weight: 500;
+  text-decoration: none; transition: 0.2s; white-space: nowrap;
+}
+.ud-btn-back:hover { background: #e5e7eb; }
+
+/* USER CARD */
+.ud-card {
+  background: #fff; border-radius: 12px;
+  border: 1px solid #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,.05);
+  overflow: hidden;
+}
+
+/* USER PREVIEW */
+.ud-preview {
+  display: flex; align-items: center; gap: 16px;
+  padding: 20px 24px; border-bottom: 1px solid #f3f4f6;
+}
+.ud-avatar {
+  width: 56px; height: 56px; border-radius: 14px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff; font-size: 24px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.ud-user-name  { font-size: 16px; font-weight: 700; color: #111827; }
+.ud-user-email { font-size: 13px; color: #6b7280; margin-top: 2px; }
+.ud-user-role  {
+  display: inline-block; margin-top: 6px;
+  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  background: #eef2ff; color: #4338ca;
+}
+
+/* WARNING BLOCK */
+.ud-warn-block { padding: 20px 24px; border-bottom: 1px solid #f3f4f6; }
+.ud-warn-box {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 14px 16px; background: #fef2f2;
+  border: 1px solid #fecaca; border-radius: 10px;
+}
+.ud-warn-box i { color: #b91c1c; font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+.ud-warn-title { font-size: 14px; font-weight: 700; color: #991b1b; margin-bottom: 6px; }
+.ud-warn-list  { margin: 0; padding-left: 18px; }
+.ud-warn-list li { font-size: 13px; color: #b91c1c; margin-bottom: 4px; line-height: 1.5; }
+
+/* CONFIRM INPUT */
+.ud-confirm-block {
+  padding: 20px 24px; border-bottom: 1px solid #f3f4f6;
+}
+.ud-confirm-lbl {
+  font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px; display: block;
+}
+.ud-confirm-lbl code {
+  background: #f3f4f6; padding: 2px 6px;
+  border-radius: 4px; font-size: 13px; color: #4f46e5;
+}
+.ud-confirm-input {
+  width: 100%; padding: 10px 12px; border: 1px solid #d1d5db;
+  border-radius: 8px; font-size: 14px; color: #111827;
+  transition: border-color 0.2s; box-sizing: border-box;
+}
+.ud-confirm-input:focus { outline: none; border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.12); }
+
+/* ACTIONS */
+.ud-actions {
+  padding: 20px 24px;
+  display: flex; justify-content: flex-end; gap: 10px;
+}
+.ud-btn-cancel {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 20px; border-radius: 8px; background: #f3f4f6;
+  color: #374151; font-size: 14px; font-weight: 500;
+  text-decoration: none; border: none; cursor: pointer; transition: 0.2s;
+}
+.ud-btn-cancel:hover { background: #e5e7eb; }
+.ud-btn-delete {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 24px; border-radius: 8px; background: #dc2626;
+  color: #fff; font-size: 14px; font-weight: 600;
+  border: none; cursor: pointer; transition: 0.2s;
+}
+.ud-btn-delete:hover { background: #b91c1c; }
+.ud-btn-delete:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+
+<div class="ud-page">
 
   <!-- HEADER -->
-  <div class="header-row">
-    <div>
-      <h2>Delete User</h2>
-      <p class="sub-text">This action cannot be undone</p>
+  <div class="ud-header">
+    <div class="ud-header-left">
+      <div class="ud-icon"><i class="ri-delete-bin-line"></i></div>
+      <div>
+        <h2 class="ud-title">Delete User</h2>
+        <p class="ud-sub">This action is permanent and cannot be undone</p>
+      </div>
     </div>
-
-    <a href="{% url 'core:user_list' %}" class="btn-add">
-      <i class="ri-arrow-left-line"></i> Back
+    <a href="{% url 'core:user_list' %}" class="ud-btn-back">
+      <i class="ri-arrow-left-line"></i> Cancel
     </a>
   </div>
 
-  <!-- DELETE CARD -->
-  <div class="card delete-card">
+  <!-- CARD -->
+  <div class="ud-card">
 
     <!-- USER PREVIEW -->
-    <div class="user-preview">
-      <div class="avatar big">
-        {{ user.username|first|upper }}
-      </div>
+    <div class="ud-preview">
+      <div class="ud-avatar">{{ user.username|first|upper }}</div>
       <div>
-        <h3>{{ user.username }}</h3>
-        <p>{{ user.email }}</p>
+        <div class="ud-user-name">{{ user.get_full_name|default:user.username }}</div>
+        <div class="ud-user-email">{{ user.email|default:"No email" }}</div>
+        {% if user.profile.role %}
+          <span class="ud-user-role">{{ user.profile.get_role_display }}</span>
+        {% endif %}
       </div>
     </div>
 
     <!-- WARNING -->
-    <div class="delete-warning">
-      <i class="ri-error-warning-line"></i>
-      <p>Are you sure you want to delete this user? This action cannot be undone.</p>
+    <div class="ud-warn-block">
+      <div class="ud-warn-box">
+        <i class="ri-error-warning-fill"></i>
+        <div>
+          <div class="ud-warn-title">What will be deleted</div>
+          <ul class="ud-warn-list">
+            <li>User account and login access</li>
+            <li>Profile, role and project memberships</li>
+            <li>All task assignments linked to this user</li>
+            <li>Notifications and activity history</li>
+          </ul>
+        </div>
+      </div>
     </div>
 
-    <!-- FORM -->
-    <form method="POST" class="delete-form">
-      {% csrf_token %}
+    <!-- CONFIRM FIELD -->
+    <div class="ud-confirm-block">
+      <label class="ud-confirm-lbl">
+        Type <code>{{ user.username }}</code> to confirm deletion
+      </label>
+      <input type="text" class="ud-confirm-input" id="udConfirmInput"
+             placeholder="Enter username to confirm…" autocomplete="off">
+    </div>
 
-      <div class="form-actions">
-        <a href="{% url 'core:user_list' %}" class="btn-cancel">
-          Cancel
-        </a>
-
-        <button type="submit" class="btn-danger">
+    <!-- FORM ACTIONS -->
+    <div class="ud-actions">
+      <a href="{% url 'core:user_list' %}" class="ud-btn-cancel">
+        <i class="ri-close-line"></i> Cancel
+      </a>
+      <form method="POST" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit" class="ud-btn-delete" id="udDeleteBtn" disabled>
           <i class="ri-delete-bin-line"></i> Delete User
         </button>
-      </div>
-    </form>
+      </form>
+    </div>
 
   </div>
 
 </div>
+
+<script>
+(function () {
+  const input    = document.getElementById('udConfirmInput');
+  const btn      = document.getElementById('udDeleteBtn');
+  const expected = '{{ user.username|escapejs }}';
+
+  input.addEventListener('input', function () {
+    btn.disabled = this.value.trim() !== expected;
+  });
+})();
+</script>
 
 {% endblock shell_page %}

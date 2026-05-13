@@ -9,7 +9,8 @@ urlpatterns = [
     #  HOME & DASHBOARD
     # =========================
     path('', views.home, name='home'),
-    path('dashboard/', views.dashboard, name='dashboard'),
+    path('dashboard/', views.role_dashboard, name='dashboard'),
+    path('dashboard/analytics/', views.dashboard, name='dashboard_analytics'),
     path('dashboard/user/', views.user_dashboard, name='user_dashboard'),
 
 
@@ -29,7 +30,11 @@ urlpatterns = [
     path('users/create/', views.user_create, name='user_create'),
     path('users/<int:id>/update/', views.user_update, name='user_update'),
     path('users/<int:id>/delete/', views.user_delete, name='user_delete'),
+    path('users/<int:id>/toggle/', views.toggle_user, name='toggle_user'),
+    path('users/<int:id>/promote/', views.promote_to_project_lead, name='promote_to_project_lead'),
     path("user/stats/", views.user_stats),
+    path("api/users/", views.api_users, name="api_users"),
+    path("api/users/<int:id>/toggle-project-lead/", views.api_toggle_project_lead, name="api_toggle_project_lead"),
 
     # =========================
     #  PROJECTS
@@ -61,6 +66,7 @@ urlpatterns = [
 
     #  Status (Jira style)
     path('tasks/<int:task_id>/status/<str:new_status>/', views.update_task_status, name='update_task_status'),
+    path('api/tasks/<int:task_id>/transition/', views.api_transition_task, name='api_transition_task'),
 
 
     # =========================
