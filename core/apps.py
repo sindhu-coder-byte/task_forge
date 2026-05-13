@@ -9,8 +9,6 @@ class CoreConfig(AppConfig):
         import core.signals  # noqa: F401
         from django.db.models.signals import post_migrate
         post_migrate.connect(_sync_site_domain, sender=self)
-        # Also sync on every server startup so it takes effect without a migration run.
-        _sync_site_domain()
 
 
 def _sync_site_domain(**_kwargs):
