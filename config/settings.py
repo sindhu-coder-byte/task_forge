@@ -147,11 +147,12 @@ _project_static = BASE_DIR / 'static'
 STATICFILES_DIRS = [_project_static] if _project_static.is_dir() else []
 
 # WhiteNoise: compressed + cached static files for production
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 # ── MEDIA ─────────────────────────────────────────────────────────────────────
 MEDIA_URL = '/task_files/'
 MEDIA_ROOT = BASE_DIR / 'task_files'
+
+WHITENOISE_USE_FINDERS = True
 
 # ── SECURITY (production only) ────────────────────────────────────────────────
 if not DEBUG:
