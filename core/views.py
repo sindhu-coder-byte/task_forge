@@ -2453,9 +2453,6 @@ def role_redirect(request):
     elif profile.role in ['project_lead', 'team_lead']:
         return redirect('core:projects')
 
-    elif profile.role == 'guest':
-        return redirect('core:guest_dashboard')
-
     else:
         return redirect('core:home')
 

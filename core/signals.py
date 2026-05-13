@@ -53,7 +53,7 @@ def handle_google_login(request, sociallogin, **kwargs):
     # =========================
     profile = Profile.objects.create(
         user=user,
-        role="guest",   # 🔒 SAFE DEFAULT
+        role="user",
         oauth_provider="google",
         oauth_id=sociallogin.account.uid
     )
