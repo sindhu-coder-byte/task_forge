@@ -194,12 +194,6 @@ SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': ['profile', 'email'],
         'AUTH_PARAMS': {'access_type': 'online'},
-        'APPS': [
-            {
-                'client_id': GOOGLE_OAUTH2_CLIENT_ID,
-                'secret':    GOOGLE_OAUTH2_CLIENT_SECRET,
-            }
-        ] if GOOGLE_OAUTH2_CLIENT_ID and GOOGLE_OAUTH2_CLIENT_SECRET else [],
     }
 }
 
