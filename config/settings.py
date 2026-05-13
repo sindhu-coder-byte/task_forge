@@ -187,15 +187,25 @@ ACCOUNT_LOGOUT_ON_GET = True
 # OAuth callback URLs must use https:// in production
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if not DEBUG else 'http'
 
+GOOGLE_OAUTH2_CLIENT_ID = os.environ.get('GOOGLE_OAUTH2_CLIENT_ID', '')
+GOOGLE_OAUTH2_CLIENT_SECRET = os.environ.get('GOOGLE_OAUTH2_CLIENT_SECRET', '')
+
+# allauth 65.x: embed APP credentials directly in settings so the Google
+# button shows without needing a SocialApp database record.
+_google_app = {}
+if GOOGLE_OAUTH2_CLIENT_ID and GOOGLE_OAUTH2_CLIENT_SECRET:
+    _google_app = {
+        'client_id': GOOGLE_OAUTH2_CLIENT_ID,
+        'secret':    GOOGLE_OAUTH2_CLIENT_SECRET,
+    }
+
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': ['profile', 'email'],
         'AUTH_PARAMS': {'access_type': 'online'},
+        **({'APP': _google_app} if _google_app else {}),
     }
 }
-
-GOOGLE_OAUTH2_CLIENT_ID = os.environ.get('GOOGLE_OAUTH2_CLIENT_ID', '')
-GOOGLE_OAUTH2_CLIENT_SECRET = os.environ.get('GOOGLE_OAUTH2_CLIENT_SECRET', '')
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
 SOCIALACCOUNT_ADAPTER = 'core.adapters.CustomSocialAccountAdapter'
