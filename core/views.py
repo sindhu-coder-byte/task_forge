@@ -2360,7 +2360,7 @@ def login_view(request):
             messages.success(request, f"Welcome back, {user.username}!")
 
             # Role-based redirect (Jira-style)
-            if profile.role == 'admin':
+            if _is_admin_user(user) or profile.role == 'admin':
                 return redirect('core:dashboard')
             elif profile.role in ['project_lead', 'team_lead']:
                 return redirect('core:projects')
@@ -2447,14 +2447,14 @@ def logout_view(request):
 def role_redirect(request):
     profile, _ = Profile.objects.get_or_create(user=request.user)
 
-    if profile.role == 'admin':
+    if _is_admin_user(request.user) or profile.role == 'admin':
         return redirect('core:dashboard')
 
     elif profile.role in ['project_lead', 'team_lead']:
         return redirect('core:projects')
 
     elif profile.role == 'guest':
-        return redirect('core:guest_dashboard')  # 👈 NEW
+        return redirect('core:guest_dashboard')
 
     else:
         return redirect('core:home')

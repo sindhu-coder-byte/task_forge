@@ -1,5 +1,5 @@
 """
-Creates a superuser from environment variables if one doesn't already exist.
+Creates (or repairs) a superuser from environment variables.
 
 Required env vars:
   DJANGO_SUPERUSER_USERNAME
@@ -8,6 +8,9 @@ Required env vars:
 
 Run automatically during Render build:
   python manage.py ensure_superuser
+
+If the user already exists, their password and superuser flags are updated
+from the env vars, and an admin Profile is ensured.
 """
 import os
 
@@ -16,7 +19,7 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Create superuser from env vars if it does not already exist."
+    help = "Create or repair superuser from env vars."
 
     def handle(self, *args, **options):
         username = os.environ.get("DJANGO_SUPERUSER_USERNAME", "").strip()
@@ -27,9 +30,21 @@ class Command(BaseCommand):
             self.stdout.write("DJANGO_SUPERUSER_USERNAME / _PASSWORD not set — skipping.")
             return
 
-        if User.objects.filter(username=username).exists():
-            self.stdout.write(f"Superuser '{username}' already exists — skipping.")
-            return
+        user, created = User.objects.get_or_create(username=username)
+        user.email = email
+        user.is_staff = True
+        user.is_superuser = True
+        user.set_password(password)
+        user.save()
 
-        User.objects.create_superuser(username=username, email=email, password=password)
-        self.stdout.write(self.style.SUCCESS(f"Superuser '{username}' created."))
+        # Ensure admin Profile exists
+        from core.models import Profile
+        profile, _ = Profile.objects.get_or_create(user=user)
+        if profile.role != 'admin':
+            profile.role = 'admin'
+            profile.save(update_fields=['role'])
+
+        if created:
+            self.stdout.write(self.style.SUCCESS(f"Superuser '{username}' created."))
+        else:
+            self.stdout.write(self.style.SUCCESS(f"Superuser '{username}' updated (password + profile synced)."))
