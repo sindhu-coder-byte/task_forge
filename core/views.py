@@ -417,7 +417,8 @@ def _task_can_transition(user, task: Task, new_status: str) -> bool:
     if not _task_can_view(user, task):
         return False
 
-    role = user.profile.role
+    role = getattr(user, 'profile', None)
+    role = role.role if role else 'user'
     if task.project_id and role != 'admin':
         role = ProjectMembership.objects.filter(
             user=user,
@@ -467,7 +468,7 @@ def _guest_home_context():
 
 def _user_workspace_scope(request):
     user = request.user
-    profile = user.profile
+    profile, _ = Profile.objects.get_or_create(user=user)
     global_role = profile.role
 
     memberships = ProjectMembership.objects.filter(user=user).select_related('project')
@@ -2723,7 +2724,7 @@ def create_project(request):
 
 @login_required
 def projects(request):
-    profile = request.user.profile
+    profile, _ = Profile.objects.get_or_create(user=request.user)
     global_role = profile.role
 
     if request.method == "POST":

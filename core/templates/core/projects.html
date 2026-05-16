@@ -130,14 +130,16 @@
       <div class="pj-meta">
 
         <!-- Lead -->
-        <div class="pj-lead" title="Lead: {{ project.project_lead.get_full_name|default:project.project_lead.username|default:'—' }}">
-          {% if project.project_lead %}
+        {% if project.project_lead %}
+        <div class="pj-lead" title="Lead: {{ project.project_lead.get_full_name|default:project.project_lead.username }}">
           <div class="pj-lead-av">{{ project.project_lead.username|slice:":1"|upper }}</div>
           <span class="pj-lead-name">{{ project.project_lead.get_full_name|default:project.project_lead.username }}</span>
-          {% else %}
-          <span class="pj-no-lead">No lead</span>
-          {% endif %}
         </div>
+        {% else %}
+        <div class="pj-lead" title="Lead: —">
+          <span class="pj-no-lead">No lead</span>
+        </div>
+        {% endif %}
 
         <!-- Members -->
         <div class="pj-members">
