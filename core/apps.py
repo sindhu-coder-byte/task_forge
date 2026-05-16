@@ -9,12 +9,11 @@ class CoreConfig(AppConfig):
         import core.signals  # noqa: F401
         from django.db.models.signals import post_migrate
         post_migrate.connect(_sync_site_domain, sender=self)
+        post_migrate.connect(_ensure_superuser, sender=self)
 
 
 def _sync_site_domain(**_kwargs):
-    """Keep django.contrib.sites in sync with SITE_URL / RENDER_EXTERNAL_HOSTNAME.
-    Runs automatically after every `manage.py migrate` (including Render's build step).
-    """
+    """Keep django.contrib.sites in sync with SITE_URL / RENDER_EXTERNAL_HOSTNAME."""
     try:
         import os
         from urllib.parse import urlparse
@@ -38,3 +37,35 @@ def _sync_site_domain(**_kwargs):
             )
     except Exception:
         pass
+
+
+def _ensure_superuser(**_kwargs):
+    """Create/repair superuser from env vars after every migrate run."""
+    import os
+    username = os.environ.get('DJANGO_SUPERUSER_USERNAME', '').strip()
+    password = os.environ.get('DJANGO_SUPERUSER_PASSWORD', '').strip()
+    email    = os.environ.get('DJANGO_SUPERUSER_EMAIL', '').strip()
+
+    if not username or not password:
+        return
+
+    try:
+        from django.contrib.auth.models import User
+        from core.models import Profile
+
+        user, created = User.objects.get_or_create(username=username)
+        user.email = email
+        user.is_staff = True
+        user.is_superuser = True
+        user.set_password(password)
+        user.save()
+
+        profile, _ = Profile.objects.get_or_create(user=user)
+        if profile.role != 'admin':
+            profile.role = 'admin'
+            profile.save(update_fields=['role'])
+
+        verb = 'created' if created else 'updated'
+        print(f'[ensure_superuser] Superuser "{username}" {verb} successfully.')
+    except Exception as exc:
+        print(f'[ensure_superuser] ERROR: {exc}')
