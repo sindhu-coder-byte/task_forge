@@ -1571,6 +1571,7 @@ def tasks(request):
         'is_project_lead': _is_project_lead(request.user),
         'status_choices': status_choices,
         'status_counts': status_counts,
+        'today': date.today(),
     })
     
 @login_required
@@ -1629,10 +1630,9 @@ def create_task(request):
     if is_admin:
         projects = Project.objects.all()
     elif is_project_lead:
-        # Project leads can create tasks for projects they lead
         projects = Project.objects.filter(
             Q(project_lead=request.user) |
-            Q(projectmembership__user=request.user, projectmembership__role='project_lead')
+            Q(projectmembership__user=request.user)
         ).distinct()
     else:
         # Regular members can create tasks for projects they're members of

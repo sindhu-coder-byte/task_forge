@@ -280,9 +280,9 @@ form select, form button {
 
 
 
-<div class="bad"></div>ge.status {
+.badge.status {
   background:#e6f4ff;
-} 
+}
 
 /* FORM */
 /* FORM STRUCTURE */
@@ -839,6 +839,60 @@ textarea {
 }
 
 
+/* DUE DATE */
+.task-due {
+  font-size: 11px;
+  color: #888;
+  margin-top: 6px;
+}
+.task-due.overdue {
+  color: #cf1322;
+  font-weight: 600;
+}
+
+/* DETAIL LINK */
+.task-detail-link {
+  font-size: 13px;
+  color: #9ca3af;
+  text-decoration: none;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: 0.15s;
+}
+.task-detail-link:hover {
+  color: #1677ff;
+  background: #e6f4ff;
+}
+
+/* MESSAGES */
+.board-messages {
+  margin-bottom: 16px;
+}
+.board-msg {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.board-msg--error   { background:#fff2f0; border:1px solid #ffccc7; color:#cf1322; }
+.board-msg--warning { background:#fffbe6; border:1px solid #ffe58f; color:#874d00; }
+.board-msg--success { background:#f6ffed; border:1px solid #b7eb8f; color:#135200; }
+.board-msg--info,
+.board-msg--debug   { background:#e6f4ff; border:1px solid #91caff; color:#0958d9; }
+.board-msg-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  margin-left: 12px;
+  line-height: 1;
+  opacity: 0.6;
+}
+.board-msg-close:hover { opacity: 1; }
+
 @media (max-width: 768px) {
   .board-container {
     padding: 14px;
@@ -851,6 +905,17 @@ textarea {
 {% block shell_page %}
 
 <div class="board-container">
+
+{% if messages %}
+<div class="board-messages">
+  {% for message in messages %}
+  <div class="board-msg board-msg--{{ message.tags }}">
+    <span>{{ message }}</span>
+    <button class="board-msg-close" onclick="this.parentNode.remove()" title="Dismiss">&times;</button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
 
 <div class="board-header">
   <div class="board-title">Kanban Board</div>
@@ -972,8 +1037,14 @@ textarea {
       {{ task.priority }}
     </div>
 
-    <div class="avatar">
-      {{ task.assigned_to.username|default:"?"|slice:":1"|upper }}
+    <div style="display:flex; align-items:center; gap:6px;">
+      <div class="avatar" title="{{ task.assigned_to.username|default:'Unassigned' }}">
+        {{ task.assigned_to.username|default:"?"|slice:":1"|upper }}
+      </div>
+      <a href="{% url 'core:task_detail' task.id %}" class="task-detail-link"
+         onclick="event.stopPropagation()" title="View details">
+        <i class="ri-external-link-line"></i>
+      </a>
     </div>
   </div>
 
@@ -1102,6 +1173,8 @@ textarea {
     <i class="ri-calendar-line"></i> Not set
   </div>
 </div>
+
+</div><!-- /taskSidebar -->
 
 {% if request.user.profile.role == 'admin' or request.user.profile.isProjectLead or is_project_lead %}
 <!-- CREATE TASK MODAL -->
