@@ -27,17 +27,26 @@ class NotificationService:
         """Send HTML email to recipient.
 
         Returns True on success, False on failure.
-        Skips silently if EMAIL_HOST_USER is not configured (avoids SMTP auth errors).
+        All outcomes are printed to stdout so they appear in Render/server logs.
         """
+        backend = getattr(settings, 'EMAIL_BACKEND', '')
+        host    = getattr(settings, 'EMAIL_HOST', '')
+        user    = getattr(settings, 'EMAIL_HOST_USER', '') or ''
+
         if not self._email_configured:
-            print(f"[TaskForge] EMAIL_HOST_USER not set — skipping email to {recipient.email}")
+            print(f"[TF-EMAIL] SKIP — EMAIL_HOST_USER not set. "
+                  f"backend={backend}. recipient={getattr(recipient, 'email', '?')}")
             return False
 
-        if not recipient.email:
+        if not getattr(recipient, 'email', None):
+            print(f"[TF-EMAIL] SKIP — recipient has no email address.")
             return False
 
         if text_content is None:
             text_content = strip_tags(html_content) if html_content else subject
+
+        print(f"[TF-EMAIL] Sending '{subject}' → {recipient.email} "
+              f"via {host} as {user}")
 
         try:
             email = EmailMultiAlternatives(
@@ -49,9 +58,10 @@ class NotificationService:
             if html_content:
                 email.attach_alternative(html_content, "text/html")
             email.send(fail_silently=False)
+            print(f"[TF-EMAIL] OK — sent '{subject}' → {recipient.email}")
             return True
         except Exception as e:
-            print(f"[TaskForge] Email to {recipient.email} failed: {e}")
+            print(f"[TF-EMAIL] FAILED '{subject}' → {recipient.email} | error: {e}")
             return False
     
     def get_project_lead(self, project):

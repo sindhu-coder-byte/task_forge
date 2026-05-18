@@ -221,18 +221,20 @@ SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 EMAIL_HOST_USER     = _env('EMAIL_HOST_USER') or None
 EMAIL_HOST_PASSWORD = _env('EMAIL_HOST_PASSWORD') or None
 
+# Allow overriding the SMTP provider via env vars (e.g. switch to Resend/Mailgun).
+# Defaults to Gmail if not specified.
+EMAIL_HOST    = _env('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT    = int(_env('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = _env('EMAIL_USE_TLS', 'True').lower() not in ('false', '0', 'no')
+EMAIL_USE_SSL = _env('EMAIL_USE_SSL', 'False').lower() in ('true', '1', 'yes')
+
 if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
-    EMAIL_BACKEND   = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST      = 'smtp.gmail.com'
-    EMAIL_PORT      = 587
-    EMAIL_USE_TLS   = True
-    EMAIL_USE_SSL   = False
-    EMAIL_TIMEOUT   = 30   # seconds — avoids hanging forever on SMTP connect
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_TIMEOUT = 30
 else:
-    # Console backend when email credentials are not configured
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or 'noreply@taskforge.app'
+DEFAULT_FROM_EMAIL = _env('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'noreply@taskforge.app')
 
 # ── MISC ──────────────────────────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
