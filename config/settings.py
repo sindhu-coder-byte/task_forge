@@ -204,14 +204,18 @@ SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
 # ── EMAIL ─────────────────────────────────────────────────────────────────────
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+# Strip whitespace — Render sometimes adds a trailing newline to env var values,
+# and Gmail App Passwords must not have leading/trailing spaces.
+EMAIL_HOST_USER     = (os.environ.get('EMAIL_HOST_USER') or '').strip() or None
+EMAIL_HOST_PASSWORD = (os.environ.get('EMAIL_HOST_PASSWORD') or '').strip() or None
 
 if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = 'smtp.gmail.com'
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
+    EMAIL_BACKEND   = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST      = 'smtp.gmail.com'
+    EMAIL_PORT      = 587
+    EMAIL_USE_TLS   = True
+    EMAIL_USE_SSL   = False
+    EMAIL_TIMEOUT   = 30   # seconds — avoids hanging forever on SMTP connect
 else:
     # Console backend when email credentials are not configured
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
