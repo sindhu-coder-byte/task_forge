@@ -113,7 +113,7 @@
                   </div>
                   <div class="pt-member-email">{{ m.email }}</div>
                   <div class="pt-member-badges">
-                    {% if project.project_lead == m or m.project_role == 'project_lead' %}
+                    {% if project.project_lead == m or m.project_role == 'project_lead' or m.profile.role == 'project_lead' %}
                       <span class="pt-badge pt-badge--lead"><i class="ri-shield-star-line"></i> Project Lead</span>
                     {% elif m.project_role == 'delivery_team' %}
                       {% for t in teams %}{% if t.lead == m %}<span class="pt-badge pt-badge--teamlead">Lead · {{ t.name }}</span>{% endif %}{% endfor %}

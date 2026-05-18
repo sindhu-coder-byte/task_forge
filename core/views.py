@@ -1446,6 +1446,13 @@ def project_team(request, project_id):
         id__in=project.members.all()
     ).exclude(id=project.created_by.id)
 
+    # Repair stale ProjectMembership rows where role='admin' but user is a project lead
+    ProjectMembership.objects.filter(
+        project=project,
+        role='admin',
+        user__profile__role='project_lead',
+    ).update(role='project_lead')
+
     # Annotate each member with their project-specific role for correct badge display
     from django.db.models import OuterRef, Subquery
     members_annotated = project.members.annotate(
