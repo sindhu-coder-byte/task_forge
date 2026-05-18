@@ -25,7 +25,7 @@
 
       <span class="action-divider"></span>
 
-      {% if role == 'project_lead' %}
+      {% if role == 'project_lead' or role == 'admin' %}
         <a class="btn-secondary-sm"
            href="{% url 'core:project_team' project.id %}">
           <i class="ri-team-line"></i>
@@ -541,13 +541,13 @@
 
         <div class="team-members-grid">
 
-          {% for member in valid_members %}
+          {% for member, project_role in valid_members_with_roles %}
 
           <label
             class="team-member-card"
             data-username="{{ member.username|lower }}"
             data-email="{{ member.email|lower }}"
-            data-role="{{ member.profile.role|lower }}"
+            data-role="{{ project_role|lower }}"
           >
 
             <input
@@ -587,7 +587,7 @@
               </div>
 
               <div class="team-member-role">
-                {{ member.profile.get_role_display }}
+                {{ project_role }}
               </div>
 
             </div>

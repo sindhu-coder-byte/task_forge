@@ -3266,9 +3266,13 @@ def project_detail(request, project_id):
     # =========================
     # ✅ PROJECT-SPECIFIC ROLE
     # =========================
-    # Used by the template to decide which action buttons to show.
+    # Used by the template badge and action buttons.
+    # Admin keeps their 'admin' label; project leads show 'project_lead';
+    # everyone else shows their project membership role.
     membership = ProjectMembership.objects.filter(user=user, project=project).first()
-    if user == project.project_lead or (membership and membership.role == 'project_lead') or role == 'admin':
+    if role == 'admin':
+        template_role = 'admin'
+    elif user == project.project_lead or (membership and membership.role == 'project_lead'):
         template_role = 'project_lead'
     elif membership:
         template_role = membership.role
@@ -3277,7 +3281,6 @@ def project_detail(request, project_id):
 
     # =========================
     # ✅ MEMBER FILTER FOR CREATE-TEAM MODAL
-    # Use ProjectMembership role (project-scoped), not global profile role.
     # =========================
     pm_lead_ids = ProjectMembership.objects.filter(
         project=project,
@@ -3286,8 +3289,25 @@ def project_detail(request, project_id):
 
     valid_members = project.members.exclude(id__in=pm_lead_ids).distinct()
 
-    # Any project member (who is not project lead) can be selected as team lead
+    # Build a {user_id: role_display} map so member cards show the
+    # project-specific membership role, not the global profile role.
+    _role_choices = dict(ProjectMembership.ROLE_CHOICES)
+    member_project_role = {
+        pm.user_id: _role_choices.get(pm.role, pm.role.replace('_', ' ').title())
+        for pm in ProjectMembership.objects.filter(
+            project=project, user__in=valid_members
+        )
+    }
+
     lead_candidates = valid_members
+
+    # Pair each member with their project-specific role display so the
+    # template can show "Developer" instead of "Admin" for a member whose
+    # global profile.role is admin but whose membership role is developer.
+    valid_members_with_roles = [
+        (m, member_project_role.get(m.id, m.profile.get_role_display()))
+        for m in valid_members
+    ]
 
     # =========================
     # ✅ FINAL RESPONSE
@@ -3303,6 +3323,7 @@ def project_detail(request, project_id):
         'role': template_role,
         'progress_percent': progress_percent,
         'valid_members': valid_members,
+        'valid_members_with_roles': valid_members_with_roles,
         'lead_candidates': lead_candidates,
         'project_timeline': _project_timeline_context(project),
     })
