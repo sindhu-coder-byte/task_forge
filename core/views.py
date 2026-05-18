@@ -3583,32 +3583,62 @@ def user_delete(request, id):
 
 @login_required
 def test_email_send(request):
-    """Admin-only endpoint to verify email configuration.
+    """Admin-only endpoint to diagnose and verify email configuration.
 
-    GET  → shows config summary (no email sent)
-    POST → sends a test email to the logged-in admin's address
+    GET  → shows full config + SMTP connection test (no email sent)
+    POST → sends a real test email to the logged-in admin's address
     """
+    import smtplib
+    import ssl as _ssl
+
     if not _is_admin_user(request.user):
         return JsonResponse({'error': 'Unauthorized'}, status=403)
 
     backend  = getattr(settings, 'EMAIL_BACKEND', '')
     host     = getattr(settings, 'EMAIL_HOST', '')
+    port     = getattr(settings, 'EMAIL_PORT', 587)
+    use_tls  = getattr(settings, 'EMAIL_USE_TLS', False)
+    timeout  = getattr(settings, 'EMAIL_TIMEOUT', 30)
     user_var = getattr(settings, 'EMAIL_HOST_USER', '') or ''
-    timeout  = getattr(settings, 'EMAIL_TIMEOUT', None)
+    pwd_var  = getattr(settings, 'EMAIL_HOST_PASSWORD', '') or ''
+
+    # Show masked password diagnostics — helps confirm quote-stripping worked
+    if pwd_var:
+        pwd_diag = f"{pwd_var[0]}{'*' * (len(pwd_var) - 2)}{pwd_var[-1]}  (len={len(pwd_var)}, first_char={repr(pwd_var[0])})"
+    else:
+        pwd_diag = '(empty — SMTP auth will fail)'
 
     config_summary = {
-        'EMAIL_BACKEND':   backend,
-        'EMAIL_HOST':      host,
-        'EMAIL_PORT':      getattr(settings, 'EMAIL_PORT', ''),
-        'EMAIL_USE_TLS':   getattr(settings, 'EMAIL_USE_TLS', False),
-        'EMAIL_HOST_USER': user_var if user_var else '(not set — console backend active)',
-        'EMAIL_TIMEOUT':   timeout,
+        'EMAIL_BACKEND':      backend,
+        'EMAIL_HOST':         host,
+        'EMAIL_PORT':         port,
+        'EMAIL_USE_TLS':      use_tls,
+        'EMAIL_HOST_USER':    user_var or '(not set)',
+        'EMAIL_HOST_PASSWORD': pwd_diag,
+        'EMAIL_TIMEOUT':      timeout,
         'DEFAULT_FROM_EMAIL': getattr(settings, 'DEFAULT_FROM_EMAIL', ''),
+        'smtp_backend_active': 'smtp' in backend,
     }
 
-    if request.method != 'POST':
-        return JsonResponse({'config': config_summary})
+    # ── SMTP connection probe (GET only — safe, no email sent) ──────────────
+    smtp_probe = None
+    if request.method == 'GET' and 'smtp' in backend and host and user_var and pwd_var:
+        try:
+            ctx = _ssl.create_default_context()
+            with smtplib.SMTP(host, port, timeout=10) as conn:
+                if use_tls:
+                    conn.starttls(context=ctx)
+                conn.login(user_var, pwd_var)
+                smtp_probe = 'OK — SMTP login succeeded'
+        except smtplib.SMTPAuthenticationError as e:
+            smtp_probe = f'AUTH FAILED — wrong password or App Password not enabled: {e}'
+        except Exception as e:
+            smtp_probe = f'CONNECTION ERROR — {e}'
 
+    if request.method != 'POST':
+        return JsonResponse({'config': config_summary, 'smtp_probe': smtp_probe})
+
+    # ── Send real test email ────────────────────────────────────────────────
     recipient = request.user.email
     if not recipient:
         return JsonResponse({'error': 'Your admin account has no email address set.'}, status=400)
@@ -3616,14 +3646,15 @@ def test_email_send(request):
     try:
         email_msg = EmailMultiAlternatives(
             subject='TaskForge — Email Config Test',
-            body=f'This is a test email from TaskForge.\n\nSMTP backend: {backend}\nHost: {host}',
+            body=f'Test email from TaskForge.\n\nSMTP: {host}:{port}\nUser: {user_var}',
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[recipient],
         )
         email_msg.attach_alternative(
-            f'<p>This is a <strong>test email</strong> from <strong>TaskForge</strong>.</p>'
-            f'<p>Backend: <code>{backend}</code></p>'
-            f'<p>Host: <code>{host}</code></p>',
+            f'<p><strong>TaskForge email config is working!</strong></p>'
+            f'<p>Backend: <code>{backend}</code><br>'
+            f'Host: <code>{host}:{port}</code><br>'
+            f'Sent from: <code>{user_var}</code></p>',
             'text/html',
         )
         email_msg.send()
