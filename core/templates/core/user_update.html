@@ -232,10 +232,16 @@
         <!-- ROLE -->
         <div class="uu-group">
           <label class="uu-lbl" for="{{ form.role.id_for_label }}">System Role</label>
-          {{ form.role }}
+          <select name="role" id="{{ form.role.id_for_label }}"
+                  style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#111827;background:#fff;">
+            {% for val, label in form.role.field.choices %}
+            <option value="{{ val }}" {% if form.role.value == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
           {% if form.role.errors %}
             <span class="uu-err">{{ form.role.errors.0 }}</span>
           {% endif %}
+          <span class="uu-hint"><i class="ri-information-line"></i> Sets the user's global system role.</span>
         </div>
 
         <!-- ASSIGNED PROJECTS -->

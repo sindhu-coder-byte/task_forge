@@ -101,6 +101,13 @@ class UserCreateForm(forms.ModelForm):
 class UserUpdateForm(forms.ModelForm):
     is_active = forms.BooleanField(required=False)
 
+    role = forms.ChoiceField(
+        choices=Profile.ROLE_CHOICES,
+        required=False,
+        initial='user',
+        widget=forms.Select(attrs={'class': 'uu-group'}),
+    )
+
     assigned_projects = forms.ModelMultipleChoiceField(
         queryset=Project.objects.all(),
         required=False,
@@ -119,6 +126,10 @@ class UserUpdateForm(forms.ModelForm):
             self.fields["assigned_projects"].initial = Project.objects.filter(
                 projectmembership__user=self.instance
             )
+            try:
+                self.fields["role"].initial = self.instance.profile.role or 'user'
+            except Exception:
+                self.fields["role"].initial = 'user'
 
     def clean_username(self):
         username = self.cleaned_data.get("username")

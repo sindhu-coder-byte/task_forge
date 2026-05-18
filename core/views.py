@@ -1640,9 +1640,18 @@ def create_task(request):
             Q(projectmembership__user=request.user) | Q(project_lead=request.user)
         ).distinct()
     
-    # If no projects available, redirect
+    # If no projects available, redirect with a role-appropriate message
     if not projects.exists():
-        messages.warning(request, "You need to be a Project Lead or member of a project to create tasks")
+        if is_project_lead:
+            messages.info(
+                request,
+                "You don't have any projects yet. Create a project first, then you can add tasks to it."
+            )
+        else:
+            messages.warning(
+                request,
+                "You need to be a member of a project to create tasks."
+            )
         return redirect('core:projects')
     users = User.objects.none()
     selected_assignee = None
@@ -3499,11 +3508,27 @@ def user_update(request, id):
         if form.is_valid():
             user = form.save()
 
+            # Save global profile role and derive isProjectLead flag
+            new_role = form.cleaned_data.get("role") or "user"
             profile, _ = Profile.objects.get_or_create(user=user)
-            profile.save()
+            profile.role = new_role
+            profile.isProjectLead = (new_role == "project_lead")
+            profile.save(update_fields=["role", "isProjectLead"])
+
+            # Map system role → project membership role
+            _pm_role_map = {
+                "project_lead":    "project_lead",
+                "developer":       "developer",
+                "tester":          "tester",
+                "ui_ux_designer":  "ui_ux_designer",
+                "delivery_team":   "delivery_team",
+                "deployment_team": "deployment_team",
+                "admin":           "developer",
+                "user":            "developer",
+            }
+            membership_role = _pm_role_map.get(new_role, "developer")
 
             assigned_projects = form.cleaned_data.get("assigned_projects", [])
-            role = request.POST.get("role", "developer")
 
             ProjectMembership.objects.filter(user=user).exclude(
                 project__in=assigned_projects
@@ -3513,7 +3538,7 @@ def user_update(request, id):
                 ProjectMembership.objects.update_or_create(
                     user=user,
                     project=project,
-                    defaults={'role': role}
+                    defaults={"role": membership_role}
                 )
 
             messages.success(request, f"{user.username} updated successfully")
