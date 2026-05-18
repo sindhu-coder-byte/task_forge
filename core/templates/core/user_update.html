@@ -232,16 +232,33 @@
         <!-- ROLE -->
         <div class="uu-group">
           <label class="uu-lbl" for="{{ form.role.id_for_label }}">System Role</label>
-          <select name="role" id="{{ form.role.id_for_label }}"
-                  style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#111827;background:#fff;">
-            {% for val, label in form.role.field.choices %}
-            <option value="{{ val }}" {% if form.role.value == val %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-          </select>
-          {% if form.role.errors %}
-            <span class="uu-err">{{ form.role.errors.0 }}</span>
+
+          {% if user_obj.profile.role == 'project_lead' %}
+            {# Role is locked once set to Project Lead #}
+            <input type="hidden" name="role" value="project_lead">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+                        background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;">
+              <i class="ri-lock-line" style="color:#4f46e5;font-size:16px;flex-shrink:0;"></i>
+              <span style="font-size:14px;font-weight:600;color:#3730a3;">Project Lead</span>
+              <span style="margin-left:auto;font-size:11px;font-weight:600;color:#6366f1;
+                           background:#e0e7ff;padding:2px 8px;border-radius:999px;">LOCKED</span>
+            </div>
+            <span class="uu-hint" style="color:#6366f1;">
+              <i class="ri-information-line"></i>
+              Project Lead role is locked. Remove all project-lead memberships first to change this role.
+            </span>
+          {% else %}
+            <select name="role" id="{{ form.role.id_for_label }}"
+                    style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#111827;background:#fff;">
+              {% for val, label in form.role.field.choices %}
+              <option value="{{ val }}" {% if form.role.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            {% if form.role.errors %}
+              <span class="uu-err">{{ form.role.errors.0 }}</span>
+            {% endif %}
+            <span class="uu-hint"><i class="ri-information-line"></i> Sets the user's global system role.</span>
           {% endif %}
-          <span class="uu-hint"><i class="ri-information-line"></i> Sets the user's global system role.</span>
         </div>
 
         <!-- ASSIGNED PROJECTS -->

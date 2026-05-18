@@ -3509,9 +3509,15 @@ def user_update(request, id):
         if form.is_valid():
             user = form.save()
 
-            # Save global profile role and derive isProjectLead flag
-            new_role = form.cleaned_data.get("role") or "user"
             profile, _ = Profile.objects.get_or_create(user=user)
+
+            # Once a user is Project Lead the role is locked — ignore any
+            # attempt to downgrade it through this form.
+            if profile.role == "project_lead":
+                new_role = "project_lead"
+            else:
+                new_role = form.cleaned_data.get("role") or "user"
+
             profile.role = new_role
             profile.isProjectLead = (new_role == "project_lead")
             profile.save(update_fields=["role", "isProjectLead"])
@@ -3573,6 +3579,57 @@ def user_delete(request, id):
         return redirect("core:user_list")
 
     return render(request, "core/user_delete.html", {"user": user})
+
+
+@login_required
+def test_email_send(request):
+    """Admin-only endpoint to verify email configuration.
+
+    GET  → shows config summary (no email sent)
+    POST → sends a test email to the logged-in admin's address
+    """
+    if not _is_admin_user(request.user):
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    backend  = getattr(settings, 'EMAIL_BACKEND', '')
+    host     = getattr(settings, 'EMAIL_HOST', '')
+    user_var = getattr(settings, 'EMAIL_HOST_USER', '') or ''
+    timeout  = getattr(settings, 'EMAIL_TIMEOUT', None)
+
+    config_summary = {
+        'EMAIL_BACKEND':   backend,
+        'EMAIL_HOST':      host,
+        'EMAIL_PORT':      getattr(settings, 'EMAIL_PORT', ''),
+        'EMAIL_USE_TLS':   getattr(settings, 'EMAIL_USE_TLS', False),
+        'EMAIL_HOST_USER': user_var if user_var else '(not set — console backend active)',
+        'EMAIL_TIMEOUT':   timeout,
+        'DEFAULT_FROM_EMAIL': getattr(settings, 'DEFAULT_FROM_EMAIL', ''),
+    }
+
+    if request.method != 'POST':
+        return JsonResponse({'config': config_summary})
+
+    recipient = request.user.email
+    if not recipient:
+        return JsonResponse({'error': 'Your admin account has no email address set.'}, status=400)
+
+    try:
+        email_msg = EmailMultiAlternatives(
+            subject='TaskForge — Email Config Test',
+            body=f'This is a test email from TaskForge.\n\nSMTP backend: {backend}\nHost: {host}',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[recipient],
+        )
+        email_msg.attach_alternative(
+            f'<p>This is a <strong>test email</strong> from <strong>TaskForge</strong>.</p>'
+            f'<p>Backend: <code>{backend}</code></p>'
+            f'<p>Host: <code>{host}</code></p>',
+            'text/html',
+        )
+        email_msg.send()
+        return JsonResponse({'status': 'sent', 'to': recipient, 'config': config_summary})
+    except Exception as e:
+        return JsonResponse({'status': 'failed', 'error': str(e), 'config': config_summary}, status=500)
     
     
 @login_required

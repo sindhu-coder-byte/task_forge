@@ -509,6 +509,19 @@
 
         const SUCCESS = ['invited', 'added', 'added_to_team'];
         if (res.ok && SUCCESS.includes(data.status)) {
+          if (data.warning) {
+            // Invite saved but email delivery failed — show message then reload
+            inviteError.style.color = '#b45309';
+            inviteError.style.background = '#fef9c3';
+            inviteError.style.border = '1px solid #fcd34d';
+            inviteError.style.borderRadius = '6px';
+            inviteError.style.padding = '8px 12px';
+            showErr('Invite saved, but email could not be delivered. Ask the recipient to contact admin for the invite link.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="ri-send-plane-line"></i> Send invite';
+            setTimeout(() => location.reload(), 5000);
+            return;
+          }
           location.reload();
         } else {
           showErr(data.error || "Invite failed. Please try again.");

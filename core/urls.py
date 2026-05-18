@@ -34,6 +34,7 @@ urlpatterns = [
     path('users/<int:id>/promote/', views.promote_to_project_lead, name='promote_to_project_lead'),
     path("user/stats/", views.user_stats),
     path("api/users/", views.api_users, name="api_users"),
+    path("admin/test-email/", views.test_email_send, name="test_email_send"),
     path("api/users/<int:id>/toggle-project-lead/", views.api_toggle_project_lead, name="api_toggle_project_lead"),
 
     # =========================
