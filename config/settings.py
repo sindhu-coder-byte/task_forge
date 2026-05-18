@@ -10,8 +10,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / '.env')
 
+
+def _env(key, default=''):
+    """Read an env var and strip surrounding quotes that dashboards sometimes add.
+
+    Handles both  KEY="value"  and  KEY='value'  — the quotes become literal
+    characters when pasted into Render / Heroku UI, breaking passwords and keys.
+    Also strips leading/trailing whitespace.
+    """
+    val = (os.environ.get(key) or default or '').strip()
+    if len(val) >= 2 and val[0] == val[-1] and val[0] in ('"', "'"):
+        val = val[1:-1].strip()
+    return val
+
+
 # ── CORE ────────────────────────────────────────────────────────────────────
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-k7x%c$_i_s1&0@8&%!i%6_=gbm5qvbqrrk#p#s5rvb1yg=hos8')
+SECRET_KEY = _env('SECRET_KEY', 'django-insecure-k7x%c$_i_s1&0@8&%!i%6_=gbm5qvbqrrk#p#s5rvb1yg=hos8')
 
 # "True" / "False" string from env; defaults to False in production
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
@@ -187,8 +201,8 @@ ACCOUNT_LOGOUT_ON_GET = True
 # OAuth callback URLs must use https:// in production
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if not DEBUG else 'http'
 
-GOOGLE_OAUTH2_CLIENT_ID = os.environ.get('GOOGLE_OAUTH2_CLIENT_ID', '')
-GOOGLE_OAUTH2_CLIENT_SECRET = os.environ.get('GOOGLE_OAUTH2_CLIENT_SECRET', '')
+GOOGLE_OAUTH2_CLIENT_ID     = _env('GOOGLE_OAUTH2_CLIENT_ID')
+GOOGLE_OAUTH2_CLIENT_SECRET = _env('GOOGLE_OAUTH2_CLIENT_SECRET')
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
@@ -204,10 +218,8 @@ SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
 # ── EMAIL ─────────────────────────────────────────────────────────────────────
-# Strip whitespace — Render sometimes adds a trailing newline to env var values,
-# and Gmail App Passwords must not have leading/trailing spaces.
-EMAIL_HOST_USER     = (os.environ.get('EMAIL_HOST_USER') or '').strip() or None
-EMAIL_HOST_PASSWORD = (os.environ.get('EMAIL_HOST_PASSWORD') or '').strip() or None
+EMAIL_HOST_USER     = _env('EMAIL_HOST_USER') or None
+EMAIL_HOST_PASSWORD = _env('EMAIL_HOST_PASSWORD') or None
 
 if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND   = 'django.core.mail.backends.smtp.EmailBackend'
