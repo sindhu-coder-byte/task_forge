@@ -1,0 +1,73 @@
+services:
+  - type: web
+    name: taskforge
+    runtime: python
+    buildCommand: >-
+      pip install -r requirements.txt &&
+      python manage.py collectstatic --noinput &&
+      python manage.py migrate &&
+      python manage.py ensure_superuser || echo "ensure_superuser skipped"
+    startCommand: "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+    plan: free
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: taskforge-db
+          property: connectionString
+      - key: SITE_URL
+        value: "https://task-forge-0dwp.onrender.com"
+      - key: ALLOWED_HOSTS
+        value: "task-forge-0dwp.onrender.com"
+      - key: TASKFORGE_ADMIN_EMAILS
+        sync: false
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: GOOGLE_OAUTH2_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH2_CLIENT_SECRET
+        sync: false
+      - key: DJANGO_SUPERUSER_USERNAME
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false
+      - key: DJANGO_SUPERUSER_EMAIL
+        sync: false
+
+  # Daily email notifications: due dates, overdue tasks, progress digests
+  - type: cron
+    name: taskforge-notifications
+    runtime: python
+    schedule: "0 8 * * *"   # 08:00 UTC every day
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py send_task_notifications
+    plan: free
+    envVars:
+      - key: SECRET_KEY
+        fromService:
+          name: taskforge
+          type: web
+          envVarKey: SECRET_KEY
+      - key: DATABASE_URL
+        fromDatabase:
+          name: taskforge-db
+          property: connectionString
+      - key: SITE_URL
+        value: "https://task-forge-0dwp.onrender.com"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEBUG
+        value: "False"
+
+databases:
+  - name: taskforge-db
+    plan: free
