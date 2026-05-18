@@ -960,36 +960,46 @@ def post_login_handler(request, user):
 def teams(request):
     profile = getattr(request.user, 'profile', None)
     role = getattr(profile, 'role', 'user')
+    # also treat users who are project_lead via membership or isProjectLead flag
+    _is_lead = _is_project_lead(request.user)
 
-    # For team_lead, get only teams they lead
     my_teams = None
-    if role == 'delivery_team':
-        my_teams = Team.objects.filter(lead=request.user).prefetch_related('members', 'project')
 
     if role == 'admin':
         projects = Project.objects.prefetch_related('members')
         tasks = Task.objects.select_related('project', 'assigned_to').all()
         members = User.objects.filter(is_active=True)
         can_approve = True
-    elif role == 'project_lead':
-        projects = Project.objects.filter(project_lead=request.user).prefetch_related('members')
-        tasks = Task.objects.filter(project__project_lead=request.user).select_related('project', 'assigned_to')
-        members = User.objects.filter(projectmembership__project__in=projects).distinct()
+        my_teams = Team.objects.prefetch_related('members', 'project').select_related('project')
+    elif role == 'project_lead' or _is_lead:
+        # All projects where user is lead or any kind of member
+        projects = Project.objects.filter(
+            Q(project_lead=request.user) |
+            Q(projectmembership__user=request.user)
+        ).distinct().prefetch_related('members')
+        tasks = Task.objects.filter(
+            Q(project__project_lead=request.user) |
+            Q(project__projectmembership__user=request.user)
+        ).distinct().select_related('project', 'assigned_to')
+        members = User.objects.filter(
+            projectmembership__project__in=projects
+        ).distinct()
         can_approve = True
+        my_teams = Team.objects.filter(
+            project__in=projects
+        ).prefetch_related('members', 'project').select_related('project')
     elif role == 'delivery_team':
         led_teams = _teams_led_by(request.user)
         team_members = _team_scope_users(led_teams)
         project_ids = led_teams.values_list('project_id', flat=True)
-
         tasks = Task.objects.filter(
             Q(team__in=led_teams) | Q(assigned_to__in=team_members),
             project_id__in=project_ids,
         ).select_related('project', 'assigned_to', 'team').distinct()
-
         projects = Project.objects.filter(id__in=project_ids).distinct()
-
         members = team_members
         can_approve = True
+        my_teams = led_teams
     else:
         projects = Project.objects.filter(members=request.user).distinct().prefetch_related('members')
         tasks = Task.objects.filter(project__in=projects, assigned_to=request.user).select_related('project', 'assigned_to')
@@ -1000,22 +1010,18 @@ def teams(request):
     project_count = projects.count()
     team_member_count = members.exclude(id=request.user.id).count() if role != 'admin' else members.count()
 
-    context = {
+    return render(request, 'core/teams.html', {
         'projects': projects,
         'tasks': tasks,
         'members': members,
         'status_counts': status_counts,
         'project_count': project_count,
         'team_member_count': team_member_count,
-        'role': role,
+        'role': role if (role in ('admin', 'project_lead', 'delivery_team')) else ('project_lead' if _is_lead else role),
         'can_approve': can_approve,
-    }
-    
-    # Add my_teams for team_lead
-    if my_teams:
-        context['my_teams'] = my_teams
-    
-    return render(request, 'core/teams.html', context)
+        'my_teams': my_teams,
+        'can_create_team': (role == 'admin' or role == 'project_lead' or _is_lead),
+    })
     
 @login_required
 def update_member_role(request, project_id, user_id):
