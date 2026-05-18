@@ -2960,51 +2960,46 @@ def invite_project_member(request, project_id):
                     project=project,
                 )
 
-            # ✅ BUILD ACCEPT LINK
-            accept_url = request.build_absolute_uri(
-                  reverse('core:accept_project_invite',args=[invite.token])
-            )
-            
-            # Convert role value → label
-            role_display = dict(ProjectMembership.ROLE_CHOICES).get(role, 'Developer')
-             # ✅ EMAIL CONTEXT
-            context = {
-                "project":      project,
-                "inviter":      request.user,
-                "accept_url":   accept_url,
-                "role":         role_display,
-                "invite_email": email,
-            }
-
-# ✅ RENDER EMAIL
-            html_content = render_to_string("emails/invite_email.html", 
-                                            context)
-            text_content = strip_tags(html_content)
-
-# ✅ SEND EMAIL
-            email_msg = EmailMultiAlternatives(
-                subject=f"You're invited to join {project.name}",
-                body=text_content,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=[email],
-            )
-
-            email_msg.attach_alternative(html_content, "text/html")   
-            email_msg.send()
-
-            return JsonResponse({
-                 'status': 'invited',
-                 'message': 'Invite sent successfully',
-                 'user': {
-                 'email': email,
-                'role': role
-            },
-                'team': team.name if team else None
-            })
     except Exception as e:
-        return JsonResponse({
-            'error': str(e)  # use generic msg in production
-        }, status=500)
+        return JsonResponse({'error': str(e)}, status=500)
+
+    # ── Email is sent OUTSIDE the transaction so a delivery failure
+    #    never rolls back the saved invite record.
+    accept_url = request.build_absolute_uri(
+        reverse('core:accept_project_invite', args=[invite.token])
+    )
+    role_display = dict(ProjectMembership.ROLE_CHOICES).get(role, 'Developer')
+    context = {
+        "project":      project,
+        "inviter":      request.user,
+        "accept_url":   accept_url,
+        "role":         role_display,
+        "invite_email": email,
+    }
+    email_warning = None
+    try:
+        html_content = render_to_string("emails/invite_email.html", context)
+        text_content = strip_tags(html_content)
+        email_msg = EmailMultiAlternatives(
+            subject=f"You're invited to join {project.name}",
+            body=text_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[email],
+        )
+        email_msg.attach_alternative(html_content, "text/html")
+        email_msg.send()
+    except Exception:
+        email_warning = "Invite saved but email could not be delivered."
+
+    response = {
+        'status': 'invited',
+        'message': 'Invite sent successfully',
+        'user': {'email': email, 'role': role},
+        'team': team.name if team else None,
+    }
+    if email_warning:
+        response['warning'] = email_warning
+    return JsonResponse(response)
 
 
 def accept_project_invite(request, token):

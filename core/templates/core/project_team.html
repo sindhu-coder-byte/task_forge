@@ -507,10 +507,11 @@
         });
         const data = await res.json();
 
-        if (res.ok && (data.status === 'invited' || data.status === 'added')) {
+        const SUCCESS = ['invited', 'added', 'added_to_team'];
+        if (res.ok && SUCCESS.includes(data.status)) {
           location.reload();
         } else {
-          showErr(data.error || "Invite failed");
+          showErr(data.error || "Invite failed. Please try again.");
         }
       } catch (err) {
         showErr("Network error");
