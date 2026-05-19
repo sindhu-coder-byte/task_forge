@@ -5,6 +5,15 @@ from .models import Profile
 
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
 
+    def send_notification_mail(self, template_prefix, user, context=None, email_address=None):
+        # Swallow email errors so they never crash the OAuth callback.
+        # allauth 65 calls this inside SocialLogin.connect() — an SMTP/API
+        # failure here would otherwise result in a 500 on the callback URL.
+        try:
+            super().send_notification_mail(template_prefix, user, context, email_address)
+        except Exception:
+            pass
+
     def pre_social_login(self, request, sociallogin):
         email = sociallogin.account.extra_data.get('email')
 
