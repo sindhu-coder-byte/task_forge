@@ -25,7 +25,7 @@ services:
       - key: ALLOWED_HOSTS
         value: "task-forge-0dwp.onrender.com"
       - key: TASKFORGE_ADMIN_EMAILS
-        sync: false
+        value: "sindhujabe94@gmail.com"
       - key: EMAIL_HOST
         sync: false
       - key: EMAIL_PORT
