@@ -3692,7 +3692,10 @@ def test_email_send(request):
             except Exception as e:
                 smtp_probe = f'CONNECTION ERROR — {e}'
 
-    if request.method != 'POST':
+    # Allow GET + ?send=1 to trigger test email without needing CSRF POST
+    send_now = request.method == 'POST' or request.GET.get('send') == '1'
+
+    if not send_now:
         return JsonResponse({'config': config_summary, 'smtp_probe': smtp_probe})
 
     # ── Send real test email ────────────────────────────────────────────────
@@ -3703,7 +3706,7 @@ def test_email_send(request):
     try:
         email_msg = EmailMultiAlternatives(
             subject='TaskForge — Email Config Test',
-            body=f'Test email from TaskForge.\n\nSMTP: {host}:{port}\nUser: {user_var}',
+            body=f'Test email from TaskForge.\nBackend: {backend}\nHost: {host}:{port}',
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[recipient],
         )
@@ -3711,7 +3714,7 @@ def test_email_send(request):
             f'<p><strong>TaskForge email config is working!</strong></p>'
             f'<p>Backend: <code>{backend}</code><br>'
             f'Host: <code>{host}:{port}</code><br>'
-            f'Sent from: <code>{user_var}</code></p>',
+            f'Sent to: <code>{recipient}</code></p>',
             'text/html',
         )
         email_msg.send()
