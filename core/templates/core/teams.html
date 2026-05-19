@@ -309,7 +309,7 @@
             </span>
             <div class="tm-member-info">
               <div class="tm-member-name">{{ member.username }}</div>
-              <div class="tm-member-role">{{ member.profile.role|title }}</div>
+              <div class="tm-member-role">{{ member.profile.get_role_display }}</div>
             </div>
           </div>
           {% endfor %}

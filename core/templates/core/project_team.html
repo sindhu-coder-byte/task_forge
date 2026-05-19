@@ -46,7 +46,7 @@
   </header>
 
   <!-- ── ROLE BANNER ── -->
-  {% if request.user == project.project_lead or user_project_role == 'project_lead' %}
+  {% if request.user == project.project_lead or user_project_role == 'project_lead' or request.user.profile.role == 'project_lead' %}
   <div class="pt-role-banner pt-role-banner--lead">
     <i class="ri-shield-star-line"></i>
     <div>

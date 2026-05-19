@@ -2704,15 +2704,10 @@ def create_project(request):
                     avatar=avatar if avatar else None
                 )
 
-                # ✅ Use membership instead of .add()
-                ProjectMembership.objects.get_or_create(
-                    user=request.user,
-                    project=project,
-                    defaults={'role': 'admin'}
-                )
-
+                # Admins have global access — no PM row needed for them.
+                # Only add a PM row for the designated project lead.
                 if project_lead:
-                    ProjectMembership.objects.get_or_create(
+                    ProjectMembership.objects.update_or_create(
                         user=project_lead,
                         project=project,
                         defaults={'role': 'project_lead'}
@@ -3279,7 +3274,11 @@ def project_detail(request, project_id):
     membership = ProjectMembership.objects.filter(user=user, project=project).first()
     if role == 'admin':
         template_role = 'admin'
-    elif user == project.project_lead or (membership and membership.role == 'project_lead'):
+    elif (
+        user == project.project_lead
+        or (membership and membership.role == 'project_lead')
+        or role == 'project_lead'
+    ):
         template_role = 'project_lead'
     elif membership:
         template_role = membership.role
@@ -3296,15 +3295,26 @@ def project_detail(request, project_id):
 
     valid_members = project.members.exclude(id__in=pm_lead_ids).distinct()
 
+    # Repair stale PM rows where role='admin' but user is a project lead
+    ProjectMembership.objects.filter(
+        project=project,
+        role='admin',
+        user__profile__role='project_lead',
+    ).update(role='project_lead')
+
     # Build a {user_id: role_display} map so member cards show the
     # project-specific membership role, not the global profile role.
     _role_choices = dict(ProjectMembership.ROLE_CHOICES)
-    member_project_role = {
-        pm.user_id: _role_choices.get(pm.role, pm.role.replace('_', ' ').title())
-        for pm in ProjectMembership.objects.filter(
-            project=project, user__in=valid_members
-        )
-    }
+    member_project_role = {}
+    for pm in ProjectMembership.objects.filter(
+        project=project, user__in=valid_members
+    ).select_related('user__profile'):
+        if pm.role == 'admin' and pm.user.profile.role == 'project_lead':
+            member_project_role[pm.user_id] = 'Project Lead'
+        else:
+            member_project_role[pm.user_id] = _role_choices.get(
+                pm.role, pm.role.replace('_', ' ').title()
+            )
 
     lead_candidates = valid_members
 
