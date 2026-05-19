@@ -35,8 +35,6 @@ def global_user_context(request):
         'delayed_tasks_count': 0,
      }
     profile_role = profile.role if profile else None
-    membership = ProjectMembership.objects.filter(user=request.user).first()
-    membership_role = membership.role if membership else None
     is_project_lead = bool(
         profile and (
             profile.role == 'project_lead' or
@@ -45,7 +43,9 @@ def global_user_context(request):
         )
     )
 
-    role = membership_role or profile_role
+    # Profile.role is the authoritative global role. Never let a project-specific
+    # membership role (which can be stale, e.g. 'admin') shadow it here.
+    role = profile_role
 
     notification_count = Notification.objects.filter(user=request.user, is_read=False).count()
 

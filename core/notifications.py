@@ -17,7 +17,9 @@ class NotificationService:
     def __init__(self):
         host_user = getattr(settings, 'EMAIL_HOST_USER', None)
         default_from = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
-        self.from_email = host_user or default_from or 'noreply@taskforge.com'
+        # DEFAULT_FROM_EMAIL is always a valid address (e.g. "TaskForge <noreply@...>").
+        # EMAIL_HOST_USER can be a username like 'resend' — not a valid from address.
+        self.from_email = default_from or host_user or 'noreply@taskforge.com'
         # Allow non-SMTP backends (console, file, locmem) used in dev/testing
         backend = getattr(settings, 'EMAIL_BACKEND', '')
         non_smtp = any(k in backend for k in ('console', 'file', 'locmem', 'memory'))
