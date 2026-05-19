@@ -27,19 +27,19 @@ services:
       - key: TASKFORGE_ADMIN_EMAILS
         value: "sindhujabe94@gmail.com"
       - key: EMAIL_HOST
-        sync: false
+        value: "smtp.resend.com"
       - key: EMAIL_PORT
-        sync: false
+        value: "587"
       - key: EMAIL_USE_SSL
-        sync: false
+        value: "False"
       - key: EMAIL_USE_TLS
-        sync: false
+        value: "True"
       - key: EMAIL_HOST_USER
         sync: false
       - key: EMAIL_HOST_PASSWORD
         sync: false
       - key: DEFAULT_FROM_EMAIL
-        sync: false
+        value: "TaskForge <onboarding@resend.dev>"
       - key: GOOGLE_OAUTH2_CLIENT_ID
         sync: false
       - key: GOOGLE_OAUTH2_CLIENT_SECRET
@@ -72,19 +72,19 @@ services:
       - key: SITE_URL
         value: "https://task-forge-0dwp.onrender.com"
       - key: EMAIL_HOST
-        sync: false
+        value: "smtp.resend.com"
       - key: EMAIL_PORT
-        sync: false
+        value: "587"
       - key: EMAIL_USE_SSL
-        sync: false
+        value: "False"
       - key: EMAIL_USE_TLS
-        sync: false
+        value: "True"
       - key: EMAIL_HOST_USER
         sync: false
       - key: EMAIL_HOST_PASSWORD
         sync: false
       - key: DEFAULT_FROM_EMAIL
-        sync: false
+        value: "TaskForge <onboarding@resend.dev>"
       - key: DEBUG
         value: "False"
 
