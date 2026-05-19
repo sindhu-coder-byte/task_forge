@@ -228,7 +228,10 @@ EMAIL_PORT    = int(_env('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = _env('EMAIL_USE_TLS', 'True').lower() not in ('false', '0', 'no')
 EMAIL_USE_SSL = _env('EMAIL_USE_SSL', 'False').lower() in ('true', '1', 'yes')
 
-if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+if EMAIL_HOST_USER == 'resend' and EMAIL_HOST_PASSWORD:
+    # Use Resend HTTP API — avoids SMTP port restrictions on Render free tier
+    EMAIL_BACKEND = 'core.email_backends.ResendAPIBackend'
+elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_TIMEOUT = 30
 else:

@@ -3658,20 +3658,39 @@ def test_email_send(request):
         'smtp_backend_active': 'smtp' in backend,
     }
 
-    # ── SMTP connection probe (GET only — safe, no email sent) ──────────────
+    # ── Connection probe (GET only — safe, no email sent) ───────────────────
     smtp_probe = None
-    if request.method == 'GET' and 'smtp' in backend and host and user_var and pwd_var:
-        try:
-            ctx = _ssl.create_default_context()
-            with smtplib.SMTP(host, port, timeout=10) as conn:
-                if use_tls:
-                    conn.starttls(context=ctx)
-                conn.login(user_var, pwd_var)
-                smtp_probe = 'OK — SMTP login succeeded'
-        except smtplib.SMTPAuthenticationError as e:
-            smtp_probe = f'AUTH FAILED — wrong password or App Password not enabled: {e}'
-        except Exception as e:
-            smtp_probe = f'CONNECTION ERROR — {e}'
+    if request.method == 'GET':
+        if 'ResendAPIBackend' in backend:
+            # Probe Resend HTTP API — check API key is valid
+            import requests as _req
+            try:
+                r = _req.get(
+                    'https://api.resend.com/domains',
+                    headers={'Authorization': f'Bearer {pwd_var}'},
+                    timeout=10,
+                )
+                if r.status_code == 200:
+                    smtp_probe = 'OK — Resend API key valid (HTTP 200)'
+                elif r.status_code == 401:
+                    smtp_probe = f'AUTH FAILED — invalid Resend API key (HTTP 401)'
+                else:
+                    smtp_probe = f'Resend API responded HTTP {r.status_code}: {r.text[:200]}'
+            except Exception as e:
+                smtp_probe = f'CONNECTION ERROR — {e}'
+        elif 'smtp' in backend and host and user_var and pwd_var:
+            try:
+                import ssl as _ssl
+                ctx = _ssl.create_default_context()
+                with smtplib.SMTP(host, port, timeout=10) as conn:
+                    if use_tls:
+                        conn.starttls(context=ctx)
+                    conn.login(user_var, pwd_var)
+                    smtp_probe = 'OK — SMTP login succeeded'
+            except smtplib.SMTPAuthenticationError as e:
+                smtp_probe = f'AUTH FAILED — wrong password or App Password not enabled: {e}'
+            except Exception as e:
+                smtp_probe = f'CONNECTION ERROR — {e}'
 
     if request.method != 'POST':
         return JsonResponse({'config': config_summary, 'smtp_probe': smtp_probe})
