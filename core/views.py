@@ -2918,35 +2918,8 @@ def invite_project_member(request, project_id):
                         'error': 'User already in project'
                     }, status=400)
 
-                # 🔹 Case 2: Not in project → add
-                project.members.add(user)
-                ProjectMembership.objects.update_or_create(
-                    user=user,
-                    project=project,
-                    defaults={'role': role}
-                )
-
-                if team:
-                    team.members.add(user)
-
-                try:
-                    NotificationService().notify_project_member_added(project, user, role, request.user, team)
-                    if team:
-                        NotificationService().notify_team_changed(team, request.user, action="updated")
-                except Exception:
-                    pass
-
-                return JsonResponse({
-                    'status': 'added',
-                    'message': 'User added to project',
-                    'user': {
-                        'id': user.id,
-                        'username': user.username,
-                        'email': user.email,
-                        'role': getattr(user.profile, 'role', 'user')
-                    },
-                    'team': team.name if team else None
-                })
+                # 🔹 Case 2: Existing user not yet in project → send invite email
+                # Fall through to the invite creation flow below so they must accept.
 
             # =============================
             # ✅ NEW USER INVITE FLOW
