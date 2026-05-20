@@ -221,16 +221,26 @@ SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 EMAIL_HOST_USER     = _env('EMAIL_HOST_USER') or None
 EMAIL_HOST_PASSWORD = _env('EMAIL_HOST_PASSWORD') or None
 
-# Allow overriding the SMTP provider via env vars (e.g. switch to Resend/Mailgun).
-# Defaults to Gmail if not specified.
 EMAIL_HOST    = _env('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT    = int(_env('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = _env('EMAIL_USE_TLS', 'True').lower() not in ('false', '0', 'no')
 EMAIL_USE_SSL = _env('EMAIL_USE_SSL', 'False').lower() in ('true', '1', 'yes')
 
+# Render free tier blocks outbound SMTP on ports 25, 465, and 587.
+# Resend's alternative ports 2465 (SSL) and 2587 (TLS) are NOT blocked.
+# When EMAIL_HOST_USER=resend:
+#   - port 2465 or 2587 → use SMTP directly (Render doesn't block these)
+#   - any other port    → fall back to Resend HTTP API over HTTPS (port 443)
+_RENDER_BLOCKED_SMTP = {25, 465, 587}
+
 if EMAIL_HOST_USER == 'resend' and EMAIL_HOST_PASSWORD:
-    # Use Resend HTTP API — avoids SMTP port restrictions on Render free tier
-    EMAIL_BACKEND = 'core.email_backends.ResendAPIBackend'
+    if EMAIL_PORT not in _RENDER_BLOCKED_SMTP:
+        # Non-blocked port (e.g. 2465 SSL, 2587 TLS) — use standard SMTP
+        EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+        EMAIL_TIMEOUT = 30
+    else:
+        # Port blocked by Render free tier — bypass with Resend HTTP API
+        EMAIL_BACKEND = 'core.email_backends.ResendAPIBackend'
 elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_TIMEOUT = 30

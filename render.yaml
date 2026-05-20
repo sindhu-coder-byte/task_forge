@@ -29,11 +29,11 @@ services:
       - key: EMAIL_HOST
         value: "smtp.resend.com"
       - key: EMAIL_PORT
-        value: "587"
+        value: "2465"
       - key: EMAIL_USE_SSL
-        value: "False"
-      - key: EMAIL_USE_TLS
         value: "True"
+      - key: EMAIL_USE_TLS
+        value: "False"
       - key: EMAIL_HOST_USER
         sync: false
       - key: EMAIL_HOST_PASSWORD
@@ -74,11 +74,11 @@ services:
       - key: EMAIL_HOST
         value: "smtp.resend.com"
       - key: EMAIL_PORT
-        value: "587"
+        value: "2465"
       - key: EMAIL_USE_SSL
-        value: "False"
-      - key: EMAIL_USE_TLS
         value: "True"
+      - key: EMAIL_USE_TLS
+        value: "False"
       - key: EMAIL_HOST_USER
         sync: false
       - key: EMAIL_HOST_PASSWORD
