@@ -2704,9 +2704,18 @@ def create_project(request):
                     avatar=avatar if avatar else None
                 )
 
-                # Admins have global access — no PM row needed for them.
-                # Only add a PM row for the designated project lead.
-                if project_lead:
+                # Always add the creator to members so the project appears in
+                # their list (projects view filters by members=request.user).
+                project.members.add(request.user)
+                ProjectMembership.objects.update_or_create(
+                    user=request.user,
+                    project=project,
+                    defaults={'role': 'project_lead'},
+                )
+
+                # If a different user was chosen as project lead, add them too.
+                if project_lead and project_lead != request.user:
+                    project.members.add(project_lead)
                     ProjectMembership.objects.update_or_create(
                         user=project_lead,
                         project=project,
@@ -2764,8 +2773,10 @@ def projects(request):
         users = google_users + other_users
     else:
         projects_qs = Project.objects.filter(
-            members=request.user
-        ).prefetch_related('members').annotate(
+            Q(members=request.user) |
+            Q(project_lead=request.user) |
+            Q(created_by=request.user)
+        ).distinct().prefetch_related('members').annotate(
             total_tasks=Count('task', distinct=True),
             done_tasks=Count('task', filter=Q(task__status='done'), distinct=True),
         )
