@@ -23,8 +23,13 @@ class NotificationService:
         # Allow non-SMTP backends (console, file, locmem) used in dev/testing
         backend = getattr(settings, 'EMAIL_BACKEND', '')
         non_smtp = any(k in backend for k in ('console', 'file', 'locmem', 'memory'))
-        # ResendAPIBackend uses EMAIL_HOST_PASSWORD as the API key
-        self._email_configured = bool(host_user) or 'ResendAPIBackend' in backend or non_smtp
+        self._email_configured = (
+            bool(getattr(settings, 'BREVO_API_KEY', None)) or
+            bool(host_user) or
+            'ResendAPIBackend' in backend or
+            'BrevoAPIBackend'  in backend or
+            non_smtp
+        )
 
     def send_email(self, recipient, subject, html_content, text_content=None):
         """Send HTML email to recipient.

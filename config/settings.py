@@ -226,20 +226,24 @@ EMAIL_PORT    = int(_env('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = _env('EMAIL_USE_TLS', 'True').lower() not in ('false', '0', 'no')
 EMAIL_USE_SSL = _env('EMAIL_USE_SSL', 'False').lower() in ('true', '1', 'yes')
 
-# Render free tier blocks outbound SMTP on ports 25, 465, and 587.
-# Resend's alternative ports 2465 (SSL) and 2587 (TLS) are NOT blocked.
-# When EMAIL_HOST_USER=resend:
-#   - port 2465 or 2587 → use SMTP directly (Render doesn't block these)
-#   - any other port    → fall back to Resend HTTP API over HTTPS (port 443)
-_RENDER_BLOCKED_SMTP = {25, 465, 587}
+# ── Backend selection ────────────────────────────────────────────────────────
+# Priority order:
+#   1. BREVO_API_KEY set  → BrevoAPIBackend (HTTPS, any recipient, no domain needed)
+#   2. EMAIL_HOST_USER=resend → ResendAPIBackend (HTTPS, only to account email without domain)
+#   3. SMTP credentials set   → standard SMTP (Render free tier blocks 465/587)
+#   4. fallback               → console (development)
 
-if EMAIL_HOST_USER == 'resend' and EMAIL_HOST_PASSWORD:
+BREVO_API_KEY = _env('BREVO_API_KEY') or None
+
+if BREVO_API_KEY:
+    EMAIL_BACKEND = 'core.email_backends.BrevoAPIBackend'
+elif EMAIL_HOST_USER == 'resend' and EMAIL_HOST_PASSWORD:
+    # Render free tier blocks ports 25/465/587; non-standard ports (2465/2587) work.
+    _RENDER_BLOCKED_SMTP = {25, 465, 587}
     if EMAIL_PORT not in _RENDER_BLOCKED_SMTP:
-        # Non-blocked port (e.g. 2465 SSL, 2587 TLS) — use standard SMTP
         EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
         EMAIL_TIMEOUT = 30
     else:
-        # Port blocked by Render free tier — bypass with Resend HTTP API
         EMAIL_BACKEND = 'core.email_backends.ResendAPIBackend'
 elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
