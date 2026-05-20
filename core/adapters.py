@@ -26,7 +26,12 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         # ✅ EXISTING USER
         # =========================
         if user:
-            sociallogin.connect(request, user)
+            try:
+                sociallogin.connect(request, user)
+            except Exception:
+                # allauth 65: connect() fires send_notification_mail() and
+                # social_account_added signal — any failure must not 500 here.
+                pass
 
             profile, _ = Profile.objects.get_or_create(user=user)
             profile.oauth_provider = sociallogin.account.provider
