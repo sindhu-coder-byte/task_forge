@@ -85,10 +85,15 @@ def _project_accessible_by(user, project: Project) -> bool:
     if not profile:
         return False
 
+    # Must stay in sync with the projects-list queryset (views.projects).
     return (
         profile.role == 'admin' or
         project.project_lead == user or
-        project.members.filter(id=user.id).exists()
+        project.created_by == user or
+        project.members.filter(id=user.id).exists() or
+        ProjectMembership.objects.filter(
+            user=user, project=project, role='project_lead'
+        ).exists()
     )
     
     
@@ -1346,9 +1351,9 @@ def project_board(request, project_id):
         return redirect('core:projects')
 
     role = user.profile.role
-    
+
     # Role-Based Task Filtering
-    if role == 'admin' or project.project_lead == user:
+    if role == 'admin' or _is_project_lead_for_project(user, project):
         # Admin & Project Lead → all tasks
         tasks = Task.objects.filter(project=project)
     
@@ -1413,7 +1418,7 @@ def project_backlog(request, project_id):
         led_teams = _teams_led_by(request.user, project)
         team_users = _team_scope_users(led_teams)
         qs = qs.filter(Q(team__in=led_teams) | Q(assigned_to__in=team_users)).distinct()
-    elif request.user.profile.role not in ['admin', 'project_lead']:
+    elif not _is_project_lead_for_project(request.user, project):
         qs = qs.filter(assigned_to=request.user)
 
     return render(request, 'core/project_backlog.html', {
