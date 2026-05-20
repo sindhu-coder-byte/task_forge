@@ -2919,7 +2919,8 @@ def invite_project_member(request, project_id):
                     }, status=400)
 
                 # 🔹 Case 2: Not in project → add
-                ProjectMembership.objects.get_or_create(
+                project.members.add(user)
+                ProjectMembership.objects.update_or_create(
                     user=user,
                     project=project,
                     defaults={'role': role}
@@ -3050,8 +3051,9 @@ def accept_project_invite(request, token):
         )
         return redirect(f"{reverse('core:login')}?next={accept_path}")
 
-    # ✅ Add to project
-    ProjectMembership.objects.get_or_create(
+    # ✅ Add to project members + create/update role
+    invite.project.members.add(request.user)
+    ProjectMembership.objects.update_or_create(
         user=request.user,
         project=invite.project,
         defaults={'role': invite.role}
@@ -3110,7 +3112,8 @@ def add_project_member(request, project_id):
         if role not in valid_roles:
             role = 'developer'
 
-        ProjectMembership.objects.get_or_create(
+        project.members.add(user)
+        ProjectMembership.objects.update_or_create(
             user=user,
             project=project,
             defaults={'role': role}
