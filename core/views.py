@@ -2998,6 +2998,7 @@ def invite_project_member(request, project_id):
         'message': 'Invite sent successfully',
         'user': {'email': email, 'role': role},
         'team': team.name if team else None,
+        'accept_url': accept_url,
     }
     if email_warning:
         response['warning'] = email_warning

@@ -358,6 +358,25 @@
             </button>
           </div>
           <p id="inviteError" class="pt-invite-err" hidden></p>
+          <!-- shown when email delivery fails so admin can copy + share the link -->
+          <div id="inviteLinkBox" hidden style="margin-top:12px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 14px;">
+            <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#15803d;">
+              <i class="ri-links-line"></i> Share this invite link manually
+            </p>
+            <p style="margin:0 0 8px;font-size:12px;color:#374151;line-height:1.5;">
+              Email delivery failed. Copy the link below and send it to the recipient directly.
+            </p>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input id="inviteLinkInput" type="text" readonly
+                     style="flex:1;font-size:12px;padding:6px 10px;border:1px solid #d1d5db;
+                            border-radius:6px;background:#fff;color:#374151;min-width:0;">
+              <button type="button" id="copyInviteLink"
+                      style="flex-shrink:0;padding:6px 14px;background:#16a34a;color:#fff;
+                             border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">
+                Copy
+              </button>
+            </div>
+          </div>
         </form>
       </div>
     </div>
@@ -510,16 +529,39 @@
         const SUCCESS = ['invited', 'added', 'added_to_team'];
         if (res.ok && SUCCESS.includes(data.status)) {
           if (data.warning) {
-            // Invite saved but email delivery failed — show message then reload
+            // Invite saved but email delivery failed — show copyable link
             inviteError.style.color = '#b45309';
             inviteError.style.background = '#fef9c3';
             inviteError.style.border = '1px solid #fcd34d';
             inviteError.style.borderRadius = '6px';
             inviteError.style.padding = '8px 12px';
-            showErr('Invite saved, but email could not be delivered. Ask the recipient to contact admin for the invite link.');
+            showErr('Invite saved, but email could not be delivered. Copy the link below and send it manually.');
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="ri-send-plane-line"></i> Send invite';
-            setTimeout(() => location.reload(), 5000);
+
+            // Populate and show the invite link box
+            if (data.accept_url) {
+              var linkBox   = document.getElementById('inviteLinkBox');
+              var linkInput = document.getElementById('inviteLinkInput');
+              var copyBtn   = document.getElementById('copyInviteLink');
+              if (linkBox && linkInput) {
+                linkInput.value = data.accept_url;
+                linkBox.hidden  = false;
+                if (copyBtn) {
+                  copyBtn.addEventListener('click', function () {
+                    linkInput.select();
+                    navigator.clipboard.writeText(linkInput.value).then(function () {
+                      copyBtn.textContent = 'Copied!';
+                      setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+                    }).catch(function () {
+                      document.execCommand('copy');
+                      copyBtn.textContent = 'Copied!';
+                      setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+                    });
+                  });
+                }
+              }
+            }
             return;
           }
           location.reload();
