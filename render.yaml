@@ -87,6 +87,8 @@ services:
         value: "TaskForge <onboarding@resend.dev>"
       - key: DEBUG
         value: "False"
+      - key: TASKFORGE_ADMIN_EMAILS
+        value: "sindhujabe94@gmail.com"
 
 databases:
   - name: taskforge-db
