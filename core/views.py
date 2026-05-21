@@ -2980,7 +2980,10 @@ def invite_project_member(request, project_id):
         )
         email_msg.attach_alternative(html_content, "text/html")
         email_msg.send()
-    except Exception:
+    except Exception as _email_exc:
+        import traceback
+        print(f"[TF-EMAIL-INV] FAILED to {email}: {_email_exc}")
+        traceback.print_exc()
         email_warning = "Invite saved but email could not be delivered."
 
     response = {
