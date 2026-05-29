@@ -21,6 +21,9 @@
       <a class="btn-act btn-act--ghost" href="{% url 'core:projects' %}">
         <i class="ri-folder-3-line"></i> All Projects
       </a>
+      <a class="btn-act btn-act--ghost" href="/admin/core/department/">
+        <i class="ri-building-4-line"></i> Manage Departments
+      </a>
       <a class="btn-act btn-act--primary" href="{% url 'core:dashboard_analytics' %}">
         <i class="ri-bar-chart-2-line"></i> Analytics
       </a>
@@ -79,6 +82,16 @@
       <div>
         <div class="stat-tile__num">{{ pending_invites_count }}</div>
         <div class="stat-tile__label">Pending Invites</div>
+      </div>
+    </div>
+
+    <div class="stat-tile">
+      <div class="stat-tile__icon" style="background:#f0fdf4;color:#15803d;">
+        <i class="ri-building-4-line"></i>
+      </div>
+      <div>
+        <div class="stat-tile__num">{{ departments_count }}</div>
+        <div class="stat-tile__label">Departments</div>
       </div>
     </div>
 
@@ -329,6 +342,75 @@
 
   </div>
 
+  <!-- ═══════════════════════════════════════════════
+       SDLC DEPARTMENTS & ROLES
+  ═══════════════════════════════════════════════ -->
+  <div class="adm-section-head" style="margin-top:28px;">
+    <div class="adm-section-title">
+      <i class="ri-building-4-line"></i> SDLC Departments &amp; Roles
+    </div>
+    <a href="/admin/core/department/add/" class="btn-act btn-act--ghost" style="padding:7px 14px;font-size:12px;">
+      <i class="ri-add-line"></i> Add Department
+    </a>
+  </div>
+
+  {% if departments %}
+  <div class="dept-grid">
+    {% for dept in departments %}
+    <div class="dept-card">
+
+      <div class="dept-card__head">
+        <div>
+          <div class="dept-card__name">{{ dept.name }}</div>
+          <div class="dept-card__key">{{ dept.key }}</div>
+        </div>
+        <a href="/admin/core/department/{{ dept.id }}/change/" class="dept-edit-btn" title="Edit department">
+          <i class="ri-edit-line"></i>
+        </a>
+      </div>
+
+      <div class="dept-phases">
+        {% for phase in dept.sdlc_phases.all %}
+          <span class="phase-badge phase-badge--{{ phase.key }}">{{ phase.label }}</span>
+        {% empty %}
+          <span class="phase-badge phase-badge--none">Cross-Phase</span>
+        {% endfor %}
+      </div>
+
+      <div class="dept-roles">
+        {% for role in dept.roles.all %}
+          {% if role.is_active %}
+          <div class="dept-role-row">
+            <span class="dept-role-name">{{ role.name }}</span>
+            {% if role.can_manage_all %}
+              <span class="dept-role-access dept-role-access--full">Full Access</span>
+            {% else %}
+              <span class="dept-role-access">Custom</span>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% empty %}
+          <div style="color:#94a3b8;font-size:12px;padding:8px 0;">No roles yet —
+            <a href="/admin/core/departmentrole/add/" style="color:#6366f1;">add one</a>
+          </div>
+        {% endfor %}
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="adm-card" style="padding:28px;text-align:center;">
+    <i class="ri-building-4-line" style="font-size:32px;color:#cbd5e1;"></i>
+    <p style="color:#94a3b8;font-size:14px;margin:10px 0 16px;">
+      No departments configured yet.
+    </p>
+    <a href="/admin/core/department/add/" class="btn-act btn-act--primary" style="display:inline-flex;">
+      <i class="ri-add-line"></i> Create First Department
+    </a>
+  </div>
+  {% endif %}
+
 </div>
 {% endblock %}
 
@@ -546,14 +628,94 @@
   border-radius:999px; white-space:nowrap;
   background:#f1f5f9; color:#475569;
 }
-.role-pill--admin{ background:#fce7f3; color:#9d174d; }
-.role-pill--project_lead{ background:#dbeafe; color:#1d4ed8; }
-.role-pill--developer{ background:#dcfce7; color:#166534; }
-.role-pill--tester{ background:#fef3c7; color:#92400e; }
-.role-pill--qa{ background:#fef9c3; color:#713f12; }
-.role-pill--ui_ux_designer{ background:#f3e8ff; color:#6b21a8; }
-.role-pill--delivery_team{ background:#e0f2fe; color:#075985; }
-.role-pill--deployment_team{ background:#d1fae5; color:#065f46; }
+/* Platform */
+.role-pill--admin           { background:#fce7f3; color:#9d174d; }
+.role-pill--user            { background:#f1f5f9; color:#475569; }
+/* Product & PM */
+.role-pill--project_lead    { background:#dbeafe; color:#1d4ed8; }
+.role-pill--product_manager { background:#e0e7ff; color:#3730a3; }
+.role-pill--business_analyst{ background:#ede9fe; color:#5b21b6; }
+/* Design */
+.role-pill--ux_researcher   { background:#fdf4ff; color:#86198f; }
+.role-pill--ui_designer     { background:#fae8ff; color:#a21caf; }
+.role-pill--ui_ux_designer  { background:#f3e8ff; color:#6b21a8; }
+/* Engineering */
+.role-pill--frontend_dev    { background:#eff6ff; color:#1d4ed8; }
+.role-pill--backend_dev     { background:#dbeafe; color:#1e40af; }
+.role-pill--fullstack_dev   { background:#bfdbfe; color:#1e3a8a; }
+.role-pill--mobile_dev      { background:#e0f2fe; color:#0369a1; }
+.role-pill--dba             { background:#cffafe; color:#0e7490; }
+.role-pill--developer       { background:#dcfce7; color:#166534; }
+/* QA & Testing */
+.role-pill--qa_manual       { background:#fef3c7; color:#92400e; }
+.role-pill--qa_automation   { background:#fde68a; color:#78350f; }
+.role-pill--security_tester { background:#fee2e2; color:#991b1b; }
+.role-pill--tester          { background:#fef3c7; color:#92400e; }
+.role-pill--qa              { background:#fef9c3; color:#713f12; }
+/* DevOps */
+.role-pill--devops_engineer { background:#d1fae5; color:#065f46; }
+.role-pill--cloud_architect { background:#a7f3d0; color:#064e3b; }
+.role-pill--deployment_team { background:#d1fae5; color:#065f46; }
+/* Data */
+.role-pill--data_analyst    { background:#fdf2f8; color:#831843; }
+.role-pill--data_scientist  { background:#fce7f3; color:#9d174d; }
+/* IT Security */
+.role-pill--helpdesk        { background:#f5f3ff; color:#4c1d95; }
+.role-pill--ciso            { background:#ede9fe; color:#4c1d95; }
+/* Delivery */
+.role-pill--delivery_team   { background:#e0f2fe; color:#075985; }
+
+/* ── DEPARTMENTS GRID ────────────────────────── */
+.dept-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:16px;
+  margin-bottom:28px;
+}
+.dept-card{
+  background:#fff; border:1px solid #e5e7eb; border-radius:18px;
+  padding:18px; display:flex; flex-direction:column; gap:12px;
+  box-shadow:0 1px 4px rgba(15,23,42,.05);
+  transition:.2s ease;
+}
+.dept-card:hover{ box-shadow:0 8px 24px rgba(15,23,42,.08); transform:translateY(-1px); }
+.dept-card__head{
+  display:flex; justify-content:space-between; align-items:flex-start;
+}
+.dept-card__name{ font-size:15px; font-weight:700; color:#0f172a; }
+.dept-card__key { font-size:11px; color:#94a3b8; margin-top:2px; font-family:monospace; }
+.dept-edit-btn{
+  width:30px; height:30px; border-radius:8px; display:flex;
+  align-items:center; justify-content:center;
+  color:#94a3b8; background:#f8fafc; border:1px solid #f1f5f9;
+  text-decoration:none; font-size:14px; flex-shrink:0;
+  transition:.15s;
+}
+.dept-edit-btn:hover{ background:#ede9fe; color:#6d28d9; border-color:#c4b5fd; }
+.dept-phases{ display:flex; flex-wrap:wrap; gap:6px; }
+.phase-badge{
+  font-size:10px; font-weight:700; padding:3px 8px;
+  border-radius:999px; white-space:nowrap;
+  background:#f1f5f9; color:#475569;
+}
+.phase-badge--requirements { background:#dbeafe; color:#1e40af; }
+.phase-badge--design        { background:#fdf4ff; color:#86198f; }
+.phase-badge--development   { background:#dcfce7; color:#15803d; }
+.phase-badge--testing       { background:#fef3c7; color:#92400e; }
+.phase-badge--deployment    { background:#d1fae5; color:#065f46; }
+.phase-badge--monitoring    { background:#e0f2fe; color:#0369a1; }
+.phase-badge--none          { background:#f1f5f9; color:#94a3b8; font-style:italic; }
+.dept-roles{ display:flex; flex-direction:column; gap:4px; border-top:1px solid #f1f5f9; padding-top:8px; }
+.dept-role-row{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:5px 8px; border-radius:8px; background:#f8fafc;
+}
+.dept-role-name{ font-size:12px; font-weight:600; color:#374151; }
+.dept-role-access{
+  font-size:10px; font-weight:700; padding:2px 7px;
+  border-radius:999px; background:#f1f5f9; color:#64748b;
+}
+.dept-role-access--full{ background:#dcfce7; color:#15803d; }
 
 .auth-pill{
   font-size:11px; font-weight:600; padding:3px 8px;

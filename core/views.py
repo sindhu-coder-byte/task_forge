@@ -20,7 +20,7 @@ from django.db.models import Count
 from django.utils import timezone
 from django.conf import settings
 
-from .models import Project, Task, Profile, Comment, TaskActivity, TaskAttachment, Label, ProjectInvite, Notification, Team, DepartmentRole
+from .models import Project, Task, Profile, Comment, TaskActivity, TaskAttachment, Label, ProjectInvite, Notification, Team, DepartmentRole, Department
 from .forms import UserCreateForm, UserUpdateForm
 
 from .models import ProjectMembership
@@ -847,6 +847,13 @@ def role_dashboard(request):
         total_tasks_count = Task.objects.count()
         total_users_count = User.objects.filter(is_active=True).count()
 
+        # ── SDLC Departments ─────────────────────────────────────────
+        departments = (
+            Department.objects.filter(is_active=True)
+            .prefetch_related('sdlc_phases', 'roles')
+            .order_by('name')
+        )
+
         return render(request, "core/dashboard_admin_focus.html", {
             "project_rows": project_rows,
             "all_users": all_users,
@@ -858,6 +865,8 @@ def role_dashboard(request):
             "active_projects_count": projects_qs.count(),
             "today": today,
             "notification_count": _get_notification_count(request.user),
+            "departments": departments,
+            "departments_count": departments.count(),
         })
 
     # Project lead detection: either global role or any membership in that role, or Profile flag.
