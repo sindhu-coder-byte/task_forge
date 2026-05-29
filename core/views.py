@@ -20,7 +20,7 @@ from django.db.models import Count
 from django.utils import timezone
 from django.conf import settings
 
-from .models import Project, Task, Profile, Comment, TaskActivity, TaskAttachment, Label, ProjectInvite, Notification, Team
+from .models import Project, Task, Profile, Comment, TaskActivity, TaskAttachment, Label, ProjectInvite, Notification, Team, DepartmentRole
 from .forms import UserCreateForm, UserUpdateForm
 
 from .models import ProjectMembership
@@ -210,47 +210,112 @@ def _allowed_transitions(role: str, old_status: str) -> set[str]:
 
     Jira-style "Transition Map" (single source of truth).
     """
+    _all = {k for (k, _) in Task.STATUS_CHOICES}
+    _dev_transitions = {
+        "todo":        {"in_progress"},
+        "in_progress": {"qa", "in_review"},
+    }
+    _design_transitions = {
+        "todo":        {"in_progress"},
+        "in_progress": {"in_review"},
+    }
+    _qa_transitions = {
+        "todo":        {"in_progress"},
+        "in_progress": {"qa", "in_review"},
+        "in_review":   {"done", "in_progress"},
+        "qa":          {"done", "in_progress"},
+    }
+    _deploy_transitions = {
+        "in_review": {"done"},
+        "qa":        {"done"},
+    }
+
     workflow_map = {
-        "admin": {
-            "*": {k for (k, _) in Task.STATUS_CHOICES},
-        },
-        "developer": {
-            "todo": {"in_progress"},
-            "in_progress": {"qa", "in_review"},  # Can send to QA or in review
-        },
-        "tester": {
-            "in_review": {"done", "in_progress"},  # approve / reject
-            "qa": {"done", "in_progress"},  # QA can move from Send to QA back or mark done
-        },
-        "qa": {
-            "todo":        {"in_progress"},          # QA picks up a new task
-            "in_progress": {"qa", "in_review"},      # QA sends for testing
-            "in_review":   {"done", "in_progress"},  # QA approves / rejects from review
-            "qa":          {"done", "in_progress"},  # QA approves / rejects from QA column
-        },
-        "user": {},
-        
-        "project_lead": {
-             "*": {k for (k, _) in Task.STATUS_CHOICES},
-        },
-        "ui_ux_designer": {
-            "todo": {"in_progress"},
+        # ── Platform ──────────────────────────────────────────────────────────
+        "admin":            {"*": _all},
+        "user":             {},
+
+        # ── Product & Project Management ───────────────────────────────────────
+        "project_lead":     {"*": _all},
+        "product_manager":  {"*": _all},
+        "business_analyst": {
+            "todo":        {"in_progress"},
             "in_progress": {"in_review"},
         },
-        "deployment_team": {
-            "in_review": {"done"},
-            "qa": {"done"},
+
+        # ── Design ────────────────────────────────────────────────────────────
+        "ux_researcher":  _design_transitions,
+        "ui_designer":    _design_transitions,
+        "ui_ux_designer": _design_transitions,
+
+        # ── Engineering ───────────────────────────────────────────────────────
+        "developer":     _dev_transitions,
+        "frontend_dev":  _dev_transitions,
+        "backend_dev":   _dev_transitions,
+        "fullstack_dev": _dev_transitions,
+        "mobile_dev":    _dev_transitions,
+        "dba": {
+            "todo":        {"in_progress"},
+            "in_progress": {"done"},
         },
-        "delivery_team": {
-            "*": {k for (k, _) in Task.STATUS_CHOICES},
+
+        # ── QA & Testing ──────────────────────────────────────────────────────
+        "tester":          _qa_transitions,
+        "qa":              _qa_transitions,
+        "qa_manual":       _qa_transitions,
+        "qa_automation":   _qa_transitions,
+        "security_tester": {
+            "in_review": {"done", "in_progress"},
+            "qa":        {"done", "in_progress"},
         },
-        
+
+        # ── DevOps & Infrastructure ────────────────────────────────────────────
+        "devops_engineer": _deploy_transitions,
+        "cloud_architect": _deploy_transitions,
+        "deployment_team": _deploy_transitions,
+
+        # ── Data Science & Analytics ───────────────────────────────────────────
+        "data_analyst": {
+            "todo":        {"in_progress"},
+            "in_progress": {"done"},
+        },
+        "data_scientist": {
+            "todo":        {"in_progress"},
+            "in_progress": {"in_review"},
+            "in_review":   {"done"},
+        },
+
+        # ── IT Support & Security ──────────────────────────────────────────────
+        "helpdesk": {
+            "todo":        {"in_progress"},
+            "in_progress": {"done"},
+        },
+        "ciso": {
+            "todo":        {"in_progress"},
+            "in_progress": {"in_review"},
+            "in_review":   {"done"},
+            "qa":          {"done", "in_progress"},
+        },
+
+        # ── Delivery ──────────────────────────────────────────────────────────
+        "delivery_team": {"*": _all},
     }
 
     role_map = workflow_map.get(role, {})
     if "*" in role_map:
         return role_map["*"]
-    return role_map.get(old_status, set())
+    if role_map:
+        return role_map.get(old_status, set())
+
+    # DB fallback — custom roles created by admin via DepartmentRole
+    try:
+        dr = DepartmentRole.objects.filter(key=role, is_active=True).first()
+        if dr:
+            return dr.allowed_next_statuses(old_status)
+    except Exception:
+        pass
+
+    return set()
 
 
 def _status_label(status: str) -> str:
@@ -258,7 +323,17 @@ def _status_label(status: str) -> str:
 
 
 def _role_label(role: str) -> str:
-    return dict(Profile.ROLE_CHOICES).get(role, role.replace("_", " ").title())
+    static = dict(Profile.ROLE_CHOICES)
+    if role in static:
+        return static[role]
+    # DB fallback for custom roles
+    try:
+        dr = DepartmentRole.objects.filter(key=role, is_active=True).first()
+        if dr:
+            return dr.name
+    except Exception:
+        pass
+    return role.replace("_", " ").title()
 
 
 def _workflow_transition_rows():

@@ -6,14 +6,50 @@ from django.db import transaction
 # ---------------- PROFILE ----------------
 class Profile(models.Model):
     ROLE_CHOICES = (
-        ('admin', 'Admin'),
-        ('project_lead', 'Project Lead'),
-        ('developer', 'Developer'),
-        ('tester', 'Tester'),
-        ('ui_ux_designer', 'UI/UX Designer'),
-        ('delivery_team', 'Delivery Team'),
-        ('deployment_team', 'Deployment Team'),
-        ('user', 'User'),
+        # ── Platform-level ──────────────────────────────────────────────────
+        ('admin',            'Admin'),
+        ('user',             'User'),
+
+        # ── Product & Project Management ────────────────────────────────────
+        ('project_lead',     'Project Lead'),
+        ('product_manager',  'Product Manager'),
+        ('business_analyst', 'Business Analyst'),
+
+        # ── Design ──────────────────────────────────────────────────────────
+        ('ux_researcher',    'UX Researcher'),
+        ('ui_designer',      'UI Designer'),
+        ('ui_ux_designer',   'UI/UX Designer'),
+
+        # ── Engineering ─────────────────────────────────────────────────────
+        ('frontend_dev',     'Frontend Developer'),
+        ('backend_dev',      'Backend Developer'),
+        ('fullstack_dev',    'Full-Stack Engineer'),
+        ('mobile_dev',       'Mobile Developer'),
+        ('dba',              'Database Administrator'),
+        ('developer',        'Developer'),
+
+        # ── QA & Testing ────────────────────────────────────────────────────
+        ('qa_manual',        'Manual QA Tester'),
+        ('qa_automation',    'QA Automation Engineer'),
+        ('security_tester',  'Security / Pen Tester'),
+        ('tester',           'Tester'),
+        ('qa',               'QA'),
+
+        # ── DevOps & Infrastructure ─────────────────────────────────────────
+        ('devops_engineer',  'DevOps Engineer'),
+        ('cloud_architect',  'Cloud Architect'),
+        ('deployment_team',  'Deployment Team'),
+
+        # ── Data Science & Analytics ─────────────────────────────────────────
+        ('data_analyst',     'Data Analyst'),
+        ('data_scientist',   'Data Scientist'),
+
+        # ── IT Support & Security ────────────────────────────────────────────
+        ('helpdesk',         'Helpdesk Technician'),
+        ('ciso',             'CISO / SecOps Engineer'),
+
+        # ── Delivery ────────────────────────────────────────────────────────
+        ('delivery_team',    'Delivery Team'),
     )
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -45,13 +81,46 @@ class Profile(models.Model):
 # ---------------- PROJECT MEMBERSHIP ----------------
 class ProjectMembership(models.Model):
     ROLE_CHOICES = (
-        ('project_lead', 'Project Lead'),
-        ('ui_ux_designer', 'UI/UX Designer'),
-        ('developer', 'Developer'),
-        ('tester', 'Tester'),
-        ('qa', 'QA'),
-        ('deployment_team', 'Deployment Team'),
-        ('delivery_team', 'Delivery Team'),
+        # ── Project Leadership ───────────────────────────────────────────────
+        ('project_lead',     'Project Lead'),
+        ('product_manager',  'Product Manager'),
+        ('business_analyst', 'Business Analyst'),
+
+        # ── Design ──────────────────────────────────────────────────────────
+        ('ux_researcher',    'UX Researcher'),
+        ('ui_designer',      'UI Designer'),
+        ('ui_ux_designer',   'UI/UX Designer'),
+
+        # ── Engineering ─────────────────────────────────────────────────────
+        ('frontend_dev',     'Frontend Developer'),
+        ('backend_dev',      'Backend Developer'),
+        ('fullstack_dev',    'Full-Stack Engineer'),
+        ('mobile_dev',       'Mobile Developer'),
+        ('dba',              'Database Administrator'),
+        ('developer',        'Developer'),
+
+        # ── QA & Testing ────────────────────────────────────────────────────
+        ('qa_manual',        'Manual QA Tester'),
+        ('qa_automation',    'QA Automation Engineer'),
+        ('security_tester',  'Security / Pen Tester'),
+        ('tester',           'Tester'),
+        ('qa',               'QA'),
+
+        # ── DevOps & Infrastructure ──────────────────────────────────────────
+        ('devops_engineer',  'DevOps Engineer'),
+        ('cloud_architect',  'Cloud Architect'),
+        ('deployment_team',  'Deployment Team'),
+
+        # ── Data Science & Analytics ──────────────────────────────────────────
+        ('data_analyst',     'Data Analyst'),
+        ('data_scientist',   'Data Scientist'),
+
+        # ── IT Support & Security ─────────────────────────────────────────────
+        ('helpdesk',         'Helpdesk Technician'),
+        ('ciso',             'CISO / SecOps Engineer'),
+
+        # ── Delivery ─────────────────────────────────────────────────────────
+        ('delivery_team',    'Delivery Team'),
     )
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -523,6 +592,108 @@ class RolePermission(models.Model):
 
     role = models.CharField(max_length=25, choices=ProjectMembership.ROLE_CHOICES)
     permission = models.CharField(max_length=50, choices=PERMISSION_CHOICES)
-    
 
-    
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DYNAMIC SDLC DEPARTMENT & ROLE SYSTEM
+# Admin-configurable at runtime; no migration required to add new roles.
+# ─────────────────────────────────────────────────────────────────────────────
+
+class SDLCPhase(models.Model):
+    """Reference table for the six canonical SDLC stages. Seeded once via management command."""
+
+    PHASE_CHOICES = (
+        ('requirements', 'Requirements & Backlog'),
+        ('design',       'Design & Prototyping'),
+        ('development',  'Development Sprint'),
+        ('testing',      'QA & Testing'),
+        ('deployment',   'Deployment & Release'),
+        ('monitoring',   'Monitoring & Maintenance'),
+    )
+
+    key   = models.CharField(max_length=30, choices=PHASE_CHOICES, unique=True)
+    label = models.CharField(max_length=100)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return self.label
+
+
+class Department(models.Model):
+    """Admin-created department scoped to one or more SDLC phases."""
+
+    name       = models.CharField(max_length=100, unique=True)
+    key        = models.SlugField(max_length=60, unique=True,
+                     help_text='URL-safe identifier auto-generated from name.')
+    sdlc_phases = models.ManyToManyField(
+        SDLCPhase, blank=True, related_name='departments',
+        help_text='Which SDLC phases this department participates in.',
+    )
+    is_active  = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='created_departments',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            from django.utils.text import slugify
+            self.key = slugify(self.name)
+        super().save(*args, **kwargs)
+
+
+class DepartmentRole(models.Model):
+    """
+    A role belonging to a Department.
+
+    ``transitions`` is a JSON dict mapping each source status to a list of
+    allowed target statuses, e.g.::
+
+        {"todo": ["in_progress"], "in_progress": ["qa", "in_review"]}
+
+    Set ``can_manage_all = True`` to grant full status access (project-lead level).
+    """
+
+    STATUS_KEYS = ('todo', 'in_progress', 'in_review', 'qa', 'done')
+
+    department     = models.ForeignKey(
+        Department, on_delete=models.CASCADE, related_name='roles',
+    )
+    name           = models.CharField(max_length=100)
+    key            = models.SlugField(max_length=60,
+                         help_text='Stored in ProjectMembership.role. Must be unique per department.')
+    transitions    = models.JSONField(
+        default=dict, blank=True,
+        help_text=(
+            'Map of from_status → [to_statuses]. '
+            'Valid status keys: todo, in_progress, in_review, qa, done.'
+        ),
+    )
+    can_manage_all = models.BooleanField(
+        default=False,
+        help_text='Overrides transitions — grants full status access (same as Project Lead).',
+    )
+    is_active      = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('department', 'key')
+        ordering = ['department__name', 'name']
+
+    def __str__(self):
+        return f"{self.department.name} › {self.name}"
+
+    def allowed_next_statuses(self, from_status: str) -> set:
+        if self.can_manage_all:
+            return set(self.STATUS_KEYS)
+        data = self.transitions or {}
+        return set(data.get(from_status, []))
