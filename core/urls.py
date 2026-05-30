@@ -130,14 +130,14 @@ urlpatterns = [
     # =========================
     #  PIPELINE SETTINGS (Admin)
     # =========================
-    path('admin/pipeline-settings/', views.pipeline_settings, name='pipeline_settings'),
+    path('manage/pipeline-settings/', views.pipeline_settings, name='pipeline_settings'),
     path('api/admin/pipeline-settings/', views.api_pipeline_settings, name='api_pipeline_settings'),
     path('api/pipeline-settings/<str:department>/', views.api_department_stages, name='api_department_stages'),
 
     # =========================
     #  TEAMS & DEPARTMENTS (Admin)
     # =========================
-    path('admin/teams-departments/', views.teams_departments, name='teams_departments'),
+    path('manage/teams-departments/', views.teams_departments, name='teams_departments'),
 
     # IT Department CRUD
     path('api/admin/it-department/create/', views.api_it_department_create, name='api_it_department_create'),
