@@ -550,8 +550,11 @@ class ProjectInvite(models.Model):
     role = models.CharField(max_length=20)
     token = models.CharField(max_length=100, unique=True)
     team = models.ForeignKey(Team, null=True, blank=True, on_delete=models.SET_NULL)
-
-    used = models.BooleanField(default=False)  # ✅ KEEP THIS
+    invited_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='sent_invites'
+    )
+    used = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
 # ---------------- NOTIFICATION ----------------

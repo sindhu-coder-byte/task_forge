@@ -3130,7 +3130,8 @@ def invite_project_member(request, project_id):
                 role=role,
                 project=project,
                 token=token,
-                team=team
+                team=team,
+                invited_by=request.user,
             )
 
             if project.project_lead and project.project_lead != request.user:
@@ -3237,11 +3238,19 @@ def accept_project_invite(request, token):
     invite.save()
 
     try:
+        # Determine who sent the invite.
+        # Priority: the person who created the invite → project lead → project creator.
+        # Never fall back to request.user (the new member) to avoid "added by yourself" messages.
+        added_by = (
+            invite.invited_by
+            or invite.project.project_lead
+            or invite.project.created_by
+        )
         NotificationService().notify_project_member_added(
             invite.project,
             request.user,
             invite.role,
-            invite.project.project_lead or request.user,
+            added_by,
             invite.team,
         )
         if invite.team:
