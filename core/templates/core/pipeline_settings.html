@@ -254,6 +254,7 @@
 
 <script>
 const DEPT_CHOICES = {{ departments|safe_json }};
+const API_PIPELINE_SETTINGS_URL = "{% url 'core:api_pipeline_settings' %}";
 let currentDept = "{{ selected_dept }}";
 
 function updateVisibleCount() {
@@ -329,7 +330,7 @@ async function saveSettings() {
 async function loadDepartment(dept) {
   currentDept = dept;
   try {
-    const resp = await fetch(`/api/admin/pipeline-settings/?department=${dept}`);
+    const resp = await fetch(`${API_PIPELINE_SETTINGS_URL}?department=${dept}`);
     const data = await resp.json();
     if (!resp.ok) return;
 

@@ -461,17 +461,26 @@ def _project_timeline_context(project: Project) -> dict:
         })
 
     init_sid = str(initiated_cfg.pk) if initiated_cfg else None
-    for s in stages:
-        if s['id'] == init_sid:
-            continue
+    non_init = [s for s in stages if s['id'] != init_sid]
+
+    for s in non_init:
         if s['total'] and not s['complete']:
             active_stage_id = s['id']
             break
+    else:
+        # All non-init stages are complete (or empty) — pin to last stage with tasks,
+        # or fallback to the last stage overall, or the first config.
+        stages_with_tasks = [s for s in non_init if s['total'] > 0]
+        if stages_with_tasks:
+            active_stage_id = stages_with_tasks[-1]['id']
+        elif non_init:
+            active_stage_id = non_init[-1]['id']
+        # else: stays as configs[0] (only an initiated stage exists)
 
-    non_init = [s for s in stages if s['id'] != init_sid and s['total'] > 0]
+    non_init_with_tasks = [s for s in non_init if s['total'] > 0]
     if not len(tasks):
         health = 'not_started'
-    elif non_init and all(s['complete'] for s in non_init):
+    elif non_init_with_tasks and all(s['complete'] for s in non_init_with_tasks):
         health = 'delivered'
     else:
         health = 'on_track'
@@ -482,6 +491,31 @@ def _project_timeline_context(project: Project) -> dict:
         'active_stage_id': active_stage_id,
         'stages':          stages,
         'health':          health,
+    }
+
+
+def _tracker_snapshot(project) -> dict | None:
+    """
+    Lightweight serialisable version of _project_timeline_context for JSON responses.
+    Returns None when there is no project, so callers can safely skip it.
+    """
+    if not project:
+        return None
+    ctx = _project_timeline_context(project)
+    return {
+        'active_stage_id': ctx['active_stage_id'],
+        'health': ctx['health'],
+        'stages': [
+            {
+                'id':       s['id'],
+                'label':    s['label'],
+                'color':    s['color'],
+                'total':    s['total'],
+                'done':     s['done'],
+                'complete': s['complete'],
+            }
+            for s in ctx['stages']
+        ],
     }
 
 
@@ -1994,6 +2028,7 @@ def update_task_status(request, task_id, new_status):
             'status_counts': project_counts,
             'progress_percent': progress_percent,
             'allowed_next_statuses': _task_allowed_next_statuses(request.user, task),
+            'tracker': _tracker_snapshot(task.project),
         })
 
     try:
@@ -2077,6 +2112,7 @@ def update_task_status(request, task_id, new_status):
             'status_counts': project_counts,
             'progress_percent': progress_percent,
             'allowed_next_statuses': _task_allowed_next_statuses(request.user, task),
+            'tracker': _tracker_snapshot(task.project),
         })
 
     except Exception as e:

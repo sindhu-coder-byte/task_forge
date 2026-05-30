@@ -524,6 +524,29 @@ document.addEventListener("DOMContentLoaded", function () {
     refreshEmptyStates();
   }
 
+  function refreshTracker(trackerData) {
+    if (!trackerData || !trackerData.stages) return;
+    const { stages, active_stage_id } = trackerData;
+
+    stages.forEach(s => {
+      const node = document.querySelector(`.dpt-stage[data-stage-id="${s.id}"]`);
+      if (!node) return;
+
+      // done/total count
+      const sub = node.querySelector('.dpt-sub');
+      if (sub) sub.textContent = s.total ? `${s.done}/${s.total} done` : '—';
+
+      // active / done classes
+      node.classList.toggle('is-active', s.id === String(active_stage_id));
+      node.classList.toggle('is-done',   s.complete);
+    });
+
+    // update active label text
+    const activeNode = document.querySelector('.dpt-stage.is-active');
+    const labelEl    = document.getElementById('dptActiveLabel');
+    if (labelEl) labelEl.textContent = activeNode ? (activeNode.dataset.stageLabel || '—') : '—';
+  }
+
   function updateGlobalNotificationCount(count) {
     if (count === undefined || count === null) return;
     const badge = document.querySelector("#notifBtn .badge");
@@ -847,6 +870,7 @@ document.addEventListener("DOMContentLoaded", function () {
       updateCardTransitionState(card, data.allowed_next_statuses || []);
       updateBoardSummary(data.status_counts, data.progress_percent);
       updateGlobalNotificationCount(data.notification_count);
+      refreshTracker(data.tracker);
       loadActivity(taskId);
     })
     .catch(() => revertTaskMove(card, previousStatus));
