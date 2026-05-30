@@ -48,8 +48,6 @@ urlpatterns = [
     path('projects/<int:project_id>/team/', views.project_team, name='project_team'),
     path('projects/<int:project_id>/edit/', views.edit_project, name='edit_project'),
     path('projects/<int:project_id>/delete/', views.delete_project, name='delete_project'),
-    path('projects/<int:project_id>/milestones/', views.project_milestones, name='project_milestones'),
-
     # Members
     path('projects/<int:project_id>/members/', views.get_project_members, name='project_members'),
     path('projects/<int:project_id>/invite-member/', views.invite_project_member, name='invite_project_member'),

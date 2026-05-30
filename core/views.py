@@ -374,40 +374,39 @@ def _project_progress_snapshot(project: Project) -> tuple[dict, int]:
     return status_counts, progress_percent
 
 
-def _seed_default_milestones(project: Project):
-    """Seed the classic 6-stage pipeline for a project that has no milestones yet."""
-    if ProjectMilestone.objects.filter(project=project).exists():
-        return
-    defaults = [
-        ('Initiated',    'ri-flag-line',         '#94a3b8', ''),
-        ('UI/UX',        'ri-palette-line',       '#8b5cf6', 'ui_ux_designer'),
-        ('Development',  'ri-code-s-slash-line',  '#2563eb', 'developer'),
-        ('QA / Testing', 'ri-bug-line',           '#f59e0b', 'tester'),
-        ('Deployment',   'ri-rocket-line',        '#22c55e', 'deployment_team'),
-        ('Delivery',     'ri-truck-line',         '#06b6d4', 'delivery_team'),
-    ]
-    for i, (name, icon, color, role_key) in enumerate(defaults):
-        ProjectMilestone.objects.create(
-            project=project, name=name, icon=icon,
-            color=color, role_key=role_key, order=i,
-        )
-
-
 def _project_timeline_context(project: Project) -> dict:
     """
-    Build the Command Center pipeline from ProjectMilestone rows.
-    Falls back to seeding the classic 6-stage pipeline when none exist.
+    Detailed Progress Tracker stages:
+      Initiated -> UI/UX -> Dev -> QA/Tester -> Deployment -> Delivery
     """
-    milestones = list(
-        ProjectMilestone.objects.filter(project=project, is_active=True).order_by('order')
-    )
-    if not milestones:
-        _seed_default_milestones(project)
-        milestones = list(
-            ProjectMilestone.objects.filter(project=project, is_active=True).order_by('order')
-        )
+    stage_defs = [
+        ("initiated", "Initiated",   "#94a3b8"),
+        ("uiux",      "UI/UX",       "#8b5cf6"),
+        ("dev",       "Dev",         "#2563eb"),
+        ("qa",        "QA/Tester",   "#f59e0b"),
+        ("deployment","Deployment",  "#22c55e"),
+        ("delivery",  "Delivery",    "#06b6d4"),
+    ]
+    role_to_stage = {
+        "ui_ux_designer": "uiux",
+        "developer":      "dev",
+        "frontend_dev":   "dev",
+        "backend_dev":    "dev",
+        "fullstack_dev":  "dev",
+        "mobile_dev":     "dev",
+        "tester":         "qa",
+        "qa":             "qa",
+        "qa_manual":      "qa",
+        "qa_automation":  "qa",
+        "deployment_team":"deployment",
+        "devops_engineer":"deployment",
+        "delivery_team":  "delivery",
+    }
+    ordered_stage_ids = [s[0] for s in stage_defs]
+    stage_color = {sid: color for sid, _, color in stage_defs}
+    stage_label = {sid: label for sid, label, _ in stage_defs}
 
-    all_tasks = (
+    tasks = (
         Task.objects.filter(project=project)
         .only("id", "status", "assigned_to_id")
     )
@@ -415,49 +414,54 @@ def _project_timeline_context(project: Project) -> dict:
         ProjectMembership.objects.filter(project=project)
         .values_list("user_id", "role")
     )
-    total_tasks = all_tasks.count()
-    total_done  = all_tasks.filter(status="done").count()
+
+    stage_totals = {sid: 0 for sid in ordered_stage_ids}
+    stage_done   = {sid: 0 for sid in ordered_stage_ids}
+
+    for t in tasks:
+        user_role = membership_role.get(t.assigned_to_id)
+        sid = role_to_stage.get(user_role)
+        if not sid:
+            continue
+        stage_totals[sid] += 1
+        if t.status == "done":
+            stage_done[sid] += 1
+
+    total_tasks = tasks.count()
+    stage_totals["initiated"] = max(stage_totals["initiated"], total_tasks)
+    stage_done["initiated"]   = stage_done["initiated"] + tasks.filter(status="done").count()
 
     stages = []
-    for ms in milestones:
-        if ms.role_key:
-            role_user_ids = [uid for uid, r in membership_role.items() if r == ms.role_key]
-            stage_qs = all_tasks.filter(assigned_to_id__in=role_user_ids)
-        else:
-            # No role_key → catch-all (used for "Initiated" style stages)
-            stage_qs = all_tasks
-
-        total = stage_qs.count()
-        done  = stage_qs.filter(status="done").count()
-
-        # Catch-all stage: mirror overall project totals so it always has data
-        if not ms.role_key:
-            total = max(total, total_tasks)
-            done  = max(done,  total_done)
-
+    active_stage_id = "initiated"
+    for sid in ordered_stage_ids:
+        total    = stage_totals.get(sid, 0)
+        done     = stage_done.get(sid, 0)
         complete = bool(total) and done >= total
         stages.append({
-            "id":       str(ms.id),
-            "label":    ms.name,
-            "color":    ms.color,
-            "icon":     ms.icon,
+            "id":       sid,
+            "label":    stage_label[sid],
+            "color":    stage_color[sid],
             "total":    total,
             "done":     done,
             "complete": complete,
             "blocked":  bool(total) and not complete,
         })
 
-    # Active = first stage with incomplete work; fallback to first stage
-    active_stage_id = stages[0]["id"] if stages else ""
-    for s in stages[1:]:
+    for s in stages:
+        if s["id"] == "initiated":
+            continue
         if s["total"] and not s["complete"]:
             active_stage_id = s["id"]
             break
+    else:
+        if total_tasks:
+            active_stage_id = "delivery" if stage_totals.get("delivery") else "initiated"
 
-    role_stages = [s for s in stages[1:] if s["total"] > 0]
-    if not any(s["total"] > 0 for s in stages):
+    non_init = [s for s in stages if s["id"] != "initiated" and s["total"] > 0]
+    any_in_flight = any(s["total"] > 0 for s in stages)
+    if not any_in_flight:
         health = "not_started"
-    elif role_stages and all(s["complete"] for s in role_stages):
+    elif non_init and all(s["complete"] for s in non_init):
         health = "delivered"
     else:
         health = "on_track"
@@ -3938,95 +3942,4 @@ def mark_all_notifications_read(request):
     })
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# PROJECT MILESTONE MANAGEMENT
-# ─────────────────────────────────────────────────────────────────────────────
-
-@login_required
-def project_milestones(request, project_id):
-    """Manage dynamic milestones for the Project Command Center pipeline."""
-    project = get_object_or_404(Project, id=project_id)
-
-    if not _can_manage_project_members(request.user, project):
-        messages.error(request, "Only project leads and admins can manage milestones.")
-        return redirect('core:project_detail', project_id=project_id)
-
-    if request.method == 'POST':
-        action = request.POST.get('action', '')
-
-        if action == 'add':
-            name     = request.POST.get('name', '').strip()
-            role_key = request.POST.get('role_key', '').strip()
-            color    = request.POST.get('color', '#4f46e5').strip()
-            icon     = request.POST.get('icon', 'ri-flag-line').strip()
-            if name:
-                next_order = ProjectMilestone.objects.filter(project=project).count()
-                ProjectMilestone.objects.create(
-                    project=project, name=name, role_key=role_key,
-                    color=color, icon=icon, order=next_order,
-                )
-                messages.success(request, f'Milestone "{name}" added.')
-
-        elif action == 'delete':
-            ms_id = request.POST.get('milestone_id')
-            ProjectMilestone.objects.filter(id=ms_id, project=project).delete()
-            # Re-index order
-            for i, ms in enumerate(
-                ProjectMilestone.objects.filter(project=project).order_by('order')
-            ):
-                if ms.order != i:
-                    ms.order = i
-                    ms.save(update_fields=['order'])
-            messages.success(request, 'Milestone removed.')
-
-        elif action == 'move_up':
-            ms_id = request.POST.get('milestone_id')
-            ms = get_object_or_404(ProjectMilestone, id=ms_id, project=project)
-            prev = ProjectMilestone.objects.filter(
-                project=project, order__lt=ms.order
-            ).order_by('-order').first()
-            if prev:
-                ms.order, prev.order = prev.order, ms.order
-                ms.save(update_fields=['order'])
-                prev.save(update_fields=['order'])
-
-        elif action == 'move_down':
-            ms_id = request.POST.get('milestone_id')
-            ms = get_object_or_404(ProjectMilestone, id=ms_id, project=project)
-            nxt = ProjectMilestone.objects.filter(
-                project=project, order__gt=ms.order
-            ).order_by('order').first()
-            if nxt:
-                ms.order, nxt.order = nxt.order, ms.order
-                ms.save(update_fields=['order'])
-                nxt.save(update_fields=['order'])
-
-        elif action == 'edit':
-            ms_id    = request.POST.get('milestone_id')
-            ms = get_object_or_404(ProjectMilestone, id=ms_id, project=project)
-            ms.name     = request.POST.get('name', ms.name).strip() or ms.name
-            ms.role_key = request.POST.get('role_key', '').strip()
-            ms.color    = request.POST.get('color', ms.color).strip()
-            ms.icon     = request.POST.get('icon', ms.icon).strip()
-            ms.save()
-            messages.success(request, f'Milestone "{ms.name}" updated.')
-
-        elif action == 'load_defaults':
-            ProjectMilestone.objects.filter(project=project).delete()
-            _seed_default_milestones(project)
-            messages.success(request, 'Default milestones restored.')
-
-        return redirect('core:project_milestones', project_id=project_id)
-
-    milestones   = ProjectMilestone.objects.filter(project=project).order_by('order')
-    role_choices = ProjectMembership.ROLE_CHOICES
-    icon_choices = ProjectMilestone.ICON_CHOICES
-
-    return render(request, 'core/project_milestones.html', {
-        'project':      project,
-        'milestones':   milestones,
-        'role_choices': role_choices,
-        'icon_choices': icon_choices,
-        'notification_count': _get_notification_count(request.user),
-    })
 

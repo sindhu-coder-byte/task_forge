@@ -40,9 +40,6 @@
           <a class="btn-act btn-act--ghost" href="{% url 'core:project_team' selected_project.id %}">
             <i class="ri-team-line"></i> Team
           </a>
-          <a class="btn-act btn-act--ghost" href="{% url 'core:project_milestones' selected_project.id %}">
-            <i class="ri-map-pin-line"></i> Milestones
-          </a>
         {% endif %}
         <a class="btn-act btn-act--primary" href="{% url 'core:dashboard_analytics' %}">
           <i class="ri-bar-chart-2-line"></i> Analytics
