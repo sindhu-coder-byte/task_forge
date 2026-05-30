@@ -20,7 +20,7 @@ from django.db.models import Count
 from django.utils import timezone
 from django.conf import settings
 
-from .models import Project, Task, Profile, Comment, TaskActivity, TaskAttachment, Label, ProjectInvite, Notification, Team, ProjectMilestone
+from .models import Project, Task, Profile, Comment, TaskActivity, TaskAttachment, Label, ProjectInvite, Notification, Team
 from .forms import UserCreateForm, UserUpdateForm
 
 from .models import ProjectMembership
