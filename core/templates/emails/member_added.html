@@ -53,7 +53,7 @@
                         padding:14px 16px;border-radius:4px;margin-bottom:20px;">
               <p style="margin:0;font-size:14px;color:#374151;">
                 <strong>Welcome to {{ project.name }}!</strong>
-                {{ added_by.get_full_name|default:added_by.username }} has added you to this project
+                {{ added_by_label }} has added you to this project
                 as <strong>{{ role_display }}</strong>.
                 {% if team %}
                   You have also been added to the <strong>{{ team.name }}</strong> team.
@@ -101,7 +101,7 @@
                 <strong>{{ new_member.get_full_name|default:new_member.username }}</strong>
                 has been added to <strong>{{ project.name }}</strong>
                 as <strong>{{ role_display }}</strong>
-                by {{ added_by.get_full_name|default:added_by.username }}.
+                by {{ added_by_label }}.
                 {% if team %}
                   They have been assigned to the <strong>{{ team.name }}</strong> team.
                 {% endif %}
@@ -133,7 +133,7 @@
                     {% endif %}
                     <tr>
                       <td style="color:#6b7280;font-weight:600;">Added By</td>
-                      <td>{{ added_by.get_full_name|default:added_by.username }}</td>
+                      <td>{{ added_by_label }}</td>
                     </tr>
                     {% else %}
                     <tr>
@@ -152,7 +152,7 @@
                     {% endif %}
                     <tr>
                       <td style="color:#6b7280;font-weight:600;">Added By</td>
-                      <td>{{ added_by.get_full_name|default:added_by.username }}</td>
+                      <td>{{ added_by_label }}</td>
                     </tr>
                     {% endif %}
                   </table>

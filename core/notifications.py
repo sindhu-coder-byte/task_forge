@@ -275,16 +275,44 @@ class NotificationService:
                     html_content=html_content,
                 )
 
+    def _sender_role_display(self, project, added_by) -> str:
+        """
+        Return the human-readable role of `added_by` within this project.
+        Checks ProjectMembership first (project-specific role), then the
+        global Profile role as a fallback.
+        """
+        role_map = dict(ProjectMembership.ROLE_CHOICES)
+
+        # Project-specific role is authoritative
+        membership_role = (
+            ProjectMembership.objects
+            .filter(user=added_by, project=project)
+            .values_list('role', flat=True)
+            .first()
+        )
+        if membership_role and membership_role in role_map:
+            return role_map[membership_role]
+
+        # Fall back to global profile role
+        profile_role = getattr(getattr(added_by, 'profile', None), 'role', None)
+        if profile_role and profile_role in role_map:
+            return role_map[profile_role]
+
+        return 'Project Member'
+
     def notify_project_member_added(self, project, user, role, added_by, team=None):
         from django.contrib.auth.models import User as AuthUser
 
-        role_display = dict(ProjectMembership.ROLE_CHOICES).get(role, role.replace('_', ' ').title())
-        project_url  = self.get_project_url(project)
+        role_display     = dict(ProjectMembership.ROLE_CHOICES).get(role, role.replace('_', ' ').title())
+        sender_role      = self._sender_role_display(project, added_by)
+        sender_name      = added_by.get_full_name() or added_by.username
+        sender_label     = f"{sender_name} ({sender_role})"
+        project_url      = self.get_project_url(project)
 
         # Notify the new member (welcome email)
         team_text = f" and added you to team {team.name}" if team else ""
         welcome_message = (
-            f"{added_by.get_full_name() or added_by.username} added you to "
+            f"{sender_label} added you to "
             f"{project.name} as {role_display}{team_text}."
         )
         Notification.objects.create(
@@ -302,6 +330,7 @@ class NotificationService:
                 'role':              role,
                 'role_display':      role_display,
                 'added_by':          added_by,
+                'added_by_label':    sender_label,
                 'team':              team,
                 'project_url':       project_url,
                 'email_subject':     f"You were added to {project.name}",
@@ -313,12 +342,12 @@ class NotificationService:
                 html_content=html_content,
             )
 
-        # Notify all project leads (except if they are the person being added or the one doing the adding)
+        # Notify all project leads (except the sender or the new member)
         for lead in self.get_project_leads(project):
             if lead == added_by or lead == user:
                 continue
             lead_message = (
-                f"{added_by.get_full_name() or added_by.username} added "
+                f"{sender_label} added "
                 f"{user.get_full_name() or user.username} as {role_display}."
             )
             Notification.objects.create(
@@ -337,6 +366,7 @@ class NotificationService:
                     'role':              role,
                     'role_display':      role_display,
                     'added_by':          added_by,
+                    'added_by_label':    sender_label,
                     'team':              team,
                     'project_url':       project_url,
                     'email_subject':     f"New member added to {project.name}",
