@@ -595,100 +595,51 @@ class RolePermission(models.Model):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DYNAMIC SDLC DEPARTMENT & ROLE SYSTEM
-# No seeding required. SDLC phase is a plain dropdown; permissions are
-# simple checkboxes — no JSON, no M2M widget.
+# DYNAMIC PROJECT MILESTONES
+# Per-project, admin/lead configurable pipeline stages for the Command Center.
 # ─────────────────────────────────────────────────────────────────────────────
 
-class Department(models.Model):
-    """Admin-created department. Pick one primary SDLC phase from the dropdown."""
-
-    SDLC_PHASE_CHOICES = (
-        ('requirements', 'Requirements & Backlog'),
-        ('design',       'Design & Prototyping'),
-        ('development',  'Development Sprint'),
-        ('testing',      'QA & Testing'),
-        ('deployment',   'Deployment & Release'),
-        ('monitoring',   'Monitoring & Maintenance'),
-        ('cross_phase',  'Cross-Phase (All Stages)'),
-    )
-
-    name       = models.CharField(max_length=100, unique=True)
-    key        = models.SlugField(max_length=60, unique=True,
-                     help_text='Auto-generated from name. Used as role identifier.')
-    sdlc_phase = models.CharField(
-        max_length=30, choices=SDLC_PHASE_CHOICES, default='cross_phase',
-        help_text='Primary SDLC stage this department operates in.',
-    )
-    is_active  = models.BooleanField(default=True)
-    created_by = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='created_departments',
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['name']
-
-    def __str__(self):
-        return self.name
-
-    def save(self, *args, **kwargs):
-        if not self.key:
-            from django.utils.text import slugify
-            self.key = slugify(self.name)
-        super().save(*args, **kwargs)
-
-
-class DepartmentRole(models.Model):
+class ProjectMilestone(models.Model):
     """
-    A role inside a Department.
-    Tick the workflow actions this role is allowed to perform.
-    No JSON required — each permission is a simple checkbox.
+    A single stage in a project's Command Center pipeline.
+    Admins and Project Leads can add, rename, reorder, and delete these
+    per project — replacing the old hardcoded Initiated/UI-UX/Dev/QA/Deployment/Delivery.
     """
 
-    department      = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='roles')
-    name            = models.CharField(max_length=100)
-    key             = models.SlugField(max_length=60,
-                          help_text='Stored in ProjectMembership.role. Auto-generated from name.')
+    ICON_CHOICES = (
+        ('ri-flag-line',         'Flag — Initiated'),
+        ('ri-palette-line',      'Palette — Design/UI-UX'),
+        ('ri-code-s-slash-line', 'Code — Development'),
+        ('ri-bug-line',          'Bug — QA/Testing'),
+        ('ri-rocket-line',       'Rocket — Deployment'),
+        ('ri-truck-line',        'Truck — Delivery'),
+        ('ri-user-line',         'User — Business/Client'),
+        ('ri-database-line',     'Database — Data/Backend'),
+        ('ri-shield-check-line', 'Shield — Security'),
+        ('ri-bar-chart-line',    'Chart — Analytics'),
+        ('ri-settings-line',     'Settings — DevOps'),
+        ('ri-team-line',         'Team — Collaboration'),
+    )
 
-    # ── Workflow permission checkboxes ────────────────────────────────────────
-    can_start_task  = models.BooleanField(default=True,
-                          help_text='Todo → In Progress')
-    can_submit_task = models.BooleanField(default=False,
-                          help_text='In Progress → In Review')
-    can_send_to_qa  = models.BooleanField(default=False,
-                          help_text='In Progress → QA')
-    can_approve_task= models.BooleanField(default=False,
-                          help_text='In Review / QA → Done')
-    can_reject_task = models.BooleanField(default=False,
-                          help_text='In Review / QA → back to In Progress')
-    can_manage_all  = models.BooleanField(default=False,
-                          help_text='Full access — overrides all checkboxes above (same as Project Lead).')
-
-    is_active       = models.BooleanField(default=True)
+    project  = models.ForeignKey(
+        'Project', on_delete=models.CASCADE, related_name='milestones',
+    )
+    name     = models.CharField(max_length=100)
+    icon     = models.CharField(max_length=60, choices=ICON_CHOICES, default='ri-flag-line')
+    color    = models.CharField(max_length=20, default='#4f46e5',
+                   help_text='Hex colour e.g. #4f46e5')
+    role_key = models.CharField(
+        max_length=50, blank=True,
+        help_text=(
+            'ProjectMembership role whose tasks are counted for this stage '
+            '(e.g. frontend_dev, tester). Leave blank to count all project tasks.'
+        ),
+    )
+    order    = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
-        unique_together = ('department', 'key')
-        ordering = ['department__name', 'name']
+        ordering = ['order']
 
     def __str__(self):
-        return f"{self.department.name} › {self.name}"
-
-    def allowed_next_statuses(self, from_status: str) -> set:
-        if self.can_manage_all:
-            return {'todo', 'in_progress', 'in_review', 'qa', 'done'}
-        result = set()
-        if from_status == 'todo' and self.can_start_task:
-            result.add('in_progress')
-        if from_status == 'in_progress':
-            if self.can_submit_task:
-                result.add('in_review')
-            if self.can_send_to_qa:
-                result.add('qa')
-        if from_status in ('in_review', 'qa'):
-            if self.can_approve_task:
-                result.add('done')
-            if self.can_reject_task:
-                result.add('in_progress')
-        return result
+        return f"{self.project.name} › {self.name}"

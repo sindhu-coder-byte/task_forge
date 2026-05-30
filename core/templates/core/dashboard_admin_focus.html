@@ -21,8 +21,8 @@
       <a class="btn-act btn-act--ghost" href="{% url 'core:projects' %}">
         <i class="ri-folder-3-line"></i> All Projects
       </a>
-      <a class="btn-act btn-act--ghost" href="/admin/core/department/">
-        <i class="ri-building-4-line"></i> Manage Departments
+      <a class="btn-act btn-act--ghost" href="/admin/core/projectmilestone/">
+        <i class="ri-map-pin-line"></i> Milestones
       </a>
       <a class="btn-act btn-act--primary" href="{% url 'core:dashboard_analytics' %}">
         <i class="ri-bar-chart-2-line"></i> Analytics
@@ -82,16 +82,6 @@
       <div>
         <div class="stat-tile__num">{{ pending_invites_count }}</div>
         <div class="stat-tile__label">Pending Invites</div>
-      </div>
-    </div>
-
-    <div class="stat-tile">
-      <div class="stat-tile__icon" style="background:#f0fdf4;color:#15803d;">
-        <i class="ri-building-4-line"></i>
-      </div>
-      <div>
-        <div class="stat-tile__num">{{ departments_count }}</div>
-        <div class="stat-tile__label">Departments</div>
       </div>
     </div>
 
@@ -341,79 +331,6 @@
     </div>
 
   </div>
-
-  <!-- ═══════════════════════════════════════════════
-       SDLC DEPARTMENTS & ROLES
-  ═══════════════════════════════════════════════ -->
-  <div class="adm-section-head" style="margin-top:28px;">
-    <div class="adm-section-title">
-      <i class="ri-building-4-line"></i> SDLC Departments &amp; Roles
-    </div>
-    <a href="/admin/core/department/add/" class="btn-act btn-act--ghost" style="padding:7px 14px;font-size:12px;">
-      <i class="ri-add-line"></i> Add Department
-    </a>
-  </div>
-
-  {% if departments %}
-  <div class="dept-grid">
-    {% for dept in departments %}
-    <div class="dept-card">
-
-      <div class="dept-card__head">
-        <div>
-          <div class="dept-card__name">{{ dept.name }}</div>
-          <div class="dept-card__key">{{ dept.key }}</div>
-        </div>
-        <a href="/admin/core/department/{{ dept.id }}/change/" class="dept-edit-btn" title="Edit department">
-          <i class="ri-edit-line"></i>
-        </a>
-      </div>
-
-      <div class="dept-phases">
-        <span class="phase-badge phase-badge--{{ dept.sdlc_phase }}">
-          {{ dept.get_sdlc_phase_display }}
-        </span>
-      </div>
-
-      <div class="dept-roles">
-        {% for role in dept.roles.all %}
-          {% if role.is_active %}
-          <div class="dept-role-row">
-            <span class="dept-role-name">{{ role.name }}</span>
-            {% if role.can_manage_all %}
-              <span class="dept-role-access dept-role-access--full">Full Access</span>
-            {% else %}
-              <span class="dept-role-access">
-                {% if role.can_start_task %}Start {% endif %}
-                {% if role.can_submit_task %}Submit {% endif %}
-                {% if role.can_send_to_qa %}QA {% endif %}
-                {% if role.can_approve_task %}Approve {% endif %}
-                {% if role.can_reject_task %}Reject{% endif %}
-              </span>
-            {% endif %}
-          </div>
-          {% endif %}
-        {% empty %}
-          <div style="color:#94a3b8;font-size:12px;padding:8px 0;">No roles yet —
-            <a href="/admin/core/departmentrole/add/" style="color:#6366f1;">add one</a>
-          </div>
-        {% endfor %}
-      </div>
-
-    </div>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="adm-card" style="padding:28px;text-align:center;">
-    <i class="ri-building-4-line" style="font-size:32px;color:#cbd5e1;"></i>
-    <p style="color:#94a3b8;font-size:14px;margin:10px 0 16px;">
-      No departments configured yet.
-    </p>
-    <a href="/admin/core/department/add/" class="btn-act btn-act--primary" style="display:inline-flex;">
-      <i class="ri-add-line"></i> Create First Department
-    </a>
-  </div>
-  {% endif %}
 
 </div>
 {% endblock %}
