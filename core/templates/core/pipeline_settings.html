@@ -1,0 +1,355 @@
+{% extends "core/app_shell.html" %}
+{% load static custom_filters %}
+
+{% block shell_extra_css %}
+<style>
+  .ps-page { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem; }
+  .ps-header { margin-bottom: 2rem; }
+  .ps-header h1 { font-size: 1.4rem; font-weight: 700; color: #1e293b; margin-bottom: .25rem; }
+  .ps-header p { font-size: .875rem; color: #64748b; }
+
+  .ps-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .ps-dept-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+    flex-wrap: wrap;
+  }
+  .ps-dept-bar label { font-size: .875rem; font-weight: 600; color: #374151; white-space: nowrap; }
+  .ps-dept-select {
+    padding: .45rem .9rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: .875rem;
+    background: #fff;
+    cursor: pointer;
+    min-width: 200px;
+  }
+  .ps-dept-select:focus { outline: 2px solid #6366f1; outline-offset: 2px; }
+
+  .ps-dept-badge {
+    margin-left: auto;
+    padding: .3rem .8rem;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 600;
+    background: #eef2ff;
+    color: #4f46e5;
+  }
+
+  .ps-stage-list { padding: 1rem 1.5rem; display: flex; flex-direction: column; gap: .5rem; }
+
+  .ps-stage-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: .9rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    transition: background .15s;
+  }
+  .ps-stage-row:hover { background: #f8fafc; }
+  .ps-stage-row.is-hidden { opacity: .55; }
+
+  .ps-stage-icon {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .ps-stage-icon--todo       { background: #f1f5f9; color: #64748b; }
+  .ps-stage-icon--in_progress{ background: #eff6ff; color: #3b82f6; }
+  .ps-stage-icon--in_review  { background: #fdf4ff; color: #a855f7; }
+  .ps-stage-icon--qa         { background: #fefce8; color: #ca8a04; }
+  .ps-stage-icon--done       { background: #f0fdf4; color: #16a34a; }
+
+  .ps-stage-info { flex: 1; }
+  .ps-stage-info strong { font-size: .875rem; font-weight: 600; color: #1e293b; display: block; }
+  .ps-stage-info span { font-size: .75rem; color: #64748b; }
+
+  .ps-stage-examples { font-size: .7rem; color: #94a3b8; margin-top: .15rem; }
+
+  /* Toggle switch */
+  .ps-toggle { position: relative; display: inline-flex; align-items: center; gap: .6rem; cursor: pointer; user-select: none; }
+  .ps-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .ps-toggle-track {
+    width: 42px; height: 22px;
+    background: #cbd5e1;
+    border-radius: 999px;
+    transition: background .2s;
+    position: relative;
+  }
+  .ps-toggle-thumb {
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    transition: transform .2s;
+  }
+  .ps-toggle input:checked ~ .ps-toggle-track { background: #6366f1; }
+  .ps-toggle input:checked ~ .ps-toggle-track .ps-toggle-thumb { transform: translateX(20px); }
+  .ps-toggle-label { font-size: .8rem; font-weight: 500; color: #64748b; min-width: 50px; }
+
+  .ps-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8fafc;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .ps-save-btn {
+    padding: .55rem 1.4rem;
+    background: #4f46e5;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: .875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .ps-save-btn:hover { background: #4338ca; }
+  .ps-save-btn:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+  .ps-toast {
+    display: none;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem 1rem;
+    border-radius: 8px;
+    font-size: .82rem;
+    font-weight: 500;
+  }
+  .ps-toast.success { background: #dcfce7; color: #16a34a; display: flex; }
+  .ps-toast.error   { background: #fee2e2; color: #dc2626; display: flex; }
+
+  .ps-info-box {
+    margin: 1.25rem 1.5rem 0;
+    padding: .85rem 1rem;
+    border-radius: 8px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    font-size: .8rem;
+    display: flex;
+    gap: .6rem;
+    align-items: flex-start;
+  }
+  .ps-info-box i { margin-top: .05rem; flex-shrink: 0; }
+
+  /* Preset chips */
+  .ps-presets { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1rem 1.5rem; }
+  .ps-preset-chip {
+    padding: .3rem .75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    font-size: .75rem;
+    cursor: pointer;
+    background: #fff;
+    color: #374151;
+    transition: all .15s;
+  }
+  .ps-preset-chip:hover { border-color: #6366f1; color: #4f46e5; background: #eef2ff; }
+</style>
+{% endblock %}
+
+{% block shell_title %}
+<span class="issue-shell-title">
+  <i class="ri-settings-4-line" aria-hidden="true"></i>
+  <span>Pipeline Settings</span>
+  <p>Admin · Configure per-department stage visibility</p>
+</span>
+{% endblock %}
+
+{% block shell_page %}
+<div class="ps-page">
+  <div class="ps-header">
+    <h1>Pipeline Settings</h1>
+    <p>Control which Kanban columns are visible for each department. Hidden stages remain part of the underlying workflow — tasks skip through them automatically.</p>
+  </div>
+
+  <div class="ps-card">
+
+    <!-- Department selector bar -->
+    <div class="ps-dept-bar">
+      <label for="deptSelect"><i class="ri-building-2-line"></i> Department</label>
+      <select id="deptSelect" class="ps-dept-select" onchange="loadDepartment(this.value)">
+        {% for key, label in departments %}
+        <option value="{{ key }}" {% if key == selected_dept %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <span class="ps-dept-badge" id="visibleCount"></span>
+    </div>
+
+    <!-- Info note -->
+    <div class="ps-info-box">
+      <i class="ri-information-line"></i>
+      <span>Hiding a stage does <strong>not</strong> block the workflow — tasks in hidden columns remain active and progress metrics always reflect the full pipeline.</span>
+    </div>
+
+    <!-- Quick presets -->
+    <div class="ps-presets">
+      <strong style="font-size:.75rem;color:#6b7280;align-self:center;">Quick presets:</strong>
+      <button class="ps-preset-chip" onclick="applyPreset(['todo','in_review','done'])">Business View</button>
+      <button class="ps-preset-chip" onclick="applyPreset(['in_progress','qa','done'])">IT / Dev View</button>
+      <button class="ps-preset-chip" onclick="applyPreset(['todo','in_progress','in_review','qa','done'])">All Stages</button>
+    </div>
+
+    <!-- Stage list -->
+    <div class="ps-stage-list" id="stageList">
+      {% for stage in stages %}
+      <div class="ps-stage-row {% if not stage.is_visible %}is-hidden{% endif %}" id="row-{{ stage.key }}">
+        <div class="ps-stage-icon ps-stage-icon--{{ stage.key }}">
+          {% if stage.key == 'todo' %}<i class="ri-checkbox-blank-circle-line"></i>
+          {% elif stage.key == 'in_progress' %}<i class="ri-loader-3-line"></i>
+          {% elif stage.key == 'in_review' %}<i class="ri-eye-line"></i>
+          {% elif stage.key == 'qa' %}<i class="ri-test-tube-line"></i>
+          {% elif stage.key == 'done' %}<i class="ri-checkbox-circle-line"></i>
+          {% endif %}
+        </div>
+        <div class="ps-stage-info">
+          <strong>{{ stage.label }}</strong>
+          <span>
+            {% if stage.key == 'todo' %}Initiated tasks waiting to be picked up
+            {% elif stage.key == 'in_progress' %}Active development / in-flight work
+            {% elif stage.key == 'in_review' %}UI/UX review &amp; code review gate
+            {% elif stage.key == 'qa' %}Quality assurance &amp; testing
+            {% elif stage.key == 'done' %}Deployed / delivered to customer
+            {% endif %}
+          </span>
+        </div>
+        <label class="ps-toggle">
+          <input type="checkbox" data-stage="{{ stage.key }}"
+                 {% if stage.is_visible %}checked{% endif %}
+                 onchange="onToggle(this)">
+          <div class="ps-toggle-track"><div class="ps-toggle-thumb"></div></div>
+          <span class="ps-toggle-label" id="lbl-{{ stage.key }}">{{ stage.is_visible|yesno:"Visible,Hidden" }}</span>
+        </label>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Footer / save -->
+    <div class="ps-footer">
+      <div id="psToast" class="ps-toast"></div>
+      <button class="ps-save-btn" id="saveBtn" onclick="saveSettings()">Save Configuration</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEPT_CHOICES = {{ departments|safe_json }};
+let currentDept = "{{ selected_dept }}";
+
+function updateVisibleCount() {
+  const checked = document.querySelectorAll('#stageList input[type=checkbox]:checked').length;
+  const total   = document.querySelectorAll('#stageList input[type=checkbox]').length;
+  document.getElementById('visibleCount').textContent = checked + ' / ' + total + ' stages visible';
+}
+
+function onToggle(checkbox) {
+  const key = checkbox.dataset.stage;
+  const row = document.getElementById('row-' + key);
+  const lbl = document.getElementById('lbl-' + key);
+  if (checkbox.checked) {
+    row.classList.remove('is-hidden');
+    lbl.textContent = 'Visible';
+  } else {
+    row.classList.add('is-hidden');
+    lbl.textContent = 'Hidden';
+  }
+  updateVisibleCount();
+}
+
+function applyPreset(visibleKeys) {
+  document.querySelectorAll('#stageList input[type=checkbox]').forEach(cb => {
+    const shouldBeChecked = visibleKeys.includes(cb.dataset.stage);
+    if (cb.checked !== shouldBeChecked) {
+      cb.checked = shouldBeChecked;
+      onToggle(cb);
+    }
+  });
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('psToast');
+  t.textContent = msg;
+  t.className = 'ps-toast ' + type;
+  setTimeout(() => { t.className = 'ps-toast'; }, 3000);
+}
+
+async function saveSettings() {
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  const stages = {};
+  document.querySelectorAll('#stageList input[type=checkbox]').forEach(cb => {
+    stages[cb.dataset.stage] = cb.checked;
+  });
+
+  try {
+    const resp = await fetch("{% url 'core:api_pipeline_settings' %}", {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+      },
+      body: JSON.stringify({ department: currentDept, stages }),
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      showToast('✓ Configuration saved for ' + currentDept, 'success');
+    } else {
+      showToast('Error: ' + (data.error || 'Unknown error'), 'error');
+    }
+  } catch (e) {
+    showToast('Network error — please try again', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Configuration';
+  }
+}
+
+async function loadDepartment(dept) {
+  currentDept = dept;
+  try {
+    const resp = await fetch(`/api/admin/pipeline-settings/?department=${dept}`);
+    const data = await resp.json();
+    if (!resp.ok) return;
+
+    data.stages.forEach(stage => {
+      const cb = document.querySelector(`input[data-stage="${stage.key}"]`);
+      if (!cb) return;
+      cb.checked = stage.is_visible;
+      onToggle(cb);
+    });
+  } catch (e) {
+    console.error('Failed to load department settings', e);
+  }
+}
+
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? match[2] : '';
+}
+
+// Init count
+updateVisibleCount();
+</script>
+{% endblock %}

@@ -1,8 +1,43 @@
 {% extends "core/app_shell.html" %}
-{% load static %}
+{% load static custom_filters %}
 
 {% block shell_extra_css %}
 <link rel="stylesheet" href="{% static 'core/css/board.css' %}">
+<style>
+  /* ── Department pipeline filter bar ── */
+  .board-dept-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .65rem 1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin-bottom: .75rem;
+    flex-wrap: wrap;
+  }
+  .board-dept-bar-left  { display: flex; align-items: center; gap: .5rem; }
+  .board-dept-bar-right { display: flex; align-items: center; gap: .35rem; font-size: .78rem; color: #64748b; }
+  .board-dept-label { font-size: .82rem; font-weight: 600; color: #374151; }
+  .board-dept-select {
+    padding: .3rem .7rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    font-size: .82rem;
+    background: #fff;
+    cursor: pointer;
+  }
+  .board-dept-select:focus { outline: 2px solid #6366f1; outline-offset: 2px; }
+  .board-dept-link { color: #6366f1; font-weight: 600; text-decoration: none; }
+  .board-dept-link:hover { text-decoration: underline; }
+
+  /* Hidden column transition */
+  .column { transition: opacity .2s, flex .25s, min-width .25s, max-width .25s, padding .25s; }
+  .column.dept-hidden {
+    display: none;
+  }
+</style>
 {% endblock %}
 
 {% block shell_title %}
@@ -29,6 +64,27 @@
       {% endif %}
 
 
+    </div>
+  </div>
+
+  <!-- ── DEPARTMENT PIPELINE FILTER ── -->
+  <div class="board-dept-bar" id="boardDeptBar">
+    <div class="board-dept-bar-left">
+      <i class="ri-filter-3-line" style="color:#6366f1;"></i>
+      <span class="board-dept-label">Department View</span>
+      <select id="deptFilterSelect" class="board-dept-select" onchange="applyDepartmentFilter(this.value)">
+        <option value="">All Stages</option>
+        {% for key, label in department_choices %}
+        <option value="{{ key }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="board-dept-bar-right" id="hiddenStagesNote" style="display:none;">
+      <i class="ri-eye-off-line"></i>
+      <span id="hiddenStagesText"></span>
+      {% if is_admin %}
+      &nbsp;·&nbsp;<a href="{% url 'core:pipeline_settings' %}" class="board-dept-link">Configure</a>
+      {% endif %}
     </div>
   </div>
 
@@ -898,6 +954,53 @@ document.querySelectorAll(".column").forEach(column => {
     `;
     document.head.appendChild(style);
   }
+
+  // ── Department pipeline filter ──────────────────────────────────────────
+  const ALL_STAGE_KEYS = {{ status_choices|safe_json }}.map(pair => pair[0]);
+
+  window.applyDepartmentFilter = async function(dept) {
+    const note    = document.getElementById('hiddenStagesNote');
+    const noteText= document.getElementById('hiddenStagesText');
+
+    if (!dept) {
+      // Show all columns
+      ALL_STAGE_KEYS.forEach(key => {
+        const col = document.querySelector(`.column[data-status="${key}"]`);
+        if (col) col.classList.remove('dept-hidden');
+      });
+      note.style.display = 'none';
+      return;
+    }
+
+    try {
+      const resp = await fetch(`/api/pipeline-settings/${dept}/`);
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const visibleSet = new Set(data.visible_stages);
+
+      let hiddenCount = 0;
+      ALL_STAGE_KEYS.forEach(key => {
+        const col = document.querySelector(`.column[data-status="${key}"]`);
+        if (!col) return;
+        if (visibleSet.has(key)) {
+          col.classList.remove('dept-hidden');
+        } else {
+          col.classList.add('dept-hidden');
+          hiddenCount++;
+        }
+      });
+
+      if (hiddenCount > 0) {
+        noteText.textContent = `${hiddenCount} stage${hiddenCount > 1 ? 's' : ''} hidden · Progress metrics use full pipeline`;
+        note.style.display = 'flex';
+      } else {
+        note.style.display = 'none';
+      }
+    } catch (e) {
+      console.error('Failed to load pipeline settings', e);
+    }
+  };
+  // ───────────────────────────────────────────────────────────────────────
 });
 </script>
 {% endblock %}

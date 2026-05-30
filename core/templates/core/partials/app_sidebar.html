@@ -94,6 +94,18 @@
         <i class="ri-user-add-line"></i>
         <span class="nav-label">Create User</span>
       </a>
+
+      <a href="{% url 'core:pipeline_settings' %}"
+         class="{% if url_name == 'pipeline_settings' %}active{% endif %}">
+        <i class="ri-settings-4-line"></i>
+        <span class="nav-label">Pipeline Settings</span>
+      </a>
+
+      <a href="{% url 'core:teams_departments' %}"
+         class="{% if url_name == 'teams_departments' %}active{% endif %}">
+        <i class="ri-building-4-line"></i>
+        <span class="nav-label">Teams &amp; Departments</span>
+      </a>
       {% endif %}
 
       {% endwith %}

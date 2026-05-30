@@ -1,0 +1,912 @@
+{% extends "core/app_shell.html" %}
+{% load static custom_filters %}
+
+{% block shell_extra_css %}
+<style>
+/* ═══════════════════════════════════════════════════════
+   TEAMS & DEPARTMENTS ADMIN PAGE
+══════════════════════════════════════════════════════════ */
+:root {
+  --td-radius: 12px;
+  --td-border: #e2e8f0;
+  --td-bg: #f8fafc;
+  --td-surface: #fff;
+  --td-accent: #4f46e5;
+  --td-accent-light: #eef2ff;
+  --td-text: #1e293b;
+  --td-muted: #64748b;
+  --td-danger: #dc2626;
+  --td-danger-light: #fee2e2;
+  --td-success: #16a34a;
+  --td-success-light: #dcfce7;
+}
+
+/* Layout */
+.td-page { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+.td-page-header { margin-bottom: 2rem; }
+.td-page-header h1 { font-size: 1.45rem; font-weight: 800; color: var(--td-text); }
+.td-page-header p  { font-size: .875rem; color: var(--td-muted); margin-top: .25rem; }
+
+.td-grid { display: grid; grid-template-columns: 1fr 420px; gap: 1.5rem; align-items: start; }
+@media (max-width: 900px) { .td-grid { grid-template-columns: 1fr; } }
+
+/* ── Card ── */
+.td-card {
+  background: var(--td-surface);
+  border: 1px solid var(--td-border);
+  border-radius: var(--td-radius);
+  overflow: hidden;
+}
+.td-card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--td-border);
+  background: var(--td-bg);
+}
+.td-card-head h2 { font-size: .95rem; font-weight: 700; color: var(--td-text); display: flex; align-items: center; gap: .5rem; }
+.td-card-body { padding: 1rem; }
+
+/* ── Department list ── */
+.dept-list { display: flex; flex-direction: column; gap: .75rem; }
+
+.dept-item {
+  border: 1px solid var(--td-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.dept-header {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .85rem 1rem;
+  background: var(--td-bg);
+  cursor: pointer;
+  user-select: none;
+}
+.dept-header:hover { background: #f1f5f9; }
+.dept-icon {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: var(--td-accent-light); color: var(--td-accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; flex-shrink: 0;
+}
+.dept-name { flex: 1; font-size: .9rem; font-weight: 700; color: var(--td-text); }
+.dept-count {
+  font-size: .72rem; font-weight: 600; color: var(--td-muted);
+  background: #e2e8f0; padding: .15rem .55rem; border-radius: 999px;
+}
+.dept-chevron { color: var(--td-muted); transition: transform .2s; font-size: .9rem; }
+.dept-item.open .dept-chevron { transform: rotate(180deg); }
+
+.dept-actions { display: flex; gap: .4rem; }
+.td-btn-icon {
+  width: 28px; height: 28px; border: none; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: .9rem; transition: all .15s;
+  background: transparent; color: var(--td-muted);
+}
+.td-btn-icon:hover { background: #e2e8f0; color: var(--td-text); }
+.td-btn-icon--danger:hover { background: var(--td-danger-light); color: var(--td-danger); }
+
+/* Team list inside dept */
+.team-list { padding: .5rem .75rem .75rem; display: flex; flex-direction: column; gap: .4rem; }
+.team-item {
+  display: flex; align-items: center; gap: .65rem;
+  padding: .6rem .75rem;
+  border: 1px solid var(--td-border);
+  border-radius: 8px;
+  background: var(--td-surface);
+}
+.team-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.team-name { flex: 1; font-size: .84rem; font-weight: 600; color: var(--td-text); }
+.team-type-badge {
+  font-size: .68rem; font-weight: 600; padding: .15rem .5rem;
+  border-radius: 999px; background: var(--td-accent-light); color: var(--td-accent);
+}
+.team-dept-badge {
+  font-size: .68rem; color: var(--td-muted);
+}
+.add-team-btn {
+  display: flex; align-items: center; gap: .4rem;
+  padding: .45rem .75rem;
+  font-size: .8rem; font-weight: 600;
+  color: var(--td-accent);
+  background: var(--td-accent-light);
+  border: 1px dashed var(--td-accent);
+  border-radius: 8px; cursor: pointer; width: 100%;
+  transition: all .15s;
+}
+.add-team-btn:hover { background: #e0e7ff; }
+
+/* ── Stage Sequence Panel ── */
+.seq-scope-bar {
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+  padding: .75rem 1rem; border-bottom: 1px solid var(--td-border);
+  background: var(--td-bg);
+}
+.seq-scope-label { font-size: .8rem; font-weight: 600; color: var(--td-muted); }
+.seq-scope-select {
+  padding: .3rem .65rem; border: 1px solid var(--td-border); border-radius: 7px;
+  font-size: .82rem; background: var(--td-surface); cursor: pointer; flex: 1; min-width: 0;
+}
+.seq-scope-select:focus { outline: 2px solid var(--td-accent); outline-offset: 1px; }
+
+.seq-list { padding: .75rem; display: flex; flex-direction: column; gap: .5rem; min-height: 80px; }
+.seq-row {
+  display: flex; align-items: center; gap: .65rem;
+  padding: .65rem .75rem;
+  border: 1px solid var(--td-border); border-radius: 8px;
+  background: var(--td-surface);
+}
+.seq-handle { color: #94a3b8; cursor: grab; font-size: 1rem; }
+.seq-order-num {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--td-accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .7rem; font-weight: 700; flex-shrink: 0;
+}
+.seq-team-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.seq-team-name { flex: 1; font-size: .84rem; font-weight: 600; color: var(--td-text); }
+.seq-label-input {
+  width: 110px; padding: .25rem .5rem;
+  border: 1px solid var(--td-border); border-radius: 6px; font-size: .78rem;
+}
+.seq-label-input:focus { outline: 2px solid var(--td-accent); outline-offset: 1px; }
+
+/* Add-to-sequence picker */
+.seq-add-bar {
+  display: flex; gap: .5rem; padding: .5rem .75rem;
+  border-top: 1px solid var(--td-border);
+}
+.seq-add-select {
+  flex: 1; padding: .3rem .6rem;
+  border: 1px solid var(--td-border); border-radius: 7px;
+  font-size: .82rem; background: var(--td-surface);
+}
+.seq-add-select:focus { outline: 2px solid var(--td-accent); outline-offset: 1px; }
+
+.seq-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .75rem 1rem; border-top: 1px solid var(--td-border); background: var(--td-bg);
+  gap: .75rem; flex-wrap: wrap;
+}
+
+/* ── Buttons ── */
+.td-btn {
+  padding: .5rem 1.1rem; border: none; border-radius: 8px;
+  font-size: .84rem; font-weight: 600; cursor: pointer; transition: all .15s;
+  display: inline-flex; align-items: center; gap: .35rem;
+}
+.td-btn--primary { background: var(--td-accent); color: #fff; }
+.td-btn--primary:hover { background: #4338ca; }
+.td-btn--primary:disabled { background: #a5b4fc; cursor: not-allowed; }
+.td-btn--ghost {
+  background: transparent; color: var(--td-muted);
+  border: 1px solid var(--td-border);
+}
+.td-btn--ghost:hover { background: var(--td-bg); color: var(--td-text); }
+.td-btn--danger { background: var(--td-danger); color: #fff; }
+.td-btn--danger:hover { background: #b91c1c; }
+.td-btn--sm { padding: .35rem .75rem; font-size: .78rem; }
+.td-btn--add { background: var(--td-accent-light); color: var(--td-accent); border: 1px solid #c7d2fe; }
+.td-btn--add:hover { background: #e0e7ff; }
+
+/* ── Toast ── */
+.td-toast {
+  position: fixed; bottom: 1.5rem; right: 1.5rem;
+  padding: .65rem 1.1rem; border-radius: 10px;
+  font-size: .84rem; font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0,0,0,.12);
+  display: none; align-items: center; gap: .5rem; z-index: 9999;
+  animation: slideUp .2s ease;
+}
+.td-toast.success { background: var(--td-success-light); color: var(--td-success); display: flex; }
+.td-toast.error   { background: var(--td-danger-light);  color: var(--td-danger);  display: flex; }
+@keyframes slideUp { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ── Modal ── */
+.td-modal-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,.45);
+  display: none; align-items: center; justify-content: center; z-index: 1000;
+}
+.td-modal-overlay.open { display: flex; }
+.td-modal {
+  background: var(--td-surface); border-radius: var(--td-radius);
+  width: 100%; max-width: 440px; padding: 1.75rem;
+  box-shadow: 0 20px 60px rgba(0,0,0,.18);
+  animation: modalIn .18s ease;
+}
+@keyframes modalIn { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.td-modal h3 { font-size: 1.05rem; font-weight: 700; color: var(--td-text); margin-bottom: 1.25rem; }
+.td-form-group { margin-bottom: 1rem; }
+.td-form-group label { display: block; font-size: .8rem; font-weight: 600; color: var(--td-muted); margin-bottom: .35rem; }
+.td-form-group input, .td-form-group select, .td-form-group textarea {
+  width: 100%; padding: .55rem .8rem;
+  border: 1px solid var(--td-border); border-radius: 8px;
+  font-size: .88rem; color: var(--td-text); background: var(--td-surface);
+  box-sizing: border-box;
+}
+.td-form-group input:focus, .td-form-group select:focus, .td-form-group textarea:focus {
+  outline: 2px solid var(--td-accent); outline-offset: 1px;
+}
+.td-form-group textarea { resize: vertical; min-height: 70px; }
+.td-modal-actions { display: flex; justify-content: flex-end; gap: .6rem; margin-top: 1.25rem; }
+.td-form-error { font-size: .78rem; color: var(--td-danger); margin-top: .35rem; display: none; }
+
+/* Color row */
+.color-row { display: flex; align-items: center; gap: .75rem; }
+.color-row input[type=color] { width: 42px; height: 34px; padding: 2px; border-radius: 6px; cursor: pointer; }
+.color-preview { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #e2e8f0; }
+
+/* Empty state */
+.td-empty {
+  text-align: center; padding: 2rem 1rem; color: var(--td-muted);
+  font-size: .84rem;
+}
+.td-empty i { font-size: 2rem; display: block; margin-bottom: .5rem; opacity: .4; }
+
+/* Seq empty */
+.seq-empty { text-align: center; padding: 1.5rem; color: var(--td-muted); font-size: .82rem; }
+</style>
+{% endblock %}
+
+{% block shell_title %}
+<span class="issue-shell-title">
+  <i class="ri-building-2-line" aria-hidden="true"></i>
+  <span>Teams &amp; Departments</span>
+  <p>Admin · Manage IT structure and progress tracker stages</p>
+</span>
+{% endblock %}
+
+{% block shell_page %}
+<div class="td-page">
+  <div class="td-page-header">
+    <h1>Teams &amp; Departments</h1>
+    <p>Configure your organizational units and define the sequence of stages displayed in the Detailed Progress Tracker.</p>
+  </div>
+
+  <div class="td-grid">
+
+    <!-- ══════════ LEFT: Dept & Team Management ══════════ -->
+    <div>
+      <div class="td-card">
+        <div class="td-card-head">
+          <h2><i class="ri-building-4-line"></i> IT Departments &amp; Teams</h2>
+          <button class="td-btn td-btn--add td-btn--sm" onclick="openDeptModal()">
+            <i class="ri-add-line"></i> Add Department
+          </button>
+        </div>
+        <div class="td-card-body">
+
+          {% if departments %}
+          <div class="dept-list" id="deptList">
+            {% for dept in departments %}
+            <div class="dept-item" id="dept-item-{{ dept.pk }}">
+              <div class="dept-header" onclick="toggleDept({{ dept.pk }})">
+                <div class="dept-icon"><i class="ri-building-2-line"></i></div>
+                <div class="dept-name">{{ dept.name }}</div>
+                <span class="dept-count" id="dept-count-{{ dept.pk }}">{{ dept.it_teams.count }} team{{ dept.it_teams.count|pluralize }}</span>
+                <div class="dept-actions" onclick="event.stopPropagation()">
+                  <button class="td-btn-icon" title="Edit" onclick="openDeptModal({{ dept.pk }}, '{{ dept.name|escapejs }}', '{{ dept.description|escapejs }}')">
+                    <i class="ri-pencil-line"></i>
+                  </button>
+                  <button class="td-btn-icon td-btn-icon--danger" title="Delete" onclick="deleteDept({{ dept.pk }}, '{{ dept.name|escapejs }}')">
+                    <i class="ri-delete-bin-line"></i>
+                  </button>
+                </div>
+                <i class="ri-arrow-down-s-line dept-chevron"></i>
+              </div>
+
+              <div class="team-list" id="teams-{{ dept.pk }}" style="display:none;">
+                {% for team in dept.it_teams.all %}
+                <div class="team-item" id="team-item-{{ team.pk }}">
+                  <div class="team-dot" style="background:{{ team.color }};"></div>
+                  <span class="team-name">{{ team.name }}</span>
+                  <span class="team-type-badge">{{ team.get_team_type_display }}</span>
+                  <button class="td-btn-icon" title="Edit"
+                    onclick="openTeamModal({{ team.pk }},'{{ team.name|escapejs }}',{{ team.department_id }},'{{ team.team_type }}','{{ team.color }}')">
+                    <i class="ri-pencil-line"></i>
+                  </button>
+                  <button class="td-btn-icon td-btn-icon--danger" title="Delete"
+                    onclick="deleteTeam({{ team.pk }},'{{ team.name|escapejs }}')">
+                    <i class="ri-delete-bin-line"></i>
+                  </button>
+                </div>
+                {% empty %}
+                <div style="color:#94a3b8;font-size:.8rem;padding:.35rem .2rem;">No teams yet.</div>
+                {% endfor %}
+                <button class="add-team-btn" onclick="openTeamModal(null,null,{{ dept.pk }})">
+                  <i class="ri-add-line"></i> Add team to {{ dept.name }}
+                </button>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="td-empty" id="deptEmptyState">
+            <i class="ri-building-2-line"></i>
+            No departments yet. Click <strong>Add Department</strong> to get started.
+          </div>
+          {% endif %}
+
+        </div><!-- /card-body -->
+      </div><!-- /dept card -->
+    </div><!-- /left col -->
+
+
+    <!-- ══════════ RIGHT: Stage Sequence ══════════ -->
+    <div>
+      <div class="td-card">
+        <div class="td-card-head">
+          <h2><i class="ri-flow-chart"></i> Stage Sequence</h2>
+        </div>
+
+        <!-- Scope selector -->
+        <div class="seq-scope-bar">
+          <span class="seq-scope-label">Scope:</span>
+          <select class="seq-scope-select" id="seqScope" onchange="loadSequence()">
+            <option value="global">Global default</option>
+            {% for p in projects %}
+            <option value="{{ p.id }}">{{ p.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Stage rows -->
+        <div id="seqList" class="seq-list">
+          {% if global_stages %}
+            {% for cfg in global_stages %}
+            <div class="seq-row" data-team-id="{{ cfg.team_id }}" data-seq="{{ cfg.seq_order }}">
+              <i class="ri-draggable seq-handle"></i>
+              <div class="seq-order-num">{{ forloop.counter }}</div>
+              <div class="seq-team-dot" style="background:{{ cfg.team.color }};"></div>
+              <span class="seq-team-name">{{ cfg.team.name }}</span>
+              <input class="seq-label-input" placeholder="Label override" value="{{ cfg.label_override }}">
+              <button class="td-btn-icon td-btn-icon--danger" onclick="removeSeqRow(this)">
+                <i class="ri-close-line"></i>
+              </button>
+            </div>
+            {% endfor %}
+          {% else %}
+          <div class="seq-empty" id="seqEmptyMsg">No stages configured. Add teams below.</div>
+          {% endif %}
+        </div>
+
+        <!-- Add team to sequence -->
+        <div class="seq-add-bar">
+          <select class="seq-add-select" id="seqTeamPicker">
+            <option value="">— select a team to add —</option>
+            {% for team in all_teams %}
+            <option value="{{ team.pk }}" data-color="{{ team.color }}" data-name="{{ team.name }}">
+              {{ team.name }} ({{ team.department.name }})
+            </option>
+            {% endfor %}
+          </select>
+          <button class="td-btn td-btn--add td-btn--sm" onclick="addTeamToSeq()">
+            <i class="ri-add-line"></i> Add
+          </button>
+        </div>
+
+        <div class="seq-footer">
+          <div id="seqToast" style="font-size:.8rem;color:var(--td-success);display:none;"></div>
+          <div style="display:flex;gap:.5rem;margin-left:auto;">
+            <button class="td-btn td-btn--ghost td-btn--sm" onclick="loadSequence()">
+              <i class="ri-refresh-line"></i> Reset
+            </button>
+            <button class="td-btn td-btn--primary td-btn--sm" id="seqSaveBtn" onclick="saveSequence()">
+              <i class="ri-save-line"></i> Save Sequence
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /seq card -->
+
+      <!-- Info card -->
+      <div style="margin-top:1rem;padding:.9rem 1rem;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;font-size:.8rem;color:#1d4ed8;display:flex;gap:.6rem;">
+        <i class="ri-information-line" style="margin-top:.05rem;flex-shrink:0;"></i>
+        <span>The sequence you define here controls the <strong>Detailed Progress Tracker</strong> on each project board. Set <em>Global default</em> to apply to all projects, or choose a specific project to override.</span>
+      </div>
+    </div><!-- /right col -->
+
+  </div><!-- /grid -->
+</div><!-- /page -->
+
+<!-- ═══════════════════════════════════
+     DEPARTMENT MODAL
+════════════════════════════════════ -->
+<div class="td-modal-overlay" id="deptModalOverlay">
+  <div class="td-modal">
+    <h3 id="deptModalTitle">Add Department</h3>
+    <input type="hidden" id="deptModalId">
+
+    <div class="td-form-group">
+      <label>Department Name <span style="color:var(--td-danger)">*</span></label>
+      <input type="text" id="deptModalName" placeholder="e.g. Engineering" maxlength="150">
+      <div class="td-form-error" id="deptNameError"></div>
+    </div>
+    <div class="td-form-group">
+      <label>Description</label>
+      <textarea id="deptModalDesc" placeholder="Optional description…"></textarea>
+    </div>
+
+    <div class="td-modal-actions">
+      <button class="td-btn td-btn--ghost" onclick="closeDeptModal()">Cancel</button>
+      <button class="td-btn td-btn--primary" id="deptSaveBtn" onclick="saveDept()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     TEAM MODAL
+════════════════════════════════════ -->
+<div class="td-modal-overlay" id="teamModalOverlay">
+  <div class="td-modal">
+    <h3 id="teamModalTitle">Add Team</h3>
+    <input type="hidden" id="teamModalId">
+
+    <div class="td-form-group">
+      <label>Team Name <span style="color:var(--td-danger)">*</span></label>
+      <input type="text" id="teamModalName" placeholder="e.g. Frontend Team" maxlength="150">
+      <div class="td-form-error" id="teamNameError"></div>
+    </div>
+
+    <div class="td-form-group">
+      <label>Department <span style="color:var(--td-danger)">*</span></label>
+      <select id="teamModalDept">
+        <option value="">— select —</option>
+        {% for dept in departments %}
+        <option value="{{ dept.pk }}">{{ dept.name }}</option>
+        {% endfor %}
+      </select>
+      <div class="td-form-error" id="teamDeptError"></div>
+    </div>
+
+    <div class="td-form-group">
+      <label>Team Type <span style="color:var(--td-danger)">*</span></label>
+      <select id="teamModalType">
+        {% for key, label in team_types %}
+        <option value="{{ key }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="td-form-group">
+      <label>Color</label>
+      <div class="color-row">
+        <input type="color" id="teamModalColor" value="#4F46E5" oninput="document.getElementById('colorPreview').style.background=this.value">
+        <div class="color-preview" id="colorPreview" style="background:#4F46E5;"></div>
+        <span style="font-size:.78rem;color:var(--td-muted);">Shown in the progress tracker</span>
+      </div>
+    </div>
+
+    <div class="td-modal-actions">
+      <button class="td-btn td-btn--ghost" onclick="closeTeamModal()">Cancel</button>
+      <button class="td-btn td-btn--primary" id="teamSaveBtn" onclick="saveTeam()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Global toast -->
+<div class="td-toast" id="globalToast"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+//  Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function getCsrf() {
+  const m = document.cookie.match(/(^|;)\s*csrftoken=([^;]+)/);
+  return m ? m[2] : '';
+}
+
+function toast(msg, type = 'success') {
+  const el = document.getElementById('globalToast');
+  el.textContent = msg;
+  el.className = 'td-toast ' + type;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = 'td-toast'; }, 3500);
+}
+
+async function api(url, method = 'GET', body = null) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Department toggle
+// ─────────────────────────────────────────────────────────────────────────────
+function toggleDept(id) {
+  const item = document.getElementById('dept-item-' + id);
+  const teams = document.getElementById('teams-' + id);
+  item.classList.toggle('open');
+  teams.style.display = item.classList.contains('open') ? 'flex' : 'none';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Department Modal
+// ─────────────────────────────────────────────────────────────────────────────
+function openDeptModal(id = null, name = '', desc = '') {
+  document.getElementById('deptModalTitle').textContent = id ? 'Edit Department' : 'Add Department';
+  document.getElementById('deptModalId').value   = id || '';
+  document.getElementById('deptModalName').value  = name;
+  document.getElementById('deptModalDesc').value  = desc;
+  document.getElementById('deptNameError').style.display = 'none';
+  document.getElementById('deptModalOverlay').classList.add('open');
+  document.getElementById('deptModalName').focus();
+}
+function closeDeptModal() {
+  document.getElementById('deptModalOverlay').classList.remove('open');
+}
+
+async function saveDept() {
+  const id   = document.getElementById('deptModalId').value;
+  const name = document.getElementById('deptModalName').value.trim();
+  const desc = document.getElementById('deptModalDesc').value.trim();
+  const errEl= document.getElementById('deptNameError');
+  errEl.style.display = 'none';
+
+  if (!name) { errEl.textContent = 'Name is required.'; errEl.style.display = 'block'; return; }
+
+  const btn = document.getElementById('deptSaveBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    let data;
+    if (id) {
+      data = await api(`/api/admin/it-department/${id}/update/`, 'POST', { name, description: desc });
+      // Update DOM
+      const item = document.getElementById('dept-item-' + id);
+      if (item) item.querySelector('.dept-name').textContent = data.name;
+    } else {
+      data = await api('/api/admin/it-department/create/', 'POST', { name, description: desc });
+      // Inject new dept card
+      injectDeptCard(data);
+    }
+    closeDeptModal();
+    toast('✓ Department saved');
+  } catch (e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save';
+  }
+}
+
+function injectDeptCard(data) {
+  const list = document.getElementById('deptList') || createDeptList();
+  const empty = document.getElementById('deptEmptyState');
+  if (empty) empty.remove();
+
+  const html = `
+  <div class="dept-item" id="dept-item-${data.id}">
+    <div class="dept-header" onclick="toggleDept(${data.id})">
+      <div class="dept-icon"><i class="ri-building-2-line"></i></div>
+      <div class="dept-name">${escHtml(data.name)}</div>
+      <span class="dept-count" id="dept-count-${data.id}">0 teams</span>
+      <div class="dept-actions" onclick="event.stopPropagation()">
+        <button class="td-btn-icon" onclick="openDeptModal(${data.id},'${escJs(data.name)}','${escJs(data.description)}')"><i class="ri-pencil-line"></i></button>
+        <button class="td-btn-icon td-btn-icon--danger" onclick="deleteDept(${data.id},'${escJs(data.name)}')"><i class="ri-delete-bin-line"></i></button>
+      </div>
+      <i class="ri-arrow-down-s-line dept-chevron"></i>
+    </div>
+    <div class="team-list" id="teams-${data.id}" style="display:none;">
+      <div style="color:#94a3b8;font-size:.8rem;padding:.35rem .2rem;">No teams yet.</div>
+      <button class="add-team-btn" onclick="openTeamModal(null,null,${data.id})">
+        <i class="ri-add-line"></i> Add team to ${escHtml(data.name)}
+      </button>
+    </div>
+  </div>`;
+  list.insertAdjacentHTML('beforeend', html);
+  // Add dept to team modal options
+  const sel = document.getElementById('teamModalDept');
+  const opt = document.createElement('option');
+  opt.value = data.id; opt.textContent = data.name;
+  sel.appendChild(opt);
+}
+
+function createDeptList() {
+  const card = document.querySelector('.td-card-body');
+  card.innerHTML = '<div class="dept-list" id="deptList"></div>';
+  return document.getElementById('deptList');
+}
+
+async function deleteDept(id, name) {
+  if (!confirm(`Delete department "${name}"? All teams in this department will also be deleted.`)) return;
+  try {
+    await api(`/api/admin/it-department/${id}/delete/`, 'POST');
+    document.getElementById('dept-item-' + id)?.remove();
+    toast(`✓ Department "${name}" deleted`);
+    // Remove from team modal dept options
+    document.querySelector(`#teamModalDept option[value="${id}"]`)?.remove();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Team Modal
+// ─────────────────────────────────────────────────────────────────────────────
+function openTeamModal(id = null, name = '', deptId = null, type = 'development', color = '#4F46E5') {
+  document.getElementById('teamModalTitle').textContent = id ? 'Edit Team' : 'Add Team';
+  document.getElementById('teamModalId').value    = id || '';
+  document.getElementById('teamModalName').value   = name || '';
+  document.getElementById('teamModalDept').value   = deptId || '';
+  document.getElementById('teamModalType').value   = type;
+  document.getElementById('teamModalColor').value  = color;
+  document.getElementById('colorPreview').style.background = color;
+  document.getElementById('teamNameError').style.display = 'none';
+  document.getElementById('teamDeptError').style.display = 'none';
+  document.getElementById('teamModalOverlay').classList.add('open');
+  document.getElementById('teamModalName').focus();
+}
+function closeTeamModal() {
+  document.getElementById('teamModalOverlay').classList.remove('open');
+}
+
+async function saveTeam() {
+  const id     = document.getElementById('teamModalId').value;
+  const name   = document.getElementById('teamModalName').value.trim();
+  const deptId = document.getElementById('teamModalDept').value;
+  const type   = document.getElementById('teamModalType').value;
+  const color  = document.getElementById('teamModalColor').value;
+
+  const nameErr = document.getElementById('teamNameError');
+  const deptErr = document.getElementById('teamDeptError');
+  nameErr.style.display = deptErr.style.display = 'none';
+
+  let valid = true;
+  if (!name) { nameErr.textContent = 'Name is required.'; nameErr.style.display = 'block'; valid = false; }
+  if (!deptId) { deptErr.textContent = 'Department is required.'; deptErr.style.display = 'block'; valid = false; }
+  if (!valid) return;
+
+  const btn = document.getElementById('teamSaveBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    let data;
+    if (id) {
+      data = await api(`/api/admin/it-team/${id}/update/`, 'POST',
+        { name, department_id: deptId, team_type: type, color });
+      // Update DOM team item
+      const item = document.getElementById('team-item-' + id);
+      if (item) {
+        item.querySelector('.team-dot').style.background = data.color;
+        item.querySelector('.team-name').textContent = data.name;
+        item.querySelector('.team-type-badge').textContent = data.team_type_label;
+        // Update onclick attrs
+        item.querySelector('.td-btn-icon').setAttribute('onclick',
+          `openTeamModal(${data.id},'${escJs(data.name)}',${data.department_id},'${data.team_type}','${data.color}')`);
+      }
+    } else {
+      data = await api('/api/admin/it-team/create/', 'POST',
+        { name, department_id: deptId, team_type: type, color });
+      injectTeamRow(data);
+    }
+    // Refresh team picker in sequence
+    refreshSeqPicker();
+    closeTeamModal();
+    toast('✓ Team saved');
+  } catch (e) {
+    nameErr.textContent = e.message; nameErr.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save';
+  }
+}
+
+function injectTeamRow(data) {
+  const teamList = document.getElementById('teams-' + data.department_id);
+  if (!teamList) return;
+
+  // Remove "no teams" placeholder
+  const placeholder = teamList.querySelector('div[style]');
+  if (placeholder) placeholder.remove();
+
+  const addBtn = teamList.querySelector('.add-team-btn');
+  const html = `
+  <div class="team-item" id="team-item-${data.id}">
+    <div class="team-dot" style="background:${escHtml(data.color)};"></div>
+    <span class="team-name">${escHtml(data.name)}</span>
+    <span class="team-type-badge">${escHtml(data.team_type_label)}</span>
+    <button class="td-btn-icon" onclick="openTeamModal(${data.id},'${escJs(data.name)}',${data.department_id},'${data.team_type}','${data.color}')"><i class="ri-pencil-line"></i></button>
+    <button class="td-btn-icon td-btn-icon--danger" onclick="deleteTeam(${data.id},'${escJs(data.name)}')"><i class="ri-delete-bin-line"></i></button>
+  </div>`;
+  addBtn.insertAdjacentHTML('beforebegin', html);
+
+  // Update count badge
+  const countEl = document.getElementById('dept-count-' + data.department_id);
+  if (countEl) {
+    const n = teamList.querySelectorAll('.team-item').length;
+    countEl.textContent = n + ' team' + (n !== 1 ? 's' : '');
+  }
+}
+
+async function deleteTeam(id, name) {
+  if (!confirm(`Delete team "${name}"?`)) return;
+  try {
+    await api(`/api/admin/it-team/${id}/delete/`, 'POST');
+    const item = document.getElementById('team-item-' + id);
+    const deptId = item?.closest('.dept-item')?.id?.split('-')[2];
+    item?.remove();
+    if (deptId) {
+      const teamList = document.getElementById('teams-' + deptId);
+      const n = teamList?.querySelectorAll('.team-item').length || 0;
+      const countEl = document.getElementById('dept-count-' + deptId);
+      if (countEl) countEl.textContent = n + ' team' + (n !== 1 ? 's' : '');
+    }
+    refreshSeqPicker();
+    toast(`✓ Team "${name}" deleted`);
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Stage Sequence
+// ─────────────────────────────────────────────────────────────────────────────
+function buildSeqRow(teamId, teamName, color, labelOverride = '') {
+  const idx = document.querySelectorAll('#seqList .seq-row').length + 1;
+  return `
+  <div class="seq-row" data-team-id="${teamId}">
+    <i class="ri-draggable seq-handle"></i>
+    <div class="seq-order-num">${idx}</div>
+    <div class="seq-team-dot" style="background:${escHtml(color)};"></div>
+    <span class="seq-team-name">${escHtml(teamName)}</span>
+    <input class="seq-label-input" placeholder="Label override" value="${escHtml(labelOverride)}">
+    <button class="td-btn-icon td-btn-icon--danger" onclick="removeSeqRow(this)"><i class="ri-close-line"></i></button>
+  </div>`;
+}
+
+function renumberSeq() {
+  document.querySelectorAll('#seqList .seq-row .seq-order-num').forEach((el, i) => {
+    el.textContent = i + 1;
+  });
+}
+
+function removeSeqRow(btn) {
+  btn.closest('.seq-row').remove();
+  renumberSeq();
+  const rows = document.querySelectorAll('#seqList .seq-row').length;
+  if (!rows) {
+    document.getElementById('seqList').innerHTML =
+      '<div class="seq-empty" id="seqEmptyMsg">No stages configured. Add teams below.</div>';
+  }
+}
+
+function addTeamToSeq() {
+  const picker = document.getElementById('seqTeamPicker');
+  const opt    = picker.selectedOptions[0];
+  if (!opt || !opt.value) return;
+
+  const alreadyIn = document.querySelector(`#seqList .seq-row[data-team-id="${opt.value}"]`);
+  if (alreadyIn) { toast('This team is already in the sequence.', 'error'); return; }
+
+  const emptyMsg = document.getElementById('seqEmptyMsg');
+  if (emptyMsg) emptyMsg.remove();
+
+  document.getElementById('seqList').insertAdjacentHTML(
+    'beforeend',
+    buildSeqRow(opt.value, opt.dataset.name, opt.dataset.color)
+  );
+  picker.value = '';
+}
+
+async function loadSequence() {
+  const scope = document.getElementById('seqScope').value;
+  const url   = `/api/admin/stage-sequence/?project_id=${scope}`;
+  try {
+    const data = await api(url);
+    const list = document.getElementById('seqList');
+    list.innerHTML = '';
+    if (!data.stages.length) {
+      list.innerHTML = '<div class="seq-empty" id="seqEmptyMsg">No stages configured. Add teams below.</div>';
+      return;
+    }
+    data.stages.forEach((s, i) => {
+      list.insertAdjacentHTML('beforeend', buildSeqRow(
+        s.team_id, s['team__name'], s['team__color'], s.label_override
+      ));
+    });
+    renumberSeq();
+  } catch(e) {
+    toast('Failed to load sequence: ' + e.message, 'error');
+  }
+}
+
+async function saveSequence() {
+  const scope = document.getElementById('seqScope').value;
+  const rows  = document.querySelectorAll('#seqList .seq-row');
+  const stages = Array.from(rows).map((row, i) => ({
+    team_id: parseInt(row.dataset.teamId),
+    seq_order: i + 1,
+    label_override: row.querySelector('.seq-label-input')?.value?.trim() || '',
+  }));
+
+  const btn = document.getElementById('seqSaveBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    await api('/api/admin/stage-sequence/', 'POST', {
+      project_id: scope === 'global' ? null : parseInt(scope),
+      stages,
+    });
+    toast('✓ Stage sequence saved');
+    renumberSeq();
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<i class="ri-save-line"></i> Save Sequence';
+  }
+}
+
+function refreshSeqPicker() {
+  // Rebuild picker from current DOM team items
+  const picker = document.getElementById('seqTeamPicker');
+  picker.innerHTML = '<option value="">— select a team to add —</option>';
+  document.querySelectorAll('.team-item').forEach(item => {
+    const id   = item.id.replace('team-item-', '');
+    const name = item.querySelector('.team-name')?.textContent || '';
+    const color= item.querySelector('.team-dot')?.style.background || '#4F46E5';
+    const opt  = document.createElement('option');
+    opt.value = id; opt.dataset.name = name; opt.dataset.color = color;
+    opt.textContent = name;
+    picker.appendChild(opt);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Drag-to-reorder seq rows
+// ─────────────────────────────────────────────────────────────────────────────
+(function initDrag() {
+  const list = document.getElementById('seqList');
+  let dragging = null;
+
+  list.addEventListener('dragstart', e => {
+    dragging = e.target.closest('.seq-row');
+    if (dragging) dragging.style.opacity = '.4';
+  });
+  list.addEventListener('dragend', () => {
+    if (dragging) dragging.style.opacity = '';
+    dragging = null;
+    renumberSeq();
+  });
+  list.addEventListener('dragover', e => {
+    e.preventDefault();
+    const over = e.target.closest('.seq-row');
+    if (over && over !== dragging) {
+      const rect = over.getBoundingClientRect();
+      const mid  = rect.top + rect.height / 2;
+      if (e.clientY < mid) list.insertBefore(dragging, over);
+      else list.insertBefore(dragging, over.nextSibling);
+    }
+  });
+  list.addEventListener('mousedown', e => {
+    const row = e.target.closest('.seq-row');
+    if (row) row.setAttribute('draggable', 'true');
+  });
+  list.addEventListener('mouseup', () => {
+    document.querySelectorAll('.seq-row').forEach(r => r.removeAttribute('draggable'));
+  });
+})();
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Utils
+// ─────────────────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escJs(s) {
+  return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+// Close modals on overlay click
+document.getElementById('deptModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeDeptModal();
+});
+document.getElementById('teamModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeTeamModal();
+});
+</script>
+{% endblock %}

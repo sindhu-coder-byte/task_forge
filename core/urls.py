@@ -126,4 +126,29 @@ urlpatterns = [
     path('project/<int:project_id>/create-team/', views.create_team, name='create_team'),
     path('teams/<int:team_id>/edit/', views.edit_team, name='edit_team'),
     path('teams/<int:team_id>/delete/', views.delete_team, name='delete_team'),
+
+    # =========================
+    #  PIPELINE SETTINGS (Admin)
+    # =========================
+    path('admin/pipeline-settings/', views.pipeline_settings, name='pipeline_settings'),
+    path('api/admin/pipeline-settings/', views.api_pipeline_settings, name='api_pipeline_settings'),
+    path('api/pipeline-settings/<str:department>/', views.api_department_stages, name='api_department_stages'),
+
+    # =========================
+    #  TEAMS & DEPARTMENTS (Admin)
+    # =========================
+    path('admin/teams-departments/', views.teams_departments, name='teams_departments'),
+
+    # IT Department CRUD
+    path('api/admin/it-department/create/', views.api_it_department_create, name='api_it_department_create'),
+    path('api/admin/it-department/<int:dept_id>/update/', views.api_it_department_update, name='api_it_department_update'),
+    path('api/admin/it-department/<int:dept_id>/delete/', views.api_it_department_delete, name='api_it_department_delete'),
+
+    # IT Team CRUD
+    path('api/admin/it-team/create/', views.api_it_team_create, name='api_it_team_create'),
+    path('api/admin/it-team/<int:team_id>/update/', views.api_it_team_update, name='api_it_team_update'),
+    path('api/admin/it-team/<int:team_id>/delete/', views.api_it_team_delete, name='api_it_team_delete'),
+
+    # Stage Sequence
+    path('api/admin/stage-sequence/', views.api_stage_sequence, name='api_stage_sequence'),
 ]

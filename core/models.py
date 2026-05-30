@@ -592,3 +592,109 @@ class RolePermission(models.Model):
 
     role = models.CharField(max_length=25, choices=ProjectMembership.ROLE_CHOICES)
     permission = models.CharField(max_length=50, choices=PERMISSION_CHOICES)
+
+
+# ---------------- DEPARTMENT PIPELINE SETTINGS ----------------
+class DepartmentPipelineSettings(models.Model):
+    DEPARTMENT_CHOICES = [
+        ('business', 'Business'),
+        ('it', 'IT Department'),
+        ('marketing', 'Marketing Team'),
+        ('design', 'Design Team'),
+        ('engineering', 'Engineering'),
+        ('product', 'Product'),
+        ('operations', 'Operations'),
+        ('cross_functional', 'Cross-Functional Team'),
+    ]
+
+    STAGE_CHOICES = [
+        ('todo', 'Initiated / To Do'),
+        ('in_progress', 'Dev / In Progress'),
+        ('in_review', 'UI/UX Review'),
+        ('qa', 'QA / Testing'),
+        ('done', 'Deployment / Done'),
+    ]
+
+    department = models.CharField(max_length=50, choices=DEPARTMENT_CHOICES)
+    stage_key = models.CharField(max_length=20, choices=STAGE_CHOICES)
+    is_visible = models.BooleanField(default=True)
+    updated_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='pipeline_setting_updates'
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [('department', 'stage_key')]
+
+    def __str__(self):
+        return f"{self.get_department_display()} — {self.get_stage_key_display()} ({'on' if self.is_visible else 'off'})"
+
+
+# ── IT DEPARTMENT ──────────────────────────────────────────────────────────────
+class ITDepartment(models.Model):
+    name        = models.CharField(max_length=150, unique=True)
+    description = models.TextField(blank=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+# ── IT TEAM ────────────────────────────────────────────────────────────────────
+class ITTeam(models.Model):
+    TEAM_TYPE_CHOICES = [
+        ('initiated',   'Initiated / Planning'),
+        ('design',      'Design / UI-UX'),
+        ('development', 'Development'),
+        ('qa',          'QA / Testing'),
+        ('devops',      'DevOps / Deployment'),
+        ('delivery',    'Delivery'),
+    ]
+
+    name       = models.CharField(max_length=150, unique=True)
+    department = models.ForeignKey(
+        ITDepartment, on_delete=models.CASCADE, related_name='it_teams'
+    )
+    team_type  = models.CharField(
+        max_length=30, choices=TEAM_TYPE_CHOICES, default='development'
+    )
+    color      = models.CharField(max_length=20, default='#4F46E5')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['department', 'name']
+
+    def __str__(self):
+        return f"{self.name} ({self.department.name})"
+
+
+# ── PROJECT STAGE CONFIGURATION ────────────────────────────────────────────────
+class ProjectStageConfiguration(models.Model):
+    """
+    Maps an ITTeam to a sequence position in the progress tracker.
+    project=None  → global default (applies to all projects without a custom config).
+    project=<pk>  → project-specific override.
+    """
+    project       = models.ForeignKey(
+        'Project', on_delete=models.CASCADE,
+        null=True, blank=True, related_name='stage_configs'
+    )
+    team          = models.ForeignKey(
+        ITTeam, on_delete=models.CASCADE, related_name='stage_configs'
+    )
+    seq_order     = models.PositiveIntegerField(default=0)
+    label_override = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        ordering = ['project_id', 'seq_order']
+
+    def get_label(self):
+        return self.label_override or self.team.name
+
+    def __str__(self):
+        scope = self.project.name if self.project_id else 'Global'
+        return f"[{scope}] #{self.seq_order} — {self.team.name}"

@@ -20,7 +20,11 @@ from django.db.models import Count
 from django.utils import timezone
 from django.conf import settings
 
-from .models import Project, Task, Profile, Comment, TaskActivity, TaskAttachment, Label, ProjectInvite, Notification, Team
+from .models import (
+    Project, Task, Profile, Comment, TaskActivity, TaskAttachment,
+    Label, ProjectInvite, Notification, Team, DepartmentPipelineSettings,
+    ITDepartment, ITTeam, ProjectStageConfiguration,
+)
 from .forms import UserCreateForm, UserUpdateForm
 
 from .models import ProjectMembership
@@ -374,77 +378,171 @@ def _project_progress_snapshot(project: Project) -> tuple[dict, int]:
     return status_counts, progress_percent
 
 
+# Map ITTeam.team_type to the ProfileRole / ProjectMembership role keys it owns.
+_TEAM_TYPE_TO_ROLES = {
+    'initiated':   [],   # catch-all bucket for all tasks (totals only)
+    'design':      ['ui_designer', 'ui_ux_designer', 'ux_researcher'],
+    'development': ['developer', 'frontend_dev', 'backend_dev',
+                    'fullstack_dev', 'mobile_dev', 'dba'],
+    'qa':          ['tester', 'qa', 'qa_manual', 'qa_automation', 'security_tester'],
+    'devops':      ['devops_engineer', 'cloud_architect', 'deployment_team'],
+    'delivery':    ['delivery_team'],
+}
+
+
 def _project_timeline_context(project: Project) -> dict:
     """
-    Detailed Progress Tracker stages:
-      Initiated -> UI/UX -> Dev -> QA/Tester -> Deployment -> Delivery
+    Build Detailed Progress Tracker stages.
+    Priority: project-specific stages → global default stages → legacy hardcoded.
     """
-    stage_defs = [
-        ("initiated", "Initiated",   "#94a3b8"),
-        ("uiux",      "UI/UX",       "#8b5cf6"),
-        ("dev",       "Dev",         "#2563eb"),
-        ("qa",        "QA/Tester",   "#f59e0b"),
-        ("deployment","Deployment",  "#22c55e"),
-        ("delivery",  "Delivery",    "#06b6d4"),
-    ]
-    role_to_stage = {
-        "ui_ux_designer": "uiux",
-        "developer":      "dev",
-        "frontend_dev":   "dev",
-        "backend_dev":    "dev",
-        "fullstack_dev":  "dev",
-        "mobile_dev":     "dev",
-        "tester":         "qa",
-        "qa":             "qa",
-        "qa_manual":      "qa",
-        "qa_automation":  "qa",
-        "deployment_team":"deployment",
-        "devops_engineer":"deployment",
-        "delivery_team":  "delivery",
-    }
-    ordered_stage_ids = [s[0] for s in stage_defs]
-    stage_color = {sid: color for sid, _, color in stage_defs}
-    stage_label = {sid: label for sid, label, _ in stage_defs}
+    configs = list(
+        ProjectStageConfiguration.objects
+        .filter(project=project)
+        .select_related('team__department')
+        .order_by('seq_order')
+    )
+    if not configs:
+        configs = list(
+            ProjectStageConfiguration.objects
+            .filter(project=None)
+            .select_related('team__department')
+            .order_by('seq_order')
+        )
+    if not configs:
+        return _legacy_project_timeline_context(project)
 
-    tasks = (
-        Task.objects.filter(project=project)
-        .only("id", "status", "assigned_to_id")
+    tasks = list(
+        Task.objects.filter(project=project).only('id', 'status', 'assigned_to_id')
     )
     membership_role = dict(
-        ProjectMembership.objects.filter(project=project)
-        .values_list("user_id", "role")
+        ProjectMembership.objects.filter(project=project).values_list('user_id', 'role')
     )
 
-    stage_totals = {sid: 0 for sid in ordered_stage_ids}
-    stage_done   = {sid: 0 for sid in ordered_stage_ids}
+    # Build role → config_id lookup (first matching wins)
+    role_to_cid: dict[str, int] = {}
+    for cfg in configs:
+        for role in _TEAM_TYPE_TO_ROLES.get(cfg.team.team_type, []):
+            role_to_cid.setdefault(role, cfg.pk)
+
+    stage_totals = {cfg.pk: 0 for cfg in configs}
+    stage_done   = {cfg.pk: 0 for cfg in configs}
 
     for t in tasks:
         user_role = membership_role.get(t.assigned_to_id)
-        sid = role_to_stage.get(user_role)
-        if not sid:
+        cid = role_to_cid.get(user_role)
+        if cid:
+            stage_totals[cid] += 1
+            if t.status == 'done':
+                stage_done[cid] += 1
+
+    # "Initiated" stage absorbs all-task totals
+    initiated_cfg = next((c for c in configs if c.team.team_type == 'initiated'), None)
+    if initiated_cfg:
+        total_all = len(tasks)
+        done_all  = sum(1 for t in tasks if t.status == 'done')
+        stage_totals[initiated_cfg.pk] = max(stage_totals[initiated_cfg.pk], total_all)
+        stage_done[initiated_cfg.pk]   = max(stage_done[initiated_cfg.pk],   done_all)
+
+    stages = []
+    active_stage_id = str(configs[0].pk) if configs else None
+
+    for cfg in configs:
+        total    = stage_totals[cfg.pk]
+        done     = stage_done[cfg.pk]
+        complete = bool(total) and done >= total
+        stages.append({
+            'id':       str(cfg.pk),
+            'label':    cfg.get_label(),
+            'color':    cfg.team.color,
+            'total':    total,
+            'done':     done,
+            'complete': complete,
+            'blocked':  bool(total) and not complete,
+        })
+
+    init_sid = str(initiated_cfg.pk) if initiated_cfg else None
+    for s in stages:
+        if s['id'] == init_sid:
             continue
-        stage_totals[sid] += 1
-        if t.status == "done":
-            stage_done[sid] += 1
+        if s['total'] and not s['complete']:
+            active_stage_id = s['id']
+            break
+
+    non_init = [s for s in stages if s['id'] != init_sid and s['total'] > 0]
+    if not len(tasks):
+        health = 'not_started'
+    elif non_init and all(s['complete'] for s in non_init):
+        health = 'delivered'
+    else:
+        health = 'on_track'
+
+    return {
+        'project_id':      project.id,
+        'project_name':    project.name,
+        'active_stage_id': active_stage_id,
+        'stages':          stages,
+        'health':          health,
+    }
+
+
+def _legacy_project_timeline_context(project: Project) -> dict:
+    """Original hardcoded stage logic — used as fallback when no DB config exists."""
+    stage_defs = [
+        ("initiated",  "Initiated",  "#94a3b8"),
+        ("uiux",       "UI/UX",      "#8b5cf6"),
+        ("dev",        "Dev",        "#2563eb"),
+        ("qa",         "QA/Tester",  "#f59e0b"),
+        ("deployment", "Deployment", "#22c55e"),
+        ("delivery",   "Delivery",   "#06b6d4"),
+    ]
+    role_to_stage = {
+        "ui_ux_designer":  "uiux",
+        "developer":       "dev",
+        "frontend_dev":    "dev",
+        "backend_dev":     "dev",
+        "fullstack_dev":   "dev",
+        "mobile_dev":      "dev",
+        "tester":          "qa",
+        "qa":              "qa",
+        "qa_manual":       "qa",
+        "qa_automation":   "qa",
+        "deployment_team": "deployment",
+        "devops_engineer": "deployment",
+        "delivery_team":   "delivery",
+    }
+    ordered = [s[0] for s in stage_defs]
+    color_map = {s[0]: s[2] for s in stage_defs}
+    label_map = {s[0]: s[1] for s in stage_defs}
+
+    tasks = Task.objects.filter(project=project).only("id", "status", "assigned_to_id")
+    membership_role = dict(
+        ProjectMembership.objects.filter(project=project).values_list("user_id", "role")
+    )
+
+    totals = {sid: 0 for sid in ordered}
+    done   = {sid: 0 for sid in ordered}
+
+    for t in tasks:
+        sid = role_to_stage.get(membership_role.get(t.assigned_to_id))
+        if sid:
+            totals[sid] += 1
+            if t.status == "done":
+                done[sid] += 1
 
     total_tasks = tasks.count()
-    stage_totals["initiated"] = max(stage_totals["initiated"], total_tasks)
-    stage_done["initiated"]   = stage_done["initiated"] + tasks.filter(status="done").count()
+    totals["initiated"] = max(totals["initiated"], total_tasks)
+    done["initiated"]   = done["initiated"] + tasks.filter(status="done").count()
 
     stages = []
     active_stage_id = "initiated"
-    for sid in ordered_stage_ids:
-        total    = stage_totals.get(sid, 0)
-        done     = stage_done.get(sid, 0)
-        complete = bool(total) and done >= total
+    for sid in ordered:
+        total    = totals[sid]
+        d        = done[sid]
+        complete = bool(total) and d >= total
         stages.append({
-            "id":       sid,
-            "label":    stage_label[sid],
-            "color":    stage_color[sid],
-            "total":    total,
-            "done":     done,
-            "complete": complete,
-            "blocked":  bool(total) and not complete,
+            "id": sid, "label": label_map[sid], "color": color_map[sid],
+            "total": total, "done": d, "complete": complete,
+            "blocked": bool(total) and not complete,
         })
 
     for s in stages:
@@ -455,16 +553,12 @@ def _project_timeline_context(project: Project) -> dict:
             break
     else:
         if total_tasks:
-            active_stage_id = "delivery" if stage_totals.get("delivery") else "initiated"
+            active_stage_id = "delivery" if totals.get("delivery") else "initiated"
 
     non_init = [s for s in stages if s["id"] != "initiated" and s["total"] > 0]
-    any_in_flight = any(s["total"] > 0 for s in stages)
-    if not any_in_flight:
-        health = "not_started"
-    elif non_init and all(s["complete"] for s in non_init):
-        health = "delivered"
-    else:
-        health = "on_track"
+    health = ("not_started" if not any(s["total"] > 0 for s in stages)
+              else "delivered" if (non_init and all(s["complete"] for s in non_init))
+              else "on_track")
 
     return {
         "project_id":      project.id,
@@ -1461,6 +1555,8 @@ def project_board(request, project_id):
         'project_timeline': _project_timeline_context(project),
         'teams': Team.objects.filter(project=project).prefetch_related('members', 'lead'),
         'users': project.members.all(),
+        'department_choices': DepartmentPipelineSettings.DEPARTMENT_CHOICES,
+        'is_admin': _is_admin_user(request.user),
     }
     return render(request, 'core/project_board.html', context)
 
@@ -3940,6 +4036,355 @@ def mark_all_notifications_read(request):
         'status': 'ok',
         'message': 'All notifications marked as read'
     })
+
+
+# =============================================================================
+#  PIPELINE SETTINGS  (Admin only)
+# =============================================================================
+
+# All pipeline stages in their canonical order
+_PIPELINE_STAGES = DepartmentPipelineSettings.STAGE_CHOICES   # list of (key, label)
+_DEPARTMENT_CHOICES = DepartmentPipelineSettings.DEPARTMENT_CHOICES
+
+
+def _get_pipeline_settings_map(department: str) -> dict:
+    """Return {stage_key: is_visible} for a department, defaulting True for missing rows."""
+    saved = DepartmentPipelineSettings.objects.filter(department=department)
+    mapping = {row.stage_key: row.is_visible for row in saved}
+    for key, _ in _PIPELINE_STAGES:
+        mapping.setdefault(key, True)
+    return mapping
+
+
+@login_required(login_url='core:login')
+def pipeline_settings(request):
+    """Admin HTML page: view and configure per-department pipeline visibility."""
+    if not _is_admin_user(request.user):
+        return HttpResponseForbidden('Admin access required.')
+
+    selected_dept = request.GET.get('department', _DEPARTMENT_CHOICES[0][0])
+    settings_map = _get_pipeline_settings_map(selected_dept)
+
+    stages_with_visibility = [
+        {'key': key, 'label': label, 'is_visible': settings_map.get(key, True)}
+        for key, label in _PIPELINE_STAGES
+    ]
+
+    return render(request, 'core/pipeline_settings.html', {
+        'departments': _DEPARTMENT_CHOICES,
+        'selected_dept': selected_dept,
+        'selected_dept_label': dict(_DEPARTMENT_CHOICES).get(selected_dept, selected_dept),
+        'stages': stages_with_visibility,
+    })
+
+
+@login_required(login_url='core:login')
+def api_pipeline_settings(request):
+    """
+    GET  → return visibility map for ?department=<key>
+    PATCH → update visibility for a department (admin only)
+    """
+    if request.method == 'GET':
+        dept = request.GET.get('department')
+        if not dept or dept not in dict(_DEPARTMENT_CHOICES):
+            return JsonResponse({'error': 'Invalid department'}, status=400)
+        mapping = _get_pipeline_settings_map(dept)
+        return JsonResponse({
+            'department': dept,
+            'stages': [
+                {'key': k, 'label': l, 'is_visible': mapping[k]}
+                for k, l in _PIPELINE_STAGES
+            ]
+        })
+
+    if request.method == 'PATCH':
+        if not _is_admin_user(request.user):
+            return JsonResponse({'error': 'Admin access required.'}, status=403)
+        try:
+            body = json.loads(request.body)
+        except (json.JSONDecodeError, ValueError):
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        dept = body.get('department')
+        visibility = body.get('stages')  # {stage_key: bool}
+
+        if not dept or dept not in dict(_DEPARTMENT_CHOICES):
+            return JsonResponse({'error': 'Invalid department'}, status=400)
+        if not isinstance(visibility, dict):
+            return JsonResponse({'error': 'stages must be an object'}, status=400)
+
+        valid_keys = {k for k, _ in _PIPELINE_STAGES}
+        with transaction.atomic():
+            for stage_key, is_visible in visibility.items():
+                if stage_key not in valid_keys:
+                    continue
+                DepartmentPipelineSettings.objects.update_or_create(
+                    department=dept,
+                    stage_key=stage_key,
+                    defaults={'is_visible': bool(is_visible), 'updated_by': request.user},
+                )
+
+        return JsonResponse({'status': 'ok', 'department': dept})
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@login_required(login_url='core:login')
+def api_department_stages(request, department):
+    """Public (auth-required) endpoint: GET visible stage keys for a department."""
+    if department not in dict(_DEPARTMENT_CHOICES):
+        return JsonResponse({'error': 'Invalid department'}, status=400)
+    mapping = _get_pipeline_settings_map(department)
+    visible = [k for k, _ in _PIPELINE_STAGES if mapping.get(k, True)]
+    return JsonResponse({'department': department, 'visible_stages': visible})
+
+
+# =============================================================================
+#  TEAMS & DEPARTMENTS ADMIN  (admin only)
+# =============================================================================
+
+def _admin_required(view_fn):
+    """Decorator: 403 for non-admin users."""
+    from functools import wraps
+    @wraps(view_fn)
+    @login_required(login_url='core:login')
+    def wrapped(request, *args, **kwargs):
+        if not _is_admin_user(request.user):
+            return JsonResponse({'error': 'Admin access required.'}, status=403)
+        return view_fn(request, *args, **kwargs)
+    return wrapped
+
+
+@login_required(login_url='core:login')
+def teams_departments(request):
+    """Admin management page for IT Departments, IT Teams, and Stage Sequences."""
+    if not _is_admin_user(request.user):
+        return HttpResponseForbidden('Admin access required.')
+
+    departments = ITDepartment.objects.prefetch_related('it_teams').order_by('name')
+    global_stages = list(
+        ProjectStageConfiguration.objects
+        .filter(project=None)
+        .select_related('team__department')
+        .order_by('seq_order')
+    )
+    all_teams = list(ITTeam.objects.select_related('department').order_by('department__name', 'name'))
+    projects  = list(Project.objects.order_by('name').values('id', 'name'))
+
+    return render(request, 'core/teams_departments.html', {
+        'departments':    departments,
+        'global_stages':  global_stages,
+        'all_teams':      all_teams,
+        'team_types':     ITTeam.TEAM_TYPE_CHOICES,
+        'projects':       projects,
+    })
+
+
+# ── IT Department CRUD ────────────────────────────────────────────────────────
+
+@_admin_required
+def api_it_department_create(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    try:
+        body = json.loads(request.body)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    name = (body.get('name') or '').strip()
+    if not name:
+        return JsonResponse({'error': 'Name is required.'}, status=400)
+    if ITDepartment.objects.filter(name__iexact=name).exists():
+        return JsonResponse({'error': 'A department with this name already exists.'}, status=400)
+
+    dept = ITDepartment.objects.create(
+        name=name,
+        description=(body.get('description') or '').strip(),
+    )
+    return JsonResponse({
+        'id': dept.pk, 'name': dept.name, 'description': dept.description,
+        'created_at': dept.created_at.strftime('%b %d, %Y'),
+    }, status=201)
+
+
+@_admin_required
+def api_it_department_update(request, dept_id):
+    if request.method not in ('POST', 'PATCH'):
+        return JsonResponse({'error': 'POST/PATCH required'}, status=405)
+    dept = get_object_or_404(ITDepartment, pk=dept_id)
+    try:
+        body = json.loads(request.body)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    name = (body.get('name') or '').strip()
+    if not name:
+        return JsonResponse({'error': 'Name is required.'}, status=400)
+    if ITDepartment.objects.filter(name__iexact=name).exclude(pk=dept_id).exists():
+        return JsonResponse({'error': 'A department with this name already exists.'}, status=400)
+
+    dept.name        = name
+    dept.description = (body.get('description') or '').strip()
+    dept.save()
+    return JsonResponse({'id': dept.pk, 'name': dept.name, 'description': dept.description})
+
+
+@_admin_required
+def api_it_department_delete(request, dept_id):
+    if request.method not in ('POST', 'DELETE'):
+        return JsonResponse({'error': 'POST/DELETE required'}, status=405)
+    dept = get_object_or_404(ITDepartment, pk=dept_id)
+    dept.delete()
+    return JsonResponse({'status': 'deleted', 'id': dept_id})
+
+
+# ── IT Team CRUD ──────────────────────────────────────────────────────────────
+
+@_admin_required
+def api_it_team_create(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    try:
+        body = json.loads(request.body)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    name      = (body.get('name') or '').strip()
+    dept_id   = body.get('department_id')
+    team_type = body.get('team_type', 'development')
+    color     = (body.get('color') or '#4F46E5').strip()
+
+    if not name:
+        return JsonResponse({'error': 'Name is required.'}, status=400)
+    if not dept_id:
+        return JsonResponse({'error': 'Department is required.'}, status=400)
+    if ITTeam.objects.filter(name__iexact=name).exists():
+        return JsonResponse({'error': 'A team with this name already exists.'}, status=400)
+
+    dept = get_object_or_404(ITDepartment, pk=dept_id)
+    team = ITTeam.objects.create(
+        name=name, department=dept, team_type=team_type, color=color
+    )
+    return JsonResponse({
+        'id': team.pk, 'name': team.name,
+        'department_id': dept.pk, 'department_name': dept.name,
+        'team_type': team.team_type, 'team_type_label': team.get_team_type_display(),
+        'color': team.color,
+        'created_at': team.created_at.strftime('%b %d, %Y'),
+    }, status=201)
+
+
+@_admin_required
+def api_it_team_update(request, team_id):
+    if request.method not in ('POST', 'PATCH'):
+        return JsonResponse({'error': 'POST/PATCH required'}, status=405)
+    team = get_object_or_404(ITTeam, pk=team_id)
+    try:
+        body = json.loads(request.body)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    name      = (body.get('name') or '').strip()
+    team_type = body.get('team_type', team.team_type)
+    color     = (body.get('color') or team.color).strip()
+    dept_id   = body.get('department_id', team.department_id)
+
+    if not name:
+        return JsonResponse({'error': 'Name is required.'}, status=400)
+    if ITTeam.objects.filter(name__iexact=name).exclude(pk=team_id).exists():
+        return JsonResponse({'error': 'A team with this name already exists.'}, status=400)
+
+    dept = get_object_or_404(ITDepartment, pk=dept_id)
+    team.name       = name
+    team.department = dept
+    team.team_type  = team_type
+    team.color      = color
+    team.save()
+    return JsonResponse({
+        'id': team.pk, 'name': team.name,
+        'department_id': dept.pk, 'department_name': dept.name,
+        'team_type': team.team_type, 'team_type_label': team.get_team_type_display(),
+        'color': team.color,
+    })
+
+
+@_admin_required
+def api_it_team_delete(request, team_id):
+    if request.method not in ('POST', 'DELETE'):
+        return JsonResponse({'error': 'POST/DELETE required'}, status=405)
+    team = get_object_or_404(ITTeam, pk=team_id)
+    team.delete()
+    return JsonResponse({'status': 'deleted', 'id': team_id})
+
+
+# ── Stage Sequence CRUD ───────────────────────────────────────────────────────
+
+@login_required(login_url='core:login')
+def api_stage_sequence(request):
+    """
+    GET  ?project_id=<id>|global  → return current sequence
+    POST {project_id|null, stages:[{team_id, seq_order, label_override}]}
+         → upsert sequence (admin only for POST)
+    """
+    if request.method == 'GET':
+        project_id = request.GET.get('project_id')
+        if project_id and project_id != 'global':
+            try:
+                project_id = int(project_id)
+            except ValueError:
+                return JsonResponse({'error': 'Invalid project_id'}, status=400)
+            qs = ProjectStageConfiguration.objects.filter(project_id=project_id)
+        else:
+            qs = ProjectStageConfiguration.objects.filter(project=None)
+
+        stages = list(
+            qs.select_related('team__department').order_by('seq_order').values(
+                'id', 'seq_order', 'label_override',
+                'team_id', 'team__name', 'team__color', 'team__team_type',
+                'team__department__name',
+            )
+        )
+        return JsonResponse({'stages': stages})
+
+    if request.method == 'POST':
+        if not _is_admin_user(request.user):
+            return JsonResponse({'error': 'Admin access required.'}, status=403)
+        try:
+            body = json.loads(request.body)
+        except ValueError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        raw_project = body.get('project_id')
+        if raw_project and raw_project != 'global':
+            project_obj = get_object_or_404(Project, pk=raw_project)
+        else:
+            project_obj = None
+
+        stages_data = body.get('stages', [])
+        if not isinstance(stages_data, list):
+            return JsonResponse({'error': 'stages must be an array'}, status=400)
+
+        with transaction.atomic():
+            # Delete existing config for this scope
+            ProjectStageConfiguration.objects.filter(project=project_obj).delete()
+            # Re-create in submitted order
+            for item in stages_data:
+                team_id  = item.get('team_id')
+                order    = item.get('seq_order', 0)
+                label    = (item.get('label_override') or '').strip()
+                if not team_id:
+                    continue
+                team = get_object_or_404(ITTeam, pk=team_id)
+                ProjectStageConfiguration.objects.create(
+                    project=project_obj,
+                    team=team,
+                    seq_order=order,
+                    label_override=label,
+                )
+
+        return JsonResponse({'status': 'ok', 'project_id': project_obj.pk if project_obj else None})
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
 
