@@ -596,41 +596,29 @@ class RolePermission(models.Model):
 
 # ─────────────────────────────────────────────────────────────────────────────
 # DYNAMIC SDLC DEPARTMENT & ROLE SYSTEM
-# Admin-configurable at runtime; no migration required to add new roles.
+# No seeding required. SDLC phase is a plain dropdown; permissions are
+# simple checkboxes — no JSON, no M2M widget.
 # ─────────────────────────────────────────────────────────────────────────────
 
-class SDLCPhase(models.Model):
-    """Reference table for the six canonical SDLC stages. Seeded once via management command."""
+class Department(models.Model):
+    """Admin-created department. Pick one primary SDLC phase from the dropdown."""
 
-    PHASE_CHOICES = (
+    SDLC_PHASE_CHOICES = (
         ('requirements', 'Requirements & Backlog'),
         ('design',       'Design & Prototyping'),
         ('development',  'Development Sprint'),
         ('testing',      'QA & Testing'),
         ('deployment',   'Deployment & Release'),
         ('monitoring',   'Monitoring & Maintenance'),
+        ('cross_phase',  'Cross-Phase (All Stages)'),
     )
-
-    key   = models.CharField(max_length=30, choices=PHASE_CHOICES, unique=True)
-    label = models.CharField(max_length=100)
-    order = models.PositiveSmallIntegerField(default=0)
-
-    class Meta:
-        ordering = ['order']
-
-    def __str__(self):
-        return self.label
-
-
-class Department(models.Model):
-    """Admin-created department scoped to one or more SDLC phases."""
 
     name       = models.CharField(max_length=100, unique=True)
     key        = models.SlugField(max_length=60, unique=True,
-                     help_text='URL-safe identifier auto-generated from name.')
-    sdlc_phases = models.ManyToManyField(
-        SDLCPhase, blank=True, related_name='departments',
-        help_text='Which SDLC phases this department participates in.',
+                     help_text='Auto-generated from name. Used as role identifier.')
+    sdlc_phase = models.CharField(
+        max_length=30, choices=SDLC_PHASE_CHOICES, default='cross_phase',
+        help_text='Primary SDLC stage this department operates in.',
     )
     is_active  = models.BooleanField(default=True)
     created_by = models.ForeignKey(
@@ -654,36 +642,31 @@ class Department(models.Model):
 
 class DepartmentRole(models.Model):
     """
-    A role belonging to a Department.
-
-    ``transitions`` is a JSON dict mapping each source status to a list of
-    allowed target statuses, e.g.::
-
-        {"todo": ["in_progress"], "in_progress": ["qa", "in_review"]}
-
-    Set ``can_manage_all = True`` to grant full status access (project-lead level).
+    A role inside a Department.
+    Tick the workflow actions this role is allowed to perform.
+    No JSON required — each permission is a simple checkbox.
     """
 
-    STATUS_KEYS = ('todo', 'in_progress', 'in_review', 'qa', 'done')
+    department      = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='roles')
+    name            = models.CharField(max_length=100)
+    key             = models.SlugField(max_length=60,
+                          help_text='Stored in ProjectMembership.role. Auto-generated from name.')
 
-    department     = models.ForeignKey(
-        Department, on_delete=models.CASCADE, related_name='roles',
-    )
-    name           = models.CharField(max_length=100)
-    key            = models.SlugField(max_length=60,
-                         help_text='Stored in ProjectMembership.role. Must be unique per department.')
-    transitions    = models.JSONField(
-        default=dict, blank=True,
-        help_text=(
-            'Map of from_status → [to_statuses]. '
-            'Valid status keys: todo, in_progress, in_review, qa, done.'
-        ),
-    )
-    can_manage_all = models.BooleanField(
-        default=False,
-        help_text='Overrides transitions — grants full status access (same as Project Lead).',
-    )
-    is_active      = models.BooleanField(default=True)
+    # ── Workflow permission checkboxes ────────────────────────────────────────
+    can_start_task  = models.BooleanField(default=True,
+                          help_text='Todo → In Progress')
+    can_submit_task = models.BooleanField(default=False,
+                          help_text='In Progress → In Review')
+    can_send_to_qa  = models.BooleanField(default=False,
+                          help_text='In Progress → QA')
+    can_approve_task= models.BooleanField(default=False,
+                          help_text='In Review / QA → Done')
+    can_reject_task = models.BooleanField(default=False,
+                          help_text='In Review / QA → back to In Progress')
+    can_manage_all  = models.BooleanField(default=False,
+                          help_text='Full access — overrides all checkboxes above (same as Project Lead).')
+
+    is_active       = models.BooleanField(default=True)
 
     class Meta:
         unique_together = ('department', 'key')
@@ -694,6 +677,18 @@ class DepartmentRole(models.Model):
 
     def allowed_next_statuses(self, from_status: str) -> set:
         if self.can_manage_all:
-            return set(self.STATUS_KEYS)
-        data = self.transitions or {}
-        return set(data.get(from_status, []))
+            return {'todo', 'in_progress', 'in_review', 'qa', 'done'}
+        result = set()
+        if from_status == 'todo' and self.can_start_task:
+            result.add('in_progress')
+        if from_status == 'in_progress':
+            if self.can_submit_task:
+                result.add('in_review')
+            if self.can_send_to_qa:
+                result.add('qa')
+        if from_status in ('in_review', 'qa'):
+            if self.can_approve_task:
+                result.add('done')
+            if self.can_reject_task:
+                result.add('in_progress')
+        return result

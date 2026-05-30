@@ -1,32 +1,14 @@
 from django.core.management.base import BaseCommand
-from core.models import SDLCPhase
-
-
-PHASES = [
-    ('requirements', 'Requirements & Backlog',   1),
-    ('design',       'Design & Prototyping',      2),
-    ('development',  'Development Sprint',        3),
-    ('testing',      'QA & Testing',              4),
-    ('deployment',   'Deployment & Release',      5),
-    ('monitoring',   'Monitoring & Maintenance',  6),
-]
 
 
 class Command(BaseCommand):
-    help = 'Seed the six canonical SDLC phases into the database.'
+    help = 'No longer needed. SDLC phases are now a built-in dropdown on Department.'
 
     def handle(self, *args, **options):
-        created = 0
-        for key, label, order in PHASES:
-            _, was_created = SDLCPhase.objects.update_or_create(
-                key=key,
-                defaults={'label': label, 'order': order},
-            )
-            if was_created:
-                created += 1
-
         self.stdout.write(
-            self.style.SUCCESS(
-                f'Done. {created} phase(s) created, {len(PHASES) - created} already existed.'
+            self.style.WARNING(
+                'seed_sdlc_phases is no longer required.\n'
+                'SDLC phases are now a plain dropdown field on the Department model.\n'
+                'Go to /admin/core/department/add/ to create departments directly.'
             )
         )

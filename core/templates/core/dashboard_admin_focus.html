@@ -370,11 +370,9 @@
       </div>
 
       <div class="dept-phases">
-        {% for phase in dept.sdlc_phases.all %}
-          <span class="phase-badge phase-badge--{{ phase.key }}">{{ phase.label }}</span>
-        {% empty %}
-          <span class="phase-badge phase-badge--none">Cross-Phase</span>
-        {% endfor %}
+        <span class="phase-badge phase-badge--{{ dept.sdlc_phase }}">
+          {{ dept.get_sdlc_phase_display }}
+        </span>
       </div>
 
       <div class="dept-roles">
@@ -385,7 +383,13 @@
             {% if role.can_manage_all %}
               <span class="dept-role-access dept-role-access--full">Full Access</span>
             {% else %}
-              <span class="dept-role-access">Custom</span>
+              <span class="dept-role-access">
+                {% if role.can_start_task %}Start {% endif %}
+                {% if role.can_submit_task %}Submit {% endif %}
+                {% if role.can_send_to_qa %}QA {% endif %}
+                {% if role.can_approve_task %}Approve {% endif %}
+                {% if role.can_reject_task %}Reject{% endif %}
+              </span>
             {% endif %}
           </div>
           {% endif %}
