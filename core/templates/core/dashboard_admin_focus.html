@@ -21,9 +21,6 @@
       <a class="btn-act btn-act--ghost" href="{% url 'core:projects' %}">
         <i class="ri-folder-3-line"></i> All Projects
       </a>
-      <a class="btn-act btn-act--ghost" href="/admin/core/projectmilestone/">
-        <i class="ri-map-pin-line"></i> Milestones
-      </a>
       <a class="btn-act btn-act--primary" href="{% url 'core:dashboard_analytics' %}">
         <i class="ri-bar-chart-2-line"></i> Analytics
       </a>
@@ -264,7 +261,6 @@
                   </div>
                   <div>
                     <div class="user-name">{{ u.username }}</div>
-                    <div class="muted">{{ u.email }}</div>
                   </div>
                 </div>
               </td>
