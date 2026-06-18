@@ -11,7 +11,9 @@ Required env vars:
   GOOGLE_OAUTH2_CLIENT_SECRET
 """
 import os
+from urllib.parse import urlparse
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 
@@ -20,8 +22,42 @@ class Command(BaseCommand):
     help = "Create or repair superuser + Google OAuth app from env vars."
 
     def handle(self, *args, **options):
+        self._ensure_site()
         self._ensure_superuser()
         self._ensure_google_socialapp()
+
+    # ------------------------------------------------------------------ #
+    def _ensure_site(self):
+        site_url = getattr(settings, "SITE_URL", "").rstrip("/")
+        render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
+
+        if site_url:
+            domain = urlparse(site_url).netloc
+        else:
+            domain = render_host
+
+        if not domain:
+            self.stdout.write(self.style.WARNING(
+                "SITE_URL / RENDER_EXTERNAL_HOSTNAME not set - skipping Site setup."
+            ))
+            return None
+
+        try:
+            from django.contrib.sites.models import Site
+
+            site, created = Site.objects.update_or_create(
+                pk=settings.SITE_ID,
+                defaults={"domain": domain, "name": domain},
+            )
+
+            verb = "created" if created else "synced"
+            self.stdout.write(self.style.SUCCESS(
+                f"Site {verb}: id={site.pk}, domain='{site.domain}'."
+            ))
+            return site
+        except Exception as exc:
+            self.stderr.write(self.style.ERROR(f"Site setup failed: {exc}"))
+            return None
 
     # ------------------------------------------------------------------ #
     def _ensure_superuser(self):
@@ -71,7 +107,7 @@ class Command(BaseCommand):
             from django.contrib.sites.models import Site
             from allauth.socialaccount.models import SocialApp
 
-            site = Site.objects.get_or_create(pk=1)[0]
+            site = Site.objects.get_or_create(pk=settings.SITE_ID)[0]
 
             app, created = SocialApp.objects.get_or_create(
                 provider='google',
@@ -94,8 +130,8 @@ class Command(BaseCommand):
                 if updated:
                     app.save(update_fields=['client_id', 'secret'])
 
-            # Link to site-1 if not already linked
-            if not app.sites.filter(pk=1).exists():
+            # Link to the active django.contrib.sites row.
+            if not app.sites.filter(pk=settings.SITE_ID).exists():
                 app.sites.add(site)
 
             verb = "created" if created else "synced"
