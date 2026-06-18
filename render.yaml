@@ -22,9 +22,11 @@ services:
           name: taskforge-db
           property: connectionString
       - key: SITE_URL
-        value: "https://task-forge-0dwp.onrender.com"
+        value: "https://vetriemsportal.com"
+      - key: SITE_ID
+        value: "2"
       - key: ALLOWED_HOSTS
-        value: "task-forge-0dwp.onrender.com"
+        value: "task-forge-0dwp.onrender.com,vetriemsportal.com,www.vetriemsportal.com"
       - key: TASKFORGE_ADMIN_EMAILS
         value: "sindhujabe94@gmail.com"
       - key: EMAIL_HOST
