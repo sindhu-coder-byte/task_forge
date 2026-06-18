@@ -158,10 +158,16 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Only include the project-level static dir if it actually exists
 _project_static = BASE_DIR / 'static'
-STATICFILES_DIRS = [_project_static] if _project_static.is_dir() else []
+STATICFILES_DIRS = [
+    BASE_DIR / 'core' / 'static',  # Include app static files explicitly
+]
+if _project_static.is_dir():
+    STATICFILES_DIRS.append(_project_static)
 
 # WhiteNoise: compressed + cached static files for production
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = DEBUG
 # ── MEDIA ─────────────────────────────────────────────────────────────────────
 MEDIA_URL = '/task_files/'
 MEDIA_ROOT = BASE_DIR / 'task_files'
