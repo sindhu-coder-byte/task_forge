@@ -41,6 +41,11 @@ _render_host = os.getenv('RENDER_EXTERNAL_HOSTNAME')
 if _render_host:
     ALLOWED_HOSTS.append(_render_host)
 
+# Add custom production domains
+for host in ['vetriemsportal.com', 'www.vetriemsportal.com']:
+    if host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(host)
+
 # ── APPS ─────────────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -187,7 +192,11 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # ── CSRF ──────────────────────────────────────────────────────────────────────
-CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.onrender.com',
+    'https://vetriemsportal.com',
+    'https://www.vetriemsportal.com',
+]
 
 _site_url = os.environ.get('SITE_URL', '').rstrip('/')
 if _site_url and _site_url not in CSRF_TRUSTED_ORIGINS:
