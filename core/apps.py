@@ -34,13 +34,16 @@ def _sync_site_domain(**_kwargs):
             site_id = settings.SITE_ID
             existing_for_domain = Site.objects.filter(domain=domain).first()
             if existing_for_domain and existing_for_domain.pk != site_id:
-                domain_for_site_id = f'site-{site_id}.{domain}'
-            else:
-                domain_for_site_id = domain
+                # The site domain is already present on a different Site record.
+                # Use that existing record instead of creating a duplicate.
+                settings.SITE_ID = existing_for_domain.pk
+                existing_for_domain.name = domain
+                existing_for_domain.save(update_fields=['name'])
+                return
 
             Site.objects.update_or_create(
                 pk=site_id,
-                defaults={'domain': domain_for_site_id, 'name': domain},
+                defaults={'domain': domain, 'name': domain},
             )
         except Exception as exc:
             print(f'[core.apps._sync_site_domain] ERROR syncing site domain: {exc}')
