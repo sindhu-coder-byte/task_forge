@@ -14,29 +14,29 @@ class CoreConfig(AppConfig):
 
 def _sync_site_domain(**_kwargs):
     """Keep django.contrib.sites in sync with SITE_URL / RENDER_EXTERNAL_HOSTNAME."""
-    try:
-        import os
-        from urllib.parse import urlparse
-        from django.conf import settings
-        from django.contrib.sites.models import Site
+    import os
+    from urllib.parse import urlparse
+    from django.conf import settings
+    from django.contrib.sites.models import Site
 
-        site_url = getattr(settings, 'SITE_URL', '').rstrip('/')
-        render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
+    site_url = getattr(settings, 'SITE_URL', '').rstrip('/')
+    render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
 
-        if site_url:
-            domain = urlparse(site_url).netloc
-        elif render_host:
-            domain = render_host
-        else:
-            return
+    if site_url:
+        domain = urlparse(site_url).netloc
+    elif render_host:
+        domain = render_host
+    else:
+        return
 
-        if domain:
+    if domain:
+        try:
             Site.objects.update_or_create(
                 pk=settings.SITE_ID,
                 defaults={'domain': domain, 'name': domain},
             )
-    except Exception:
-        pass
+        except Exception as exc:
+            print(f'[core.apps._sync_site_domain] ERROR syncing site domain: {exc}')
 
 
 def _ensure_superuser(**_kwargs):
