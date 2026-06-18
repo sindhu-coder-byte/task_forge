@@ -31,9 +31,16 @@ def _sync_site_domain(**_kwargs):
 
     if domain:
         try:
+            site_id = settings.SITE_ID
+            existing_for_domain = Site.objects.filter(domain=domain).first()
+            if existing_for_domain and existing_for_domain.pk != site_id:
+                domain_for_site_id = f'site-{site_id}.{domain}'
+            else:
+                domain_for_site_id = domain
+
             Site.objects.update_or_create(
-                pk=settings.SITE_ID,
-                defaults={'domain': domain, 'name': domain},
+                pk=site_id,
+                defaults={'domain': domain_for_site_id, 'name': domain},
             )
         except Exception as exc:
             print(f'[core.apps._sync_site_domain] ERROR syncing site domain: {exc}')

@@ -19,8 +19,18 @@ def ensure_site(apps, schema_editor):
     if not domain:
         return
 
+    site_id = settings.SITE_ID
+    existing_for_domain = Site.objects.filter(domain=domain).first()
+    if existing_for_domain and existing_for_domain.pk != site_id:
+        alternate_domain = f'site-{site_id}.{domain}'
+        Site.objects.update_or_create(
+            pk=site_id,
+            defaults={'domain': alternate_domain, 'name': domain},
+        )
+        return
+
     Site.objects.update_or_create(
-        pk=settings.SITE_ID,
+        pk=site_id,
         defaults={'domain': domain, 'name': domain},
     )
 

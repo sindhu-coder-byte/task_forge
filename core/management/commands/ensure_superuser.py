@@ -45,9 +45,16 @@ class Command(BaseCommand):
         try:
             from django.contrib.sites.models import Site
 
+            site_id = settings.SITE_ID
+            existing_for_domain = Site.objects.filter(domain=domain).first()
+            if existing_for_domain and existing_for_domain.pk != site_id:
+                domain_for_site_id = f"site-{site_id}.{domain}"
+            else:
+                domain_for_site_id = domain
+
             site, created = Site.objects.update_or_create(
-                pk=settings.SITE_ID,
-                defaults={"domain": domain, "name": domain},
+                pk=site_id,
+                defaults={"domain": domain_for_site_id, "name": domain},
             )
 
             verb = "created" if created else "synced"
