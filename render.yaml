@@ -44,7 +44,7 @@ services:
       - key: BREVO_API_KEY
         sync: false
       - key: DEFAULT_FROM_EMAIL
-        value: "TaskForge <sindhujabe94@gmail.com>"
+        value: "TaskForge <taskforge.work@outlook.com>"
       - key: GOOGLE_OAUTH2_CLIENT_ID
         sync: false
       - key: GOOGLE_OAUTH2_CLIENT_SECRET
@@ -75,7 +75,7 @@ services:
           name: taskforge-db
           property: connectionString
       - key: SITE_URL
-        value: "https://task-forge-0dwp.onrender.com"
+        value: "https://vetriemsportal.com"
       - key: EMAIL_HOST
         value: "smtp.resend.com"
       - key: EMAIL_PORT
@@ -91,7 +91,7 @@ services:
       - key: BREVO_API_KEY
         sync: false
       - key: DEFAULT_FROM_EMAIL
-        value: "TaskForge <sindhujabe94@gmail.com>"
+        value: "TaskForge <taskforge.work@outlook.com>"
       - key: DEBUG
         value: "False"
       - key: TASKFORGE_ADMIN_EMAILS

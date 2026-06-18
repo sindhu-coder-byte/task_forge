@@ -25,7 +25,7 @@ def _env(key, default=''):
 
 
 # ── CORE ────────────────────────────────────────────────────────────────────
-SECRET_KEY = _env('SECRET_KEY', 'django-insecure-k7x%c$_i_s1&0@8&%!i%6_=gbm5qvbqrrk#p#s5rvb1yg=hos8')
+SECRET_KEY = _env('SECRET_KEY', 'django-insecure-local-dev-change-me')
 
 # "True" / "False" string from env; defaults to False in production
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
