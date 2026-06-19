@@ -10,12 +10,34 @@
   box-shadow: none;
 }
 
+/* Sidebar-top fills remaining height so nav can scroll independently */
+.app--shell .sidebar--navy .sidebar-top {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Nav has inner horizontal padding so hover bg sits inside the track */
 .app--shell .sidebar--navy nav {
   padding: 0 10px;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+.app--shell .sidebar--navy nav::-webkit-scrollbar { width: 3px; }
+.app--shell .sidebar--navy nav::-webkit-scrollbar-track { background: transparent; }
+.app--shell .sidebar--navy nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
 }
 
 /* Section labels */
@@ -27,6 +49,18 @@
   color: #4a6080;
   padding: 14px 6px 4px;
   user-select: none;
+}
+
+/* Full nav label names visible — wrap instead of truncate when sidebar is expanded */
+.app--shell .sidebar--navy:not(.collapsed) nav a {
+  white-space: normal;
+  align-items: center;
+}
+
+.app--shell .sidebar--navy:not(.collapsed) nav a .nav-label {
+  white-space: normal;
+  max-width: none;
+  line-height: 1.3;
 }
 
 /* Base nav link colours in navy theme */
@@ -81,6 +115,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 /* User block */
