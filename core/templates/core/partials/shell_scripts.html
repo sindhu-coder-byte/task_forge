@@ -1,8 +1,32 @@
 <script>
 function toggleSidebar() {
-  var sb = document.querySelector(".sidebar");
-  if (sb) sb.classList.toggle("collapsed");
+  var root = document.getElementById('appRoot');
+  var sb   = document.querySelector('.sidebar');
+  if (!sb) return;
+  if (window.innerWidth <= 768) {
+    if (root) root.classList.toggle('sidebar-open');
+  } else {
+    sb.classList.toggle('collapsed');
+  }
 }
+
+/* Close mobile drawer when clicking the overlay */
+document.addEventListener('click', function (e) {
+  var root = document.getElementById('appRoot');
+  if (!root || !root.classList.contains('sidebar-open')) return;
+  var sb = document.querySelector('.sidebar');
+  if (sb && !sb.contains(e.target)) {
+    root.classList.remove('sidebar-open');
+  }
+});
+
+/* Reset sidebar state on resize */
+window.addEventListener('resize', function () {
+  var root = document.getElementById('appRoot');
+  if (window.innerWidth > 768 && root) {
+    root.classList.remove('sidebar-open');
+  }
+});
 
 (function () {
   document.querySelectorAll('.progress span[data-progress]').forEach(function (el) {

@@ -17,8 +17,6 @@
   <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
   <link rel="stylesheet" href="{% static 'core/css/auth.css' %}">
 
-{% block extra_css %}{% endblock %}
-
 <style>
 /* ============================================================
    BASE — TOAST ALERTS
@@ -374,6 +372,8 @@
   .auth-container { width: 100%; border-radius: 12px; }
 }
 </style>
+
+{% block extra_css %}{% endblock %}
 </head>
 
 <body>
@@ -501,8 +501,6 @@
   </div>
   <!-- /AUTH MODAL -->
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
 /* ---- TOAST AUTO-DISMISS ---- */
 document.addEventListener("DOMContentLoaded", function () {
@@ -517,10 +515,9 @@ document.addEventListener("DOMContentLoaded", function () {
 /* ---- AUTH MODAL ---- */
 document.addEventListener("DOMContentLoaded", function () {
 
-  window.openAuth = function (type) {
+  window.openAuth = function () {
     var modal = document.getElementById("authModal");
     if (modal) modal.classList.add("active");
-    if (typeof switchTab === "function") switchTab(type || "login");
   };
 
   window.closeAuth = function () {
@@ -535,26 +532,6 @@ document.addEventListener("DOMContentLoaded", function () {
       if (e.target === modal) closeAuth();
     });
   }
-
-  window.switchTab = function (type) {
-    /* Kept for backward-compat — currently only login tab exists */
-    var loginForm = document.getElementById("loginForm");
-    var registerForm = document.getElementById("registerForm");
-    var loginTab = document.getElementById("loginTab");
-    var registerTab = document.getElementById("registerTab");
-    if (!loginForm) return;
-    if (type === "login") {
-      loginForm.style.display = "block";
-      if (registerForm) registerForm.style.display = "none";
-      if (loginTab) loginTab.classList.add("active");
-      if (registerTab) registerTab.classList.remove("active");
-    } else {
-      loginForm.style.display = "none";
-      if (registerForm) { registerForm.style.display = "block"; }
-      if (loginTab) loginTab.classList.remove("active");
-      if (registerTab) registerTab.classList.add("active");
-    }
-  };
 
   window.togglePassword = function (id) {
     var input = document.getElementById(id);
@@ -594,27 +571,8 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 
-/* ---- REGISTER VALIDATION (backward compat) ---- */
-var blockedDomains = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com"];
-function isWorkEmail(email) {
-  var domain = (email.split("@")[1] || "").toLowerCase();
-  return domain && !blockedDomains.includes(domain);
-}
-document.addEventListener("DOMContentLoaded", function () {
-  var form = document.getElementById("registerForm");
-  var error = document.getElementById("emailError");
-  var emailInput = document.getElementById("registerEmail");
-  if (!form || !emailInput) return;
-  form.addEventListener("submit", function (e) {
-    var email = emailInput.value.trim();
-    if (!isWorkEmail(email)) {
-      e.preventDefault();
-      if (error) error.innerText = "Please use your work email (company email only)";
-    } else {
-      if (error) error.innerText = "";
-    }
-  });
-});
 </script>
+
+{% block extra_js %}{% endblock %}
 </body>
 </html>

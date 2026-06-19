@@ -40,7 +40,7 @@
   --gradient-soft:     linear-gradient(135deg, #EEF2FF, #F5F3FF);
 
   /* LAYOUT */
-  --sidebar-width:     180px;
+  --sidebar-width:     220px;
   --sidebar-collapsed: 70px;
   --topbar-height:     60px;
 }
@@ -161,8 +161,10 @@ body {
 
 .sidebar a .nav-label {
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transition: opacity 0.25s ease, max-width 0.3s ease;
-  max-width: 120px;
+  max-width: 160px;
   opacity: 1;
 }
 
@@ -239,7 +241,7 @@ body {
 .sb-text {
   overflow: hidden;
   transition: opacity 0.25s ease, max-width 0.3s ease;
-  max-width: 120px;
+  max-width: 160px;
   opacity: 1;
   white-space: normal;
   word-break: break-word;
@@ -304,6 +306,7 @@ body {
   opacity: 0;
   max-width: 0;
   pointer-events: none;
+  overflow: hidden;
 }
 
 .sidebar.collapsed .forge-logo {
@@ -900,7 +903,7 @@ section {
     top: 0;
     left: 0;
     height: 100vh;
-    width: var(--sidebar-width) !important; /* override collapsed state */
+    width: 260px;
     transform: translateX(-100%);
     z-index: 200;
     box-shadow: 4px 0 24px rgba(0,0,0,0.12);
@@ -927,7 +930,7 @@ section {
   /* nav labels always visible inside drawer */
   .sidebar .nav-label {
     opacity: 1 !important;
-    max-width: 120px !important;
+    max-width: 200px !important;
   }
 
   .sidebar nav a,

@@ -114,16 +114,17 @@
 
   <!-- ================= USER FOOTER ================= -->
   <div class="sb-bottom">
-    <a href="#" class="sb-link">
-      <i class="ri-user-3-line"></i>
-      <span class="sb-text">
-  {{ request.user.get_full_name|default:request.user.username }}
-</span>
-    </a>
+    <div class="sb-user">
+      <div class="sb-avatar">{{ request.user.username|slice:":1"|upper }}</div>
+      <div class="sb-user-info">
+        <span class="sb-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+        <span class="sb-role-label">{{ request.user.profile.get_role_display }}</span>
+      </div>
+    </div>
 
-    <a href="{% url 'core:logout' %}" class="sb-link">
+    <a href="{% url 'core:logout' %}" class="sb-link sb-link--logout">
       <i class="ri-logout-box-r-line"></i>
-      <span class="sb-text">Logout</span>
+      <span class="sb-text">Sign out</span>
     </a>
   </div>
 
