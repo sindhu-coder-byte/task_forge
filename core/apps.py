@@ -32,15 +32,9 @@ def _sync_site_domain(**_kwargs):
     if domain:
         try:
             site_id = settings.SITE_ID
-            existing_for_domain = Site.objects.filter(domain=domain).first()
-            if existing_for_domain and existing_for_domain.pk != site_id:
-                # The site domain is already present on a different Site record.
-                # Use that existing record instead of creating a duplicate.
-                settings.SITE_ID = existing_for_domain.pk
-                existing_for_domain.name = domain
-                existing_for_domain.save(update_fields=['name'])
-                return
-
+            # Remove domain from any other site record to avoid duplicate constraint
+            Site.objects.exclude(pk=site_id).filter(domain=domain).update(domain=f'unused-{site_id}-{domain}')
+            # Now create or update the target site with the correct domain
             Site.objects.update_or_create(
                 pk=site_id,
                 defaults={'domain': domain, 'name': domain},
