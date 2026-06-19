@@ -203,7 +203,7 @@ if _site_url and _site_url not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS.append(_site_url)
 
 # ── AUTH ──────────────────────────────────────────────────────────────────────
-SITE_ID = int(_env('SITE_ID', '1'))
+SITE_ID = 1
 
 LOGIN_URL = 'core:login'
 LOGIN_REDIRECT_URL = '/role-redirect/'
