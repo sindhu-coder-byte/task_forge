@@ -152,6 +152,4 @@ urlpatterns = [
     # Stage Sequence
     path('api/admin/stage-sequence/', views.api_stage_sequence, name='api_stage_sequence'),
 
-    # Debug
-    path('debug-site-config/', views.debug_site_config, name='debug_site_config'),
 ]
