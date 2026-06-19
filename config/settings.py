@@ -219,8 +219,19 @@ ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if not DEBUG else 'http'
 GOOGLE_OAUTH2_CLIENT_ID     = _env('GOOGLE_OAUTH2_CLIENT_ID')
 GOOGLE_OAUTH2_CLIENT_SECRET = _env('GOOGLE_OAUTH2_CLIENT_SECRET')
 
+_google_app = {}
+if GOOGLE_OAUTH2_CLIENT_ID and GOOGLE_OAUTH2_CLIENT_SECRET:
+    _google_app = {
+        'APP': {
+            'client_id': GOOGLE_OAUTH2_CLIENT_ID,
+            'secret': GOOGLE_OAUTH2_CLIENT_SECRET,
+            'key': '',
+        }
+    }
+
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
+        **_google_app,
         'SCOPE': ['profile', 'email'],
         'AUTH_PARAMS': {'access_type': 'online'},
     }
