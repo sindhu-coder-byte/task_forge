@@ -23,6 +23,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self._ensure_site()
         self._ensure_superuser()
+        self._cleanup_google_socialapp()
 
     # ------------------------------------------------------------------ #
     def _ensure_site(self):
@@ -97,4 +98,21 @@ class Command(BaseCommand):
         except Exception as exc:
             self.stderr.write(self.style.ERROR(f"Superuser setup failed: {exc}"))
 
-
+    # ------------------------------------------------------------------ #
+    def _cleanup_google_socialapp(self):
+        """
+        Delete any DB-backed Google SocialApp every deploy.
+        Credentials live in SOCIALACCOUNT_PROVIDERS['google']['APP'] (settings).
+        Having both a DB record AND a settings APP causes MultipleObjectsReturned.
+        """
+        try:
+            from allauth.socialaccount.models import SocialApp
+            deleted, _ = SocialApp.objects.filter(provider='google').delete()
+            if deleted:
+                self.stdout.write(self.style.WARNING(
+                    f"Removed {deleted} stale DB Google SocialApp record(s)."
+                ))
+            else:
+                self.stdout.write("Google SocialApp: no DB record found (clean).")
+        except Exception as exc:
+            self.stderr.write(self.style.ERROR(f"Google SocialApp cleanup failed: {exc}"))
