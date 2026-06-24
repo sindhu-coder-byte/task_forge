@@ -152,4 +152,7 @@ urlpatterns = [
     # Stage Sequence
     path('api/admin/stage-sequence/', views.api_stage_sequence, name='api_stage_sequence'),
 
+    # Temporary data export for DB migration — remove after use
+    path('tools/export-data/', views.download_data_export, name='download_data_export'),
+
 ]
