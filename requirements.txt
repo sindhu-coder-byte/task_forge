@@ -10,7 +10,8 @@ tzdata==2025.2
 # DATABASE
 # ==============================
 dj-database-url==3.0.1
-psycopg2-binary==2.9.10
+psycopg2-binary==2.9.10   # PostgreSQL (Render)
+PyMySQL==1.1.1             # MySQL (cPanel / VPS)
 
 # ==============================
 # DJANGO UTILITIES

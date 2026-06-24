@@ -10,6 +10,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / '.env')
 
+# Allow PyMySQL to act as MySQLdb so Django's mysql backend works on cPanel/VPS.
+# Safe no-op when PyMySQL is not installed (Render uses psycopg2 for PostgreSQL).
+try:
+    import pymysql
+    pymysql.install_as_MySQLdb()
+except ImportError:
+    pass
+
 
 def _env(key, default=''):
     """Read an env var and strip surrounding quotes that dashboards sometimes add.
@@ -203,7 +211,7 @@ if _site_url and _site_url not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS.append(_site_url)
 
 # ── AUTH ──────────────────────────────────────────────────────────────────────
-SITE_ID = 1
+SITE_ID = int(os.environ.get('SITE_ID', '1'))
 
 LOGIN_URL = 'core:login'
 LOGIN_REDIRECT_URL = '/role-redirect/'
