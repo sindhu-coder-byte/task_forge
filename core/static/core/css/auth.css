@@ -349,15 +349,37 @@ body {
     flex-direction: column;
     max-width: 95%;
   }
-
   .auth-left {
     padding: 20px;
     text-align: center;
   }
-
   .auth-box {
     padding: 20px;
   }
+}
+
+@media (max-width: 480px) {
+  .auth-container {
+    border-radius: 14px;
+    max-height: 96vh;
+  }
+  .auth-left {
+    padding: 14px 16px;
+  }
+  .auth-left::after { display: none; }
+  .auth-features { display: none; }
+  .auth-note { display: none; }
+  .auth-box { padding: 16px; }
+  .input-group { padding: 10px; }
+}
+
+@media (max-width: 360px) {
+  .auth-container { max-width: 100%; border-radius: 10px; }
+  .auth-box { padding: 12px; }
+  .auth-title,
+  .tf-auth-title { font-size: 18px; }
+  .auth-btn,
+  .tf-auth-btn { padding: 12px; font-size: 14px; }
 }
 
 /* =========================

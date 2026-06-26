@@ -269,6 +269,12 @@
 }
 
 /* ── RESPONSIVE ── */
+@media (max-width: 1024px) {
+  .rp-page { padding: 20px; }
+  .rp-stats { grid-template-columns: repeat(3, 1fr); }
+  .rp-task-title { max-width: 180px; }
+}
+
 @media (max-width: 768px) {
   .rp-page { padding: 16px; }
   .rp-stats { grid-template-columns: 1fr 1fr; }
@@ -278,7 +284,17 @@
   .rp-proj-name { width: 120px; }
   .rp-proj-counts { display: none; }
 }
+
 @media (max-width: 480px) {
   .rp-stats { grid-template-columns: 1fr; }
   .rp-header { flex-direction: column; align-items: flex-start; }
+  .rp-task-title { max-width: 140px; }
+  .rp-section-bd { padding: 12px; }
+}
+
+@media (max-width: 360px) {
+  .rp-page { padding: 10px; }
+  .rp-stats { grid-template-columns: 1fr; }
+  .rp-title { font-size: 16px; }
+  .rp-section-hd { padding: 12px 14px; }
 }

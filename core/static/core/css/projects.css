@@ -574,3 +574,11 @@
   .pj-header-right { flex-direction: column; align-items: stretch; }
   .pj-btn--primary { justify-content: center; }
 }
+
+@media (max-width: 360px) {
+  .pj-page { padding: 8px; }
+  .pj-modal { padding: 8px; }
+  .pj-modal-body { padding: 16px; }
+  .pj-search-box { min-width: 0; }
+  .pj-title { font-size: 16px; }
+}

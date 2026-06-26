@@ -500,12 +500,29 @@
   .ws-grid  { grid-template-columns: 1fr; }
 }
 
+@media (max-width: 768px) {
+  .ws-header { flex-wrap: wrap; }
+  .ws-stat-card { padding: 14px 16px 30px; }
+  .ws-greeting { font-size: 1.1rem; }
+  .ws-lede { font-size: 0.8rem; }
+}
+
 @media (max-width: 640px) {
   .ws-header { flex-direction: column; align-items: flex-start; }
   .ws-stats  { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .ws-stat-value { font-size: 1.35rem; }
   .ws-task-right { display: none; }
   .ws-project-ring { display: none; }
+}
+
+@media (max-width: 480px) {
+  .ws-root { gap: 16px; padding: 0 2px; }
+  .ws-stat-value { font-size: 1.25rem; }
+  .ws-stat-icon { width: 36px; height: 36px; font-size: 1rem; }
+  .ws-section-head { padding: 12px 14px 10px; }
+  .ws-project-card,
+  .ws-task-row { padding: 10px 14px; }
+  .ws-section-title { font-size: 0.82rem; }
 }
 
 @media (max-width: 420px) {
