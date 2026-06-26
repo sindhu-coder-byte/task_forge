@@ -4432,26 +4432,3 @@ def api_stage_sequence(request):
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
-# =============================================================================
-# DATA EXPORT (superuser only — remove after migration is complete)
-# =============================================================================
-@login_required
-def download_data_export(request):
-    if not request.user.is_superuser:
-        return HttpResponseForbidden("Superuser only.")
-    import io
-    from django.core.management import call_command
-    buf = io.StringIO()
-    call_command(
-        'dumpdata',
-        'auth.user', 'auth.group',
-        'sites.site',
-        'core', 'socialaccount',
-        indent=2, stdout=buf,
-        natural_foreign=True, natural_primary=True,
-    )
-    response = HttpResponse(buf.getvalue(), content_type='application/json')
-    response['Content-Disposition'] = 'attachment; filename="data_export.json"'
-    return response
-
-
