@@ -1,4 +1,4 @@
-"""
+﻿"""
 Diagnostic command: tests the active email backend end-to-end.
 
 Usage (Render Shell or local):
@@ -23,7 +23,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         backend = getattr(settings, 'EMAIL_BACKEND', 'not set')
         api_key = getattr(settings, 'BREVO_API_KEY', None)
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@taskforge.app')
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@VetriFlow.app')
         site_url = getattr(settings, 'SITE_URL', '')
 
         self.stdout.write('─' * 60)
@@ -43,13 +43,13 @@ class Command(BaseCommand):
         self.stdout.write(f'Sending test email → {to_addr}')
 
         html = (
-            '<h2>TaskForge — test email</h2>'
+            '<h2>VetriFlow — test email</h2>'
             '<p>If you received this, your email backend is working correctly.</p>'
             f'<p>Backend: <code>{backend}</code></p>'
             f'<p>From: <code>{from_email}</code></p>'
         )
         text = (
-            'TaskForge — test email\n\n'
+            'VetriFlow — test email\n\n'
             'If you received this, your email backend is working correctly.\n'
             f'Backend: {backend}\n'
             f'From: {from_email}\n'
@@ -57,7 +57,7 @@ class Command(BaseCommand):
 
         try:
             msg = EmailMultiAlternatives(
-                subject='[TaskForge] Email backend test',
+                subject='[VetriFlow] Email backend test',
                 body=text,
                 from_email=from_email,
                 to=[to_addr],

@@ -208,6 +208,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  padding: 0;
 }
 
 .topbar--shell {
@@ -222,9 +223,28 @@
 }
 
 .shell-layout {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
 }
 
+.shell-main {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+}
+
+.shell-right {
+  min-width: 0;
+  width: 100%;
+}
+
+.shell-right:empty {
+  display: none;
+}
+
+/* Two-column layout when a right panel is present */
 .shell-layout.has-right {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
@@ -232,17 +252,10 @@
   align-items: start;
 }
 
-.shell-right {
-  min-width: 0;
-}
-
-.shell-right:empty {
-  display: none;
-}
-
 .shell-layout.has-right .shell-right {
   position: sticky;
-  top: 88px; /* below topbar */
+  top: calc(var(--topbar-height) + 28px);
+  width: auto;
 }
 
 

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Custom HTTP-based email backends for platforms (e.g. Render free tier)
 that block outbound SMTP ports 25, 465, and 587.
 
@@ -21,11 +21,11 @@ from django.core.mail.backends.base import BaseEmailBackend
 
 
 def _parse_from(from_email):
-    """Split 'Name <addr>' into (name, addr). Falls back to ('TaskForge', raw)."""
+    """Split 'Name <addr>' into (name, addr). Falls back to ('VetriFlow', raw)."""
     m = _re.match(r'^(.+?)\s*<(.+?)>\s*$', from_email or '')
     if m:
         return m.group(1).strip(), m.group(2).strip()
-    return 'TaskForge', (from_email or '').strip()
+    return 'VetriFlow', (from_email or '').strip()
 
 
 class BrevoAPIBackend(BaseEmailBackend):

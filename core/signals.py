@@ -1,71 +1,9 @@
-from allauth.socialaccount.signals import pre_social_login
-from django.dispatch import receiver
-from django.contrib.auth.models import User
-from core.models import Profile
-
-
-@receiver(pre_social_login)
-def handle_google_login(request, sociallogin, **kwargs):
-    email = sociallogin.account.extra_data.get('email')
-
-    if not email:
-        return
-
-    user = User.objects.filter(email__iexact=email).first()
-
-    # =========================
-    # ✅ EXISTING USER
-    # =========================
-    if user:
-        sociallogin.connect(request, user)
-
-        # Ensure profile exists
-        profile, _ = Profile.objects.get_or_create(user=user)
-
-        # ✅ Update OAuth info
-        profile.oauth_provider = "google"
-        profile.oauth_id = sociallogin.account.uid
-        profile.save()
-
-        return
-
-    # =========================
-    # ✅ NEW USER (Google Signup)
-    # =========================
-    username = email.split("@")[0]
-
-    # Prevent duplicate username
-    base_username = username
-    counter = 1
-    while User.objects.filter(username=username).exists():
-        username = f"{base_username}{counter}"
-        counter += 1
-
-    user = User.objects.create_user(
-        username=username,
-        email=email
-    )
-    user.set_unusable_password()
-    user.save()
-
-    # =========================
-    # ✅ CREATE PROFILE
-    # =========================
-    profile = Profile.objects.create(
-        user=user,
-        role="user",
-        oauth_provider="google",
-        oauth_id=sociallogin.account.uid
-    )
-
-    sociallogin.connect(request, user)
-
-
 # ============================================================
 # TASK NOTIFICATION SIGNALS
 # ============================================================
 
 from django.db.models.signals import post_save, pre_save
+from django.dispatch import receiver
 from core.models import Task, TaskActivity
 from core.notifications import NotificationService
 

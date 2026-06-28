@@ -1,5 +1,5 @@
-"""
-Django settings for TaskForge.
+﻿"""
+Django settings for VetriFlow.
 """
 
 import os
@@ -83,6 +83,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'core.middleware.OAuthStateFallbackMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -126,6 +127,11 @@ if DATABASE_URL:
             conn_health_checks=True,
         )
     }
+    # Add MySQL charset options when using MySQL/MariaDB
+    if DATABASE_URL.startswith('mysql://') or DATABASE_URL.startswith('mysql2://'):
+        DATABASES['default'].setdefault('OPTIONS', {})
+        DATABASES['default']['OPTIONS']['charset'] = 'utf8mb4'
+        DATABASES['default']['OPTIONS']['connect_timeout'] = 10
 else:
     DATABASES = {
         'default': {
@@ -186,6 +192,20 @@ MEDIA_URL = '/task_files/'
 MEDIA_ROOT = BASE_DIR / 'task_files'
 
 WHITENOISE_USE_FINDERS = True
+
+# ── SESSION ───────────────────────────────────────────────────────────────────
+# Local dev: store session in a signed cookie so OAuth state survives the
+# cross-site redirect from Google back to 127.0.0.1 (Chrome drops the
+# DB-session cookie on that redirect in some versions).
+# Production: keep the default DB backend.
+if DEBUG:
+    SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+    SESSION_SAVE_EVERY_REQUEST = True
+else:
+    SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_HTTPONLY = True
 
 # ── SECURITY (production only) ────────────────────────────────────────────────
 if not DEBUG:
@@ -285,7 +305,7 @@ elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-DEFAULT_FROM_EMAIL = _env('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'noreply@taskforge.app')
+DEFAULT_FROM_EMAIL = _env('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'noreply@VetriFlow.app')
 
 # ── MISC ──────────────────────────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -294,8 +314,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SITE_URL = os.environ.get('SITE_URL', 'http://127.0.0.1:8000').rstrip('/')
 
 # Comma-separated admin emails — these users get admin privileges in the UI
-TASKFORGE_ADMIN_EMAILS = [
+VetriFlow_ADMIN_EMAILS = [
     e.strip().lower()
-    for e in os.environ.get('TASKFORGE_ADMIN_EMAILS', '').split(',')
+    for e in os.environ.get('VetriFlow_ADMIN_EMAILS', '').split(',')
     if e.strip()
 ]

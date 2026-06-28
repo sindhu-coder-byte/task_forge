@@ -1,9 +1,19 @@
+import traceback
+
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.contrib.auth.models import User
 from .models import Profile
 
 
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
+
+    def on_authentication_error(self, request, provider, error=None, exception=None, extra_context=None):
+        """Log the exact exception so we can diagnose the 401."""
+        print(f"[TF-OAUTH] on_authentication_error: error={error!r} exc_type={type(exception).__name__} exc={exception!r}")
+        if exception is not None:
+            traceback.print_exception(type(exception), exception, exception.__traceback__)
+        super().on_authentication_error(request, provider, error=error, exception=exception, extra_context=extra_context)
+
 
     def send_notification_mail(self, template_prefix, user, context=None, email_address=None):
         # allauth 65 calls this inside SocialLogin.connect() — an SMTP/API
@@ -30,14 +40,17 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
             if not user:
                 return  # new user — let allauth create via save_user()
 
-            # Link the social account to the existing Django user.
-            # allauth 65 fires send_notification_mail() + social_account_added
-            # signal inside connect() — wrap so any failure is non-fatal.
-            try:
-                sociallogin.connect(request, user)
-            except Exception as e:
-                print(f"[TF-OAUTH] sociallogin.connect() non-fatal: {e}")
-                # Ensure user is still associated even if connect() failed mid-way
+            # Only connect when this is the FIRST time the social account is being
+            # linked (pk is None = new SocialAccount record). For returning Google
+            # users the SocialAccount already has a pk; lookup() already set
+            # sociallogin.user, so _login() handles the rest without a re-connect.
+            if sociallogin.account.pk is None:
+                try:
+                    sociallogin.connect(request, user)
+                except Exception as e:
+                    print(f"[TF-OAUTH] sociallogin.connect() non-fatal: {e}")
+                    sociallogin.user = user
+            else:
                 sociallogin.user = user
 
             # Sync OAuth provider info to the profile

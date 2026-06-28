@@ -1,18 +1,4 @@
 /* =========================
-   GLOBAL RESET
-========================= */
-* {
-  box-sizing: border-box;
-  transition: all 0.2s ease-in-out;
-}
-
-body {
-  font-family: 'Inter', sans-serif;
-  margin: 0;
-  background: #f8fafc;
-}
-
-/* =========================
    MODAL BACKDROP
 ========================= */
 .auth-modal {
@@ -211,43 +197,10 @@ body {
 
 
 /* =========================
-   INPUT FIELDS
+   INPUT FIELDS (auth modal)
 ========================= */
-.input-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  border: 1px solid #e5e7eb;
-  padding: 12px;
-  border-radius: 12px;
-  margin-bottom: 15px;
-
-  background: white;
-}
-
-.input-group i {
-  color: #6b7280;
-}
-
-.input-group input {
-  border: none;
-  outline: none;
-  flex: 1;
-  font-size: 14px;
-}
-
-.input-group input::placeholder {
-  color: #9ca3af;
-}
-
 .input-group:hover {
   border-color: #c7d2fe;
-}
-
-.input-group:focus-within {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
 }
 
 /* =========================

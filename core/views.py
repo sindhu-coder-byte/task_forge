@@ -1,4 +1,4 @@
-from collections import Counter
+﻿from collections import Counter
 from datetime import date, timedelta
 import json
 import secrets
@@ -55,7 +55,7 @@ def _is_admin_user(user) -> bool:
     if getattr(user, "is_superuser", False):
         return True
     email = (getattr(user, "email", "") or "").strip().lower()
-    if email and email in getattr(settings, "TASKFORGE_ADMIN_EMAILS", []):
+    if email and email in getattr(settings, "VetriFlow_ADMIN_EMAILS", []):
         return True
     profile = getattr(user, "profile", None)
     return bool(profile and profile.role == "admin")
@@ -2648,7 +2648,7 @@ def is_project_lead(user, project):
 #             profile.save()
 
 #             login(request, user)
-#             messages.success(request, f"Welcome to TaskForge, {username}! Your account has been created.")
+#             messages.success(request, f"Welcome to VetriFlow, {username}! Your account has been created.")
 #             return redirect('core:home')
 #         except Exception as e:
 #             messages.error(request, f"An error occurred during registration. Please try again.")
@@ -3900,13 +3900,13 @@ def test_email_send(request):
 
     try:
         email_msg = EmailMultiAlternatives(
-            subject='TaskForge — Email Config Test',
-            body=f'Test email from TaskForge.\nBackend: {backend}\nHost: {host}:{port}',
+            subject='VetriFlow — Email Config Test',
+            body=f'Test email from VetriFlow.\nBackend: {backend}\nHost: {host}:{port}',
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[recipient],
         )
         email_msg.attach_alternative(
-            f'<p><strong>TaskForge email config is working!</strong></p>'
+            f'<p><strong>VetriFlow email config is working!</strong></p>'
             f'<p>Backend: <code>{backend}</code><br>'
             f'Host: <code>{host}:{port}</code><br>'
             f'Sent to: <code>{recipient}</code></p>',

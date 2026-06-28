@@ -701,3 +701,18 @@ class ProjectStageConfiguration(models.Model):
     def __str__(self):
         scope = self.project.name if self.project_id else 'Global'
         return f"[{scope}] #{self.seq_order} — {self.team.name}"
+
+
+class OAuthState(models.Model):
+    """DB fallback for allauth OAuth state.
+
+    When Chrome drops the session cookie during the cross-site redirect from
+    Google back to the local server, this model lets the callback recover the
+    state without the session.  Created on login-initiation, deleted on callback.
+    """
+    state_id = models.CharField(max_length=64, unique=True)
+    state_data = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_oauth_state'

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="refresh" content="4;url=/">
-  <title>Sign-in issue — TaskForge</title>
+  <title>Sign-in issue — VetriFlow</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -46,6 +46,11 @@
       <a href="/" class="btn">Go to Home</a>
     </div>
     <small>Redirecting to home in 4 seconds…</small>
+    {% if request.META.SERVER_NAME == '127.0.0.1' or request.META.SERVER_NAME == 'localhost' %}
+    <small style="color:#dc2626;display:block;margin-top:8px;word-break:break-all">
+      DEBUG: {{ auth_error.code }} — {{ auth_error.exception }}
+    </small>
+    {% endif %}
   </div>
 </body>
 </html>

@@ -10,6 +10,76 @@ class CoreConfig(AppConfig):
         from django.db.models.signals import post_migrate
         post_migrate.connect(_sync_site_domain, sender=self)
         post_migrate.connect(_ensure_superuser, sender=self)
+        post_migrate.connect(_cleanup_db_socialapps, sender=self)
+        _patch_allauth_statekit()
+
+
+def _cleanup_db_socialapps(**_kwargs):
+    """Remove DB SocialApp records for providers configured in settings.
+
+    Having both a settings-based APP and a DB SocialApp causes
+    MultipleObjectsReturned in allauth's get_app(). Runs after migrate
+    (not in ready()) to avoid the DB-access-during-init warning.
+    """
+    try:
+        from allauth.socialaccount.models import SocialApp
+        deleted, _ = SocialApp.objects.filter(provider='google').delete()
+        if deleted:
+            print(f"[core.apps] Removed {deleted} stale DB Google SocialApp record(s).")
+    except Exception:
+        pass
+
+
+def _patch_allauth_statekit():
+    """Patch allauth's statekit to persist OAuth state in the DB as a fallback.
+
+    Chrome drops the session cookie during the cross-site redirect from Google
+    back to http://127.0.0.1 or http://localhost.  By also writing state to the
+    DB during stash and reading it back during unstash (only when the session
+    misses), the OAuth callback always succeeds regardless of cookie behaviour.
+    """
+    try:
+        from allauth.socialaccount.internal import statekit
+
+        _orig_stash = statekit.stash_state
+        _orig_unstash = statekit.unstash_state
+
+        def _stash(request, state, state_id=None):
+            sid = _orig_stash(request, state, state_id=state_id)
+            try:
+                import datetime
+                from django.utils import timezone
+                from core.models import OAuthState
+                OAuthState.objects.filter(
+                    created_at__lt=timezone.now() - datetime.timedelta(minutes=10)
+                ).delete()
+                OAuthState.objects.filter(state_id=sid).delete()
+                OAuthState.objects.create(state_id=sid, state_data=state)
+                print(f"[OAuthState] stashed state_id={sid!r} to DB")
+            except Exception as exc:
+                print(f"[OAuthState] ERROR saving state to DB: {exc}")
+            return sid
+
+        def _unstash(request, state_id):
+            state = _orig_unstash(request, state_id)
+            if state is None:
+                try:
+                    from core.models import OAuthState
+                    obj = OAuthState.objects.filter(state_id=state_id).first()
+                    if obj:
+                        state = obj.state_data
+                        obj.delete()
+                        print(f"[OAuthState] recovered state_id={state_id!r} from DB fallback")
+                    else:
+                        print(f"[OAuthState] state_id={state_id!r} NOT found in session OR DB — 401")
+                except Exception as exc:
+                    print(f"[OAuthState] ERROR reading state from DB: {exc}")
+            return state
+
+        statekit.stash_state = _stash
+        statekit.unstash_state = _unstash
+    except ImportError:
+        pass
 
 
 def _sync_site_domain(**_kwargs):
