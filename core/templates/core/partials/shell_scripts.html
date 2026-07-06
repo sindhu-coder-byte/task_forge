@@ -1,5 +1,6 @@
 <script>
-function toggleSidebar() {
+function toggleSidebar(e) {
+  if (e) e.stopPropagation();
   var root = document.getElementById('appRoot');
   var sb   = document.querySelector('.sidebar');
   if (!sb) return;

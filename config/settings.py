@@ -314,8 +314,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SITE_URL = os.environ.get('SITE_URL', 'http://127.0.0.1:8000').rstrip('/')
 
 # Comma-separated admin emails — these users get admin privileges in the UI
-VetriFlow_ADMIN_EMAILS = [
+TASKFORGE_ADMIN_EMAILS = [
     e.strip().lower()
-    for e in os.environ.get('VetriFlow_ADMIN_EMAILS', '').split(',')
+    for e in os.environ.get('TASKFORGE_ADMIN_EMAILS', '').split(',')
     if e.strip()
 ]

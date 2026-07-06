@@ -820,10 +820,10 @@ section {
 }
 
 .hero { animation: fadeUp 0.5s ease both; }
-.card { animation: fadeUp 0.55s ease both; }
-.card:nth-child(2) { animation-delay: 0.05s; }
-.card:nth-child(3) { animation-delay: 0.10s; }
-.card:nth-child(4) { animation-delay: 0.15s; }
+.cards .card { animation: fadeUp 0.55s ease both; }
+.cards .card:nth-child(2) { animation-delay: 0.05s; }
+.cards .card:nth-child(3) { animation-delay: 0.10s; }
+.cards .card:nth-child(4) { animation-delay: 0.15s; }
 
 /* ============================================================
    MOBILE SEARCH TOGGLE (hidden icon shown on small screens)
@@ -1743,14 +1743,8 @@ input:focus {
   outline: none;
 }
 
-/* Improve card rendering */
-.card {
-  will-change: transform;
-}
-
 /* Improve animation performance */
 .sidebar,
-.card,
 .hero {
   backface-visibility: hidden;
   transform: translateZ(0);

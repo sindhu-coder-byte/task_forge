@@ -494,10 +494,10 @@
 /* ✅ MODAL IMPROVEMENT */
 /* ========================= */
 .modal-content {
-  animation: fadeIn 0.2s ease;
+  animation: shellModalFadeIn 0.2s ease;
 }
 
-@keyframes fadeIn {
+@keyframes shellModalFadeIn {
   from {
     transform: translateY(-10px);
     opacity: 0;
@@ -511,11 +511,6 @@
 /* ========================= */
 /* ✅ SMALL IMPROVEMENTS */
 /* ========================= */
-.section-title {
-  font-weight: 600;
-  font-size: 16px;
-}
-
 .dash-muted {
   color: #6b7280;
   font-size: 13px;
@@ -566,19 +561,20 @@
 /* ---------- TABLET (<=768px) ---------- */
 @media (max-width: 768px) {
 
-  /* Sidebar → collapsed */
+  /* Sidebar → off-canvas drawer */
   .app--shell .sidebar--navy {
     position: fixed;
-    left: -260px;
+    left: 0;
     top: 0;
     height: 100%;
     width: 260px;
     z-index: 1200;
-    transition: left 0.3s ease;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
   }
 
   .app--shell.sidebar-open .sidebar--navy {
-    left: 0;
+    transform: translateX(0);
   }
 
   /* Overlay when sidebar open */
@@ -698,27 +694,4 @@
 }
 
 
-.alert-container {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 9999;
-}
-
-.alert {
-  padding: 14px 18px;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #fff; /* 🔥 important */
-  font-weight: 500;
-  margin-bottom: 10px;
-}
-
-.alert.error {
-  background: #e53935;
-}
-
-.alert.success {
-  background: #2e7d32;
-}
 

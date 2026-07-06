@@ -22,7 +22,7 @@
 
       <!-- LEFT: hamburger + title + search -->
       <div class="topbar-left">
-        <button type="button" class="toggle-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+        <button type="button" class="toggle-btn" onclick="toggleSidebar(event)" aria-label="Toggle sidebar">
           <i class="ri-menu-line"></i>
         </button>
 
@@ -250,6 +250,7 @@
 /* ---- NOTIFICATION DROPDOWN ---- */
 .tb-dropdown--notif {
   width: 360px;
+  max-width: calc(100vw - 24px);
   right: -8px;
 }
 .tb-dd-head {

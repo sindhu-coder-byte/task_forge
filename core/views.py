@@ -55,7 +55,7 @@ def _is_admin_user(user) -> bool:
     if getattr(user, "is_superuser", False):
         return True
     email = (getattr(user, "email", "") or "").strip().lower()
-    if email and email in getattr(settings, "VetriFlow_ADMIN_EMAILS", []):
+    if email and email in getattr(settings, "TASKFORGE_ADMIN_EMAILS", []):
         return True
     profile = getattr(user, "profile", None)
     return bool(profile and profile.role == "admin")

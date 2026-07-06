@@ -113,7 +113,7 @@ class NotificationService:
         ).values_list('role', flat=True).first()
 
     def get_admin_users(self):
-        """Return all active users whose Profile.role is 'admin', plus any in VetriFlow_ADMIN_EMAILS."""
+        """Return all active users whose Profile.role is 'admin', plus any in TASKFORGE_ADMIN_EMAILS."""
         from .models import Profile
         from django.contrib.auth.models import User
 
@@ -123,7 +123,7 @@ class NotificationService:
             if profile.user.is_active and profile.user.email:
                 admins.add(profile.user)
 
-        admin_emails = getattr(settings, 'VetriFlow_ADMIN_EMAILS', [])
+        admin_emails = getattr(settings, 'TASKFORGE_ADMIN_EMAILS', [])
         if admin_emails:
             for u in User.objects.filter(email__in=admin_emails, is_active=True):
                 admins.add(u)
@@ -601,7 +601,7 @@ class NotificationService:
         Recipient rules:
           - Always notify the assignee.
           - Always notify every project lead (FK and ProjectMembership-based).
-          - Always notify every user with Profile.role='admin' (or listed in VetriFlow_ADMIN_EMAILS).
+          - Always notify every user with Profile.role='admin' (or listed in TASKFORGE_ADMIN_EMAILS).
         """
         if not task.due_date or not task.project:
             return

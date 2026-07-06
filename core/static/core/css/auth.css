@@ -165,6 +165,10 @@
   flex: 1;
   padding: 40px;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  animation: fadeIn 0.4s ease;
 }
 
 /* CLOSE BUTTON */
@@ -187,40 +191,11 @@
   margin-bottom: 10px;
 }
 
-/* DIVIDER */
-.divider {
-  display: flex;
-  align-items: center;
-  margin: 20px 0;
-}
-
-
-
 /* =========================
    INPUT FIELDS (auth modal)
 ========================= */
 .input-group:hover {
   border-color: #c7d2fe;
-}
-
-/* =========================
-   LINKS
-========================= */
-.auth-links {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 15px;
-}
-
-.auth-link {
-  font-size: 13px;
-  color: #2563eb;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.auth-link:hover {
-  text-decoration: underline;
 }
 
 /* =========================
@@ -451,13 +426,6 @@
   margin-top: 5px;
 }
 
-/* Better visual separation */
-.auth-box {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
 
 /* =========================================================
    TASKFORGE AUTH 
@@ -571,11 +539,6 @@
 .input-group input::placeholder {
   color: #9ca3af;
   font-size: 14px;
-}
-
-/* SMOOTH ENTRY ANIMATION */
-.auth-box {
-  animation: fadeIn 0.4s ease;
 }
 
 
