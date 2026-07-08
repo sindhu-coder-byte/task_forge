@@ -2675,6 +2675,20 @@ def role_redirect(request):
         return redirect('core:home')
 
 
+@login_required(login_url='core:login')
+def mobile_auth_complete(request):
+    """Landing point for the Capacitor app's in-app browser tab after Google OAuth.
+
+    Google blocks OAuth inside an embedded WebView, so the mobile app opens login in a
+    separate Custom Tab. Django's redirect() rejects non-http(s) schemes, and a raw
+    Location header to a custom scheme isn't reliably picked up by Custom Tabs anyway,
+    so this page navigates via JS instead. Android/Capacitor intercepts that navigation
+    to close the tab and hand control back to the WebView (see AndroidManifest.xml
+    intent-filter and base.html's appUrlOpen listener).
+    """
+    return render(request, 'core/mobile_auth_complete.html')
+
+
 # ✅ PASSWORD RESET REQUEST (Jira-style)
 def password_reset_request(request):
     if request.method == "POST":

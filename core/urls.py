@@ -115,6 +115,7 @@ urlpatterns = [
     
     path('reports/', views.reports_view, name='reports'),
     path("role-redirect/", views.role_redirect, name="role_redirect"),
+    path("mobile/auth-complete/", views.mobile_auth_complete, name="mobile_auth_complete"),
 
     # =========================
     #  NOTIFICATIONS
