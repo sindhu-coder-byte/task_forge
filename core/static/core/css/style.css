@@ -397,7 +397,13 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.topbar-brand {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .topbar-right {
@@ -1201,6 +1207,10 @@ section {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
 }
 
 /* clickable cards */

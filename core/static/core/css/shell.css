@@ -635,11 +635,15 @@
     width: 230px;
   }
 
-  /* Topbar elements stack if needed */
+  /* Keep topbar on one row; long titles truncate instead of wrapping */
   .topbar--shell {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 10px;
+  }
+
+  .topbar--shell .topbar-right {
+    flex-shrink: 0;
   }
 
   /* Buttons shrink */
