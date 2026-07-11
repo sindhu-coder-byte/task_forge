@@ -12,6 +12,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, logout
 from django.http import HttpResponseForbidden, JsonResponse, HttpResponse
 from django.core.paginator import Paginator
+from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
@@ -2685,8 +2686,33 @@ def mobile_auth_complete(request):
     so this page navigates via JS instead. Android/Capacitor intercepts that navigation
     to close the tab and hand control back to the WebView (see AndroidManifest.xml
     intent-filter and base.html's appUrlOpen listener).
+
+    The Custom Tab (Chrome) and the app's own WebView have separate cookie jars, so the
+    session established here doesn't carry over on its own. A short-lived signed token
+    is embedded in the deep link instead, which mobile_session_handoff exchanges for a
+    real session cookie inside the WebView.
     """
-    return render(request, 'core/mobile_auth_complete.html')
+    signer = TimestampSigner()
+    token = signer.sign(request.user.pk)
+    return render(request, 'core/mobile_auth_complete.html', {'token': token})
+
+
+def mobile_session_handoff(request):
+    """Exchanges the short-lived token from mobile_auth_complete for a real session.
+
+    This runs as a normal navigation inside the app's own WebView (not the Custom Tab),
+    so the session cookie it sets actually lands in the WebView's cookie jar.
+    """
+    token = request.GET.get('token', '')
+    signer = TimestampSigner()
+    try:
+        user_id = signer.unsign(token, max_age=60)
+        user = User.objects.get(pk=user_id)
+    except (BadSignature, SignatureExpired, User.DoesNotExist):
+        return redirect('core:login')
+
+    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+    return redirect('core:role_redirect')
 
 
 # ✅ PASSWORD RESET REQUEST (Jira-style)

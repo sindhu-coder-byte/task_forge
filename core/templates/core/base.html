@@ -367,11 +367,17 @@
 
 /* Mobile */
 @media (max-width: 680px) {
-  .auth-left { padding: 16px 20px; }
+  .auth-left {
+    padding: 24px 20px 0;
+    background: none;
+  }
+  .auth-left::after { display: none; }
   .auth-left .forge-logo,
   .auth-left .auth-tagline,
   .auth-left .auth-tagline-sub { display: none; }
-  .auth-box { padding: 40px 28px; }
+  .social-login { margin-top: 0; display: flex; justify-content: center; }
+  .social-btn.google { width: 100%; max-width: 320px; }
+  .auth-box { padding: 12px 28px 40px; }
   .auth-container { width: 100%; border-radius: 12px; }
 }
 </style>
@@ -606,7 +612,8 @@ document.addEventListener('DOMContentLoaded', function () {
   App.addListener('appUrlOpen', function (data) {
     if (data.url && data.url.indexOf('com.vetriflow.taskforge://auth-callback') === 0) {
       Browser.close();
-      window.location.href = window.location.origin + '/';
+      var token = new URL(data.url).searchParams.get('token');
+      window.location.href = window.location.origin + '/mobile/session-handoff/?token=' + encodeURIComponent(token || '');
     }
   });
 });
