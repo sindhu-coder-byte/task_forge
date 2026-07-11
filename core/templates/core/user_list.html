@@ -300,7 +300,10 @@
   .um-table td:first-child { display: none; }
 
   /* Visual hint that the table scrolls horizontally, since there's no
-     scrollbar in the WebView and the cut-off edge otherwise looks broken. */
+     scrollbar in the WebView and the cut-off edge otherwise looks broken.
+     A plain white fade is invisible against the card's own white background,
+     so an inset shadow is used instead — it reads as depth regardless of
+     the underlying color. */
   .um-card { position: relative; overflow: hidden; }
   .um-table-wrapper { -webkit-overflow-scrolling: touch; }
   .um-card::after {
@@ -309,8 +312,8 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: 20px;
-    background: linear-gradient(to right, transparent, rgba(255,255,255,0.95));
+    width: 14px;
+    box-shadow: inset -8px 0 8px -8px rgba(0,0,0,0.35);
     pointer-events: none;
   }
 }
