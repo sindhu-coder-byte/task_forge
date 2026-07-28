@@ -40,7 +40,7 @@
   --gradient-soft:     linear-gradient(135deg, #EEF2FF, #F5F3FF);
 
   /* LAYOUT */
-  --sidebar-width:     180px;
+  --sidebar-width:     220px;
   --sidebar-collapsed: 70px;
   --topbar-height:     60px;
 }
@@ -161,8 +161,10 @@ body {
 
 .sidebar a .nav-label {
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transition: opacity 0.25s ease, max-width 0.3s ease;
-  max-width: 120px;
+  max-width: 160px;
   opacity: 1;
 }
 
@@ -239,7 +241,7 @@ body {
 .sb-text {
   overflow: hidden;
   transition: opacity 0.25s ease, max-width 0.3s ease;
-  max-width: 120px;
+  max-width: 160px;
   opacity: 1;
   white-space: normal;
   word-break: break-word;
@@ -304,6 +306,7 @@ body {
   opacity: 0;
   max-width: 0;
   pointer-events: none;
+  overflow: hidden;
 }
 
 .sidebar.collapsed .forge-logo {
@@ -394,7 +397,13 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.topbar-brand {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .topbar-right {
@@ -459,19 +468,6 @@ body {
   box-shadow: 0 0 0 3px rgba(79,70,229,0.15);
 }
 
-/* .search-results {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  width: 100%;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-  display: none;
-  max-height: 160px;
-  overflow-y: auto;
-  z-index: 999;
-} */
 
 .search-results div {
   padding: 10px 14px;
@@ -830,10 +826,10 @@ section {
 }
 
 .hero { animation: fadeUp 0.5s ease both; }
-.card { animation: fadeUp 0.55s ease both; }
-.card:nth-child(2) { animation-delay: 0.05s; }
-.card:nth-child(3) { animation-delay: 0.10s; }
-.card:nth-child(4) { animation-delay: 0.15s; }
+.cards .card { animation: fadeUp 0.55s ease both; }
+.cards .card:nth-child(2) { animation-delay: 0.05s; }
+.cards .card:nth-child(3) { animation-delay: 0.10s; }
+.cards .card:nth-child(4) { animation-delay: 0.15s; }
 
 /* ============================================================
    MOBILE SEARCH TOGGLE (hidden icon shown on small screens)
@@ -913,7 +909,7 @@ section {
     top: 0;
     left: 0;
     height: 100vh;
-    width: var(--sidebar-width) !important; /* override collapsed state */
+    width: 260px;
     transform: translateX(-100%);
     z-index: 200;
     box-shadow: 4px 0 24px rgba(0,0,0,0.12);
@@ -940,7 +936,7 @@ section {
   /* nav labels always visible inside drawer */
   .sidebar .nav-label {
     opacity: 1 !important;
-    max-width: 120px !important;
+    max-width: 200px !important;
   }
 
   .sidebar nav a,
@@ -1211,6 +1207,10 @@ section {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
 }
 
 /* clickable cards */
@@ -1753,14 +1753,8 @@ input:focus {
   outline: none;
 }
 
-/* Improve card rendering */
-.card {
-  will-change: transform;
-}
-
 /* Improve animation performance */
 .sidebar,
-.card,
 .hero {
   backface-visibility: hidden;
   transform: translateZ(0);

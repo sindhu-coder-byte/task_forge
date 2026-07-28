@@ -34,16 +34,16 @@ def _env(key, default=''):
 
 
 def _should_use_sqlite_fallback(database_url, debug=False, force_mysql=False):
-    """Use SQLite for local debug runs when a MySQL URL is configured but unavailable."""
+    """Use SQLite for local debug runs and Render-style builds when a MySQL URL is configured."""
     if force_mysql:
         return False
     if not database_url:
         return True
-    if not debug:
-        return False
     if os.getenv('USE_SQLITE_FALLBACK', 'True').lower() not in {'1', 'true', 'yes', 'on'}:
         return False
-    return database_url.startswith(('mysql://', 'mysql2://'))
+    if debug:
+        return database_url.startswith(('mysql://', 'mysql2://'))
+    return os.getenv('RENDER') == 'true' and database_url.startswith(('mysql://', 'mysql2://'))
 
 
 # ── CORE ────────────────────────────────────────────────────────────────────

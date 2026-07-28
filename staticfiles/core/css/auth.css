@@ -1,18 +1,4 @@
 /* =========================
-   GLOBAL RESET
-========================= */
-* {
-  box-sizing: border-box;
-  transition: all 0.2s ease-in-out;
-}
-
-body {
-  font-family: 'Inter', sans-serif;
-  margin: 0;
-  background: #f8fafc;
-}
-
-/* =========================
    MODAL BACKDROP
 ========================= */
 .auth-modal {
@@ -179,6 +165,10 @@ body {
   flex: 1;
   padding: 40px;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  animation: fadeIn 0.4s ease;
 }
 
 /* CLOSE BUTTON */
@@ -201,73 +191,11 @@ body {
   margin-bottom: 10px;
 }
 
-/* DIVIDER */
-.divider {
-  display: flex;
-  align-items: center;
-  margin: 20px 0;
-}
-
-
-
 /* =========================
-   INPUT FIELDS
+   INPUT FIELDS (auth modal)
 ========================= */
-.input-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  border: 1px solid #e5e7eb;
-  padding: 12px;
-  border-radius: 12px;
-  margin-bottom: 15px;
-
-  background: white;
-}
-
-.input-group i {
-  color: #6b7280;
-}
-
-.input-group input {
-  border: none;
-  outline: none;
-  flex: 1;
-  font-size: 14px;
-}
-
-.input-group input::placeholder {
-  color: #9ca3af;
-}
-
 .input-group:hover {
   border-color: #c7d2fe;
-}
-
-.input-group:focus-within {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
-}
-
-/* =========================
-   LINKS
-========================= */
-.auth-links {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 15px;
-}
-
-.auth-link {
-  font-size: 13px;
-  color: #2563eb;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.auth-link:hover {
-  text-decoration: underline;
 }
 
 /* =========================
@@ -311,23 +239,35 @@ body {
   top: 20px;
   right: 20px;
   z-index: 9999;
-  width: 300px;
 }
 
 .alert {
-  padding: 12px;
-  border-radius: 10px;
-  margin-bottom: 10px;
+  min-width: 260px;
+  padding: 14px 18px;
+  border-radius: 8px;
   font-size: 14px;
-  color: white;
   font-weight: 500;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-  animation: fadeOut 5s forwards;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  animation: slideIn 0.3s ease;
 }
+
 
 .alert.success { background: #10B981; }
 .alert.error { background: #EF4444; }
 .alert.warning { background: #F59E0B; }
+
+/* ANIMATION */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
 
 /* =========================
    RESPONSIVE
@@ -337,15 +277,37 @@ body {
     flex-direction: column;
     max-width: 95%;
   }
-
   .auth-left {
     padding: 20px;
     text-align: center;
   }
-
   .auth-box {
     padding: 20px;
   }
+}
+
+@media (max-width: 480px) {
+  .auth-container {
+    border-radius: 14px;
+    max-height: 96vh;
+  }
+  .auth-left {
+    padding: 14px 16px;
+  }
+  .auth-left::after { display: none; }
+  .auth-features { display: none; }
+  .auth-note { display: none; }
+  .auth-box { padding: 16px; }
+  .input-group { padding: 10px; }
+}
+
+@media (max-width: 360px) {
+  .auth-container { max-width: 100%; border-radius: 10px; }
+  .auth-box { padding: 12px; }
+  .auth-title,
+  .tf-auth-title { font-size: 18px; }
+  .auth-btn,
+  .tf-auth-btn { padding: 12px; font-size: 14px; }
 }
 
 /* =========================
@@ -464,16 +426,9 @@ body {
   margin-top: 5px;
 }
 
-/* Better visual separation */
-.auth-box {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
 
 /* =========================================================
-   TASKFORGE AUTH (Scoped - No Conflicts)
+   TASKFORGE AUTH 
    ========================================================= */
 
 /* TITLE */
@@ -586,7 +541,4 @@ body {
   font-size: 14px;
 }
 
-/* SMOOTH ENTRY ANIMATION */
-.auth-box {
-  animation: fadeIn 0.4s ease;
-}
+
