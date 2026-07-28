@@ -2,6 +2,7 @@
 Django settings for VetriFlow.
 """
 
+import importlib
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -13,7 +14,7 @@ load_dotenv(BASE_DIR / '.env')
 # Allow PyMySQL to act as MySQLdb so Django's mysql backend works on cPanel/VPS.
 # Safe no-op when PyMySQL is not installed (Render uses psycopg2 for PostgreSQL).
 try:
-    import pymysql
+    pymysql = importlib.import_module('pymysql')
     pymysql.install_as_MySQLdb()
 except ImportError:
     pass
@@ -30,6 +31,19 @@ def _env(key, default=''):
     if len(val) >= 2 and val[0] == val[-1] and val[0] in ('"', "'"):
         val = val[1:-1].strip()
     return val
+
+
+def _should_use_sqlite_fallback(database_url, debug=False, force_mysql=False):
+    """Use SQLite for local debug runs when a MySQL URL is configured but unavailable."""
+    if force_mysql:
+        return False
+    if not database_url:
+        return True
+    if not debug:
+        return False
+    if os.getenv('USE_SQLITE_FALLBACK', 'True').lower() not in {'1', 'true', 'yes', 'on'}:
+        return False
+    return database_url.startswith(('mysql://', 'mysql2://'))
 
 
 # ── CORE ────────────────────────────────────────────────────────────────────
@@ -119,7 +133,14 @@ import dj_database_url
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-if DATABASE_URL:
+if _should_use_sqlite_fallback(DATABASE_URL, debug=DEBUG):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+elif DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
