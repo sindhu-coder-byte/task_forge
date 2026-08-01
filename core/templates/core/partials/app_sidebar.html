@@ -54,7 +54,7 @@
       <a href="{% url 'core:project_team' project_id %}"
          class="{% if url_name == 'project_team' %}active{% endif %}">
         <i class="ri-user-settings-line"></i>
-        <span class="nav-label">Team</span>
+        <span class="nav-label">My Team</span>
       </a>
 
       <a href="{% url 'core:reports' %}"
@@ -74,7 +74,7 @@
       <a href="{% url 'core:teams' %}"
          class="{% if url_name == 'teams' %}active{% endif %}">
         <i class="ri-group-line"></i>
-        <span class="nav-label">Teams</span>
+        <span class="nav-label">All Teams</span>
       </a>
       {% endif %}
 
@@ -104,7 +104,7 @@
       <a href="{% url 'core:teams_departments' %}"
          class="{% if url_name == 'teams_departments' %}active{% endif %}">
         <i class="ri-building-4-line"></i>
-        <span class="nav-label">Teams &amp; Departments</span>
+        <span class="nav-label">Org Structure</span>
       </a>
       {% endif %}
 

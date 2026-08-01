@@ -19,6 +19,18 @@
     <div class="issue-key">{{ task.issue_key }}{% if task.project %}<span class="issue-dot">·</span><a class="issue-project" href="{% url 'core:project_detail' task.project.id %}">{{ task.project.name }}</a>{% endif %}</div>
     <h1 class="issue-title">{{ task.title }}</h1>
     <div class="issue-actions">
+      {% if can_edit_or_delete %}
+        <a class="btn-primary" href="{% url 'core:edit_task' task.id %}">
+          <i class="ri-edit-line"></i> Edit
+        </a>
+        <form method="POST" action="{% url 'core:archive_task' task.id %}" style="display:inline;"
+              onsubmit="return confirm('Delete this task? It can be restored later by an admin or project lead.');">
+          {% csrf_token %}
+          <button type="submit" class="btn-ghost btn-ghost--danger">
+            <i class="ri-delete-bin-line"></i> Delete
+          </button>
+        </form>
+      {% endif %}
       <a class="btn-ghost" href="{% url 'core:tasks' %}">Back to board</a>
     </div>
   </header>
@@ -295,6 +307,20 @@
       .replace(/"/g, "&quot;");
   }
 
+  // The backend sends ISO timestamps (UTC, tz-aware) rather than a
+  // pre-formatted string, so this always renders in the viewer's own local
+  // time instead of silently showing the server's UTC clock as if it were
+  // local.
+  function formatLocalTime(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return escHtml(iso);
+    var day = d.getDate();
+    var month = d.toLocaleString(undefined, { month: 'short' });
+    var hh = String(d.getHours()).padStart(2, '0');
+    var mm = String(d.getMinutes()).padStart(2, '0');
+    return day + ' ' + month + ' ' + hh + ':' + mm;
+  }
+
   function loadComments() {
     var el = document.getElementById('issueComments');
     if (!el) return;
@@ -308,7 +334,7 @@
         }
         el.classList.remove('muted');
         el.innerHTML = rows.map(function (c) {
-          return '<div class="stream-item"><strong>' + escHtml(c.user) + '</strong><div class="stream-text">' + escHtml(c.text) + '</div><div class="stream-time">' + escHtml(c.time) + '</div></div>';
+          return '<div class="stream-item"><strong>' + escHtml(c.user) + '</strong><div class="stream-text">' + escHtml(c.text) + '</div><div class="stream-time">' + formatLocalTime(c.time) + '</div></div>';
         }).join('');
       })
       .catch(function () { el.innerHTML = 'Failed to load comments.'; });
@@ -381,7 +407,7 @@
         }
         el.classList.remove('muted');
         el.innerHTML = rows.map(function (a) {
-          return '<div class="stream-item"><strong>' + escHtml(a.user) + '</strong> ' + escHtml(a.action) + '<div class="stream-time">' + escHtml(a.time) + '</div></div>';
+          return '<div class="stream-item"><strong>' + escHtml(a.user) + '</strong> ' + escHtml(a.action) + '<div class="stream-time">' + formatLocalTime(a.time) + '</div></div>';
         }).join('');
       })
       .catch(function () { el.innerHTML = 'Failed to load activity.'; });

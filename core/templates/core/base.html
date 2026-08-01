@@ -303,7 +303,8 @@
 /* Auth links */
 .tf-auth-links {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 18px;
 }
 .tf-auth-link {
@@ -475,6 +476,7 @@
 
             <div class="tf-auth-links">
               <a href="#" onclick="showForgotPanel(event)" class="tf-auth-link">Forgot password?</a>
+              <a href="#" onclick="showResendPanel(event)" class="tf-auth-link">Resend verification email</a>
             </div>
 
             <button type="submit" class="tf-auth-btn">Sign in</button>
@@ -502,6 +504,25 @@
               <input type="email" id="fpEmail" name="email" placeholder="Work email address" required autocomplete="email">
             </div>
             <button type="submit" class="tf-auth-btn" style="background:#374151;">Send reset link</button>
+          </form>
+        </div>
+
+        <!-- RESEND VERIFICATION VIEW -->
+        <div id="authResendView" class="auth-fp-panel">
+          <button class="auth-fp-back" onclick="hideResendPanel()">
+            <i class="ri-arrow-left-line"></i> Back to sign in
+          </button>
+
+          <h3 class="tf-auth-title">Resend verification</h3>
+          <p class="auth-fp-note">Enter your email and we'll resend the confirmation link.</p>
+
+          <form id="resendVerificationForm" method="POST" action="{% url 'core:resend-verification' %}">
+            {% csrf_token %}
+            <div class="input-group">
+              <i class="ri-mail-line"></i>
+              <input type="email" id="resendEmail" name="email" placeholder="Work email address" required autocomplete="email">
+            </div>
+            <button type="submit" class="tf-auth-btn" style="background:#374151;">Resend verification link</button>
           </form>
         </div>
       </div>
@@ -572,6 +593,21 @@ document.addEventListener("DOMContentLoaded", function () {
   window.hideForgotPanel = function () {
     document.getElementById('authLoginView').style.display = '';
     document.getElementById('authFpView').classList.remove('active');
+  };
+
+  window.showResendPanel = function (e) {
+    if (e) e.preventDefault();
+    document.getElementById('authLoginView').style.display = 'none';
+    document.getElementById('authFpView').classList.remove('active');
+    var rv = document.getElementById('authResendView');
+    rv.classList.add('active');
+    var em = document.getElementById('resendEmail');
+    if (em) em.focus();
+  };
+
+  window.hideResendPanel = function () {
+    document.getElementById('authLoginView').style.display = '';
+    document.getElementById('authResendView').classList.remove('active');
   };
 
   /* Close on Escape */

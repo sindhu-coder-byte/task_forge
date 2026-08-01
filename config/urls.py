@@ -25,5 +25,8 @@ urlpatterns = [
     path('', include('core.urls')),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Task attachments (MEDIA_URL) have nowhere else to be served from — there's no
+# S3/Cloudinary storage backend configured — so this route is needed in
+# production too, not just DEBUG. Gating it behind DEBUG (the Django default)
+# meant every uploaded attachment link 404'd as soon as DEBUG=False.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

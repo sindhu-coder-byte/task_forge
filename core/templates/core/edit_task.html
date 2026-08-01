@@ -1,0 +1,77 @@
+{% extends 'core/app_shell.html' %}
+
+{% block shell_title %}Edit task{% endblock %}
+
+{% block shell_page %}
+<div style="max-width: 760px; margin: 0 auto;">
+  <div style="margin-bottom: 14px;">
+    <h1 style="margin: 0; font-size: 20px; font-weight: 650; color:#172b4d;">Edit {{ task.issue_key }}</h1>
+    <p style="margin: 8px 0 0; color:#6b7280; font-size: 13px;">Update this task's details.</p>
+  </div>
+
+  <div style="background:#fff; border: 1px solid #dfe1e6; border-radius: 12px; padding: 14px;">
+    <form method="POST">
+      {% csrf_token %}
+
+      <div style="display:grid; gap: 10px;">
+        <div>
+          <label for="title" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Task Title</label>
+          <input type="text" id="title" name="title" value="{{ task.title }}" required
+                 style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+        </div>
+
+        <div>
+          <label for="description" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Description</label>
+          <textarea id="description" name="description" placeholder="Describe the task"
+                    style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px; min-height: 110px; resize: vertical;">{{ task.description }}</textarea>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label for="assigned_to" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Assign to User</label>
+            <select id="assigned_to" name="assigned_to"
+                    style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+              <option value="">Unassigned</option>
+              {% for user in users %}
+                <option value="{{ user.id }}" {% if task.assigned_to_id == user.id %}selected{% endif %}>{{ user.username }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label for="priority" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Priority</label>
+            <select id="priority" name="priority" style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+              <option value="High" {% if task.priority == "High" %}selected{% endif %}>High</option>
+              <option value="Medium" {% if task.priority == "Medium" %}selected{% endif %}>Medium</option>
+              <option value="Low" {% if task.priority == "Low" %}selected{% endif %}>Low</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+          <div>
+            <label for="start_date" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Start Date</label>
+            <input type="date" id="start_date" name="start_date" value="{{ task.start_date|date:'Y-m-d' }}"
+                   style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+          </div>
+          <div>
+            <label for="due_date" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Due Date</label>
+            <input type="date" id="due_date" name="due_date" value="{{ task.due_date|date:'Y-m-d' }}"
+                   style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+          </div>
+          <div>
+            <label for="delivery_date" style="display:block; margin-bottom:4px; font-weight:500; color:#172b4d;">Delivery Date</label>
+            <input type="date" id="delivery_date" name="delivery_date" value="{{ task.delivery_date|date:'Y-m-d' }}"
+                   style="width:100%; border:1px solid #dfe1e6; border-radius:10px; padding:10px 12px;">
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top: 4px;">
+          <a href="{% url 'core:task_detail' task.id %}" style="text-decoration:none; padding: 9px 12px; border: 1px solid #dfe1e6; border-radius: 10px; color:#172b4d; background:#fff;">Cancel</a>
+          <button type="submit" style="padding: 9px 12px; border-radius: 10px; border:0; background:#0052cc; color:#fff; cursor:pointer;">Save changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

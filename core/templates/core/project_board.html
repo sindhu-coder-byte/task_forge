@@ -313,6 +313,7 @@
           <div class="task-card"
                draggable="true"
                data-id="{{ task.id }}"
+               data-can-edit="{{ task.can_edit_or_delete|yesno:'true,false' }}"
                data-title="{{ task.title|escapejs }}"
                data-desc="{{ task.description|default:''|escapejs }}"
                data-project="{{ task.project.name|default:'No Project'|escapejs }}"
@@ -362,6 +363,16 @@
   </div>
   <div class="tk-sidebar-actions" id="sideActions">
     <a class="tk-btn-secondary" href="#" id="openIssueLink">Open issue</a>
+    <a class="tk-btn-primary" href="#" id="editIssueLink" style="display:none;text-decoration:none;">
+      <i class="ri-edit-line"></i> Edit
+    </a>
+    <form method="POST" id="deleteIssueForm" style="display:none;"
+          onsubmit="return confirm('Delete this task? It can be restored later by an admin or project lead.');">
+      {% csrf_token %}
+      <button type="submit" class="tk-btn-danger">
+        <i class="ri-delete-bin-line"></i> Delete
+      </button>
+    </form>
   </div>
 
   {% comment %} <div class="tk-transition-panel">
@@ -817,6 +828,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const openLink = document.getElementById("openIssueLink");
     if (openLink) openLink.href = `/tasks/${data.id}/`;
+
+    const canEdit = data.canEdit === "true";
+    const editLink = document.getElementById("editIssueLink");
+    if (editLink) {
+      editLink.href = `/tasks/${data.id}/edit/`;
+      editLink.style.display = canEdit ? "" : "none";
+    }
+    const deleteForm = document.getElementById("deleteIssueForm");
+    if (deleteForm) {
+      deleteForm.action = `/tasks/${data.id}/delete/`;
+      deleteForm.style.display = canEdit ? "" : "none";
+    }
 
     showAllowedTransitions(card);
     renderLabels(data.labels);

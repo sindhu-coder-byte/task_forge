@@ -5,11 +5,7 @@
 <link rel="stylesheet" href="{% static 'core/css/teams.css' %}">
 {% endblock %}
 
-{% block shell_title %}
-  {% if role == 'project_lead' %}Project Dashboard
-  {% elif role == 'delivery_team' %}Team Dashboard
-  {% else %}My Dashboard{% endif %}
-{% endblock %}
+{% block shell_title %}All Teams{% endblock %}
 
 {% block shell_page %}
 <div class="tm-page">
@@ -24,11 +20,7 @@
         {% else %}<i class="ri-user-3-line"></i>{% endif %}
       </div>
       <div>
-        <h1 class="tm-title">
-          {% if role == 'project_lead' %}Project Dashboard
-          {% elif role == 'delivery_team' %}Team Dashboard
-          {% else %}My Dashboard{% endif %}
-        </h1>
+        <h1 class="tm-title">All Teams</h1>
         <p class="tm-sub">
           {% if role == 'admin' %}Overview of all projects and system-wide progress.
           {% elif role == 'project_lead' %}Manage projects, teams, and overall progress.

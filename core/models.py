@@ -65,6 +65,11 @@ class Profile(models.Model):
     oauth_provider = models.CharField(max_length=50, null=True, blank=True)
     oauth_id = models.CharField(max_length=255, null=True, blank=True)
 
+    # Default True so every existing row (and every OAuth signup, which
+    # inherently proves inbox ownership) is unaffected — only manually
+    # created accounts get flipped to False, gating login until confirmed.
+    email_verified = models.BooleanField(default=True)
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -239,6 +244,20 @@ class Label(models.Model):
 
 
 # ---------------- TASK ----------------
+class TaskManager(models.Manager):
+    """Default manager — hides archived (soft-deleted) tasks everywhere.
+
+    Deleting a task doesn't remove the row (comments/attachments/activity
+    history need to survive it) — it just sets is_archived=True. Every
+    existing `Task.objects...` query across the app keeps working unchanged
+    and automatically stops seeing archived tasks. Use `Task.all_objects`
+    when you explicitly need to see archived rows too (the archive/restore
+    views, or an "Archived" admin listing).
+    """
+    def get_queryset(self):
+        return super().get_queryset().exclude(is_archived=True)
+
+
 class Task(models.Model):
 
     STATUS_CHOICES = [
@@ -344,6 +363,11 @@ class Task(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    is_archived = models.BooleanField(default=False, db_index=True)
+
+    objects = TaskManager()
+    all_objects = models.Manager()
+
     @property
     def issue_key(self) -> str:
         if self.project_id and self.issue_number:
@@ -367,10 +391,17 @@ class Task(models.Model):
         super().save(*args, **kwargs)
 
     class Meta:
+        # Related/reverse lookups (e.g. project.task_set, Count('task') joins)
+        # go through the base manager, not `objects` — keep it unfiltered so
+        # they don't silently start hiding archived tasks too. Aggregates that
+        # need to exclude archived tasks (Count('task', filter=...)) do so
+        # explicitly in the view.
+        base_manager_name = 'all_objects'
         indexes = [
             models.Index(fields=['status']),
             models.Index(fields=['project', 'status', 'rank']),
             models.Index(fields=['assigned_to']),
+            models.Index(fields=['is_archived']),
         ]
 
 

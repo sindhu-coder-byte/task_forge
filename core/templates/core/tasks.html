@@ -982,6 +982,8 @@ textarea {
   {{ status_counts.in_progress|default:0 }}
 {% elif status == 'in_review' %}
   {{ status_counts.in_review|default:0 }}
+{% elif status == 'qa' %}
+  {{ status_counts.qa|default:0 }}
 {% elif status == 'done' %}
   {{ status_counts.done|default:0 }}
 {% endif %}</span>

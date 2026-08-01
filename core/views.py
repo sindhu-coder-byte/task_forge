@@ -12,9 +12,11 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, logout
 from django.http import HttpResponseForbidden, JsonResponse, HttpResponse
 from django.core.paginator import Paginator
-from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
+from django.core.signing import TimestampSigner, BadSignature, SignatureExpired, dumps as signing_dumps, loads as signing_loads
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.core.cache import cache
+from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from django.db.models import Q, F, Case, When, Value, IntegerField
 from django.db.models import Count
@@ -374,7 +376,8 @@ def _project_progress_snapshot(project: Project) -> tuple[dict, int]:
     total_tasks = sum(status_counts.values())
     progress_percent = 0
     if total_tasks > 0:
-        completed = status_counts.get('done', 0) + status_counts.get('in_review', 0)
+        # 'done' is the only terminal status — in_review/qa are still in flight.
+        completed = status_counts.get('done', 0)
         progress_percent = int((completed / total_tasks) * 100)
     return status_counts, progress_percent
 
@@ -634,6 +637,15 @@ def _task_allowed_next_statuses(user, task: Task) -> list[str]:
     return allowed
 
 
+def _task_can_edit_or_delete(user, task: Task) -> bool:
+    """Who can edit a task's own fields or archive (soft-delete) it."""
+    if _is_admin_user(user):
+        return True
+    if task.project_id and _is_project_lead_for_project(user, task.project):
+        return True
+    return task.created_by_id == user.id
+
+
 def _guest_home_context():
     """Safe defaults when rendering the marketing/auth shell (same template as the app home)."""
     return {
@@ -763,8 +775,10 @@ def home(request):
 
     # ✅ Annotate projects with task counts
     projects = s['projects_qs'].annotate(
-        task_count=Count('task'),
-        done_count=Count('task', filter=Q(task__status='done'))
+        # Count('task'...) joins straight to the table — it bypasses Task's
+        # default manager, so archived tasks must be excluded explicitly here.
+        task_count=Count('task', filter=Q(task__is_archived=False)),
+        done_count=Count('task', filter=Q(task__status='done', task__is_archived=False))
     )
 
     workspace_projects = []
@@ -922,7 +936,7 @@ def role_dashboard(request):
                 "total": total,
                 "todo": counts.get("todo", 0),
                 "in_progress": counts.get("in_progress", 0),
-                "done_like": counts.get("done", 0) + counts.get("in_review", 0),
+                "done_like": counts.get("done", 0),
                 "overdue": overdue_count,
                 "team_size": p.members.count(),
                 "deadline": p.target_end_date,
@@ -1014,7 +1028,8 @@ def role_dashboard(request):
             }
             kanban_columns = [{"status": s, "label": l, "count": status_counts.get(s, 0)} for (s, l) in Task.STATUS_CHOICES]
             total = sum(status_counts.values())
-            completed = status_counts.get("done", 0) + status_counts.get("in_review", 0)
+            # 'done' is the only terminal status — in_review/qa are still in flight.
+            completed = status_counts.get("done", 0)
             progress_percent = int((completed / total) * 100) if total else 0
 
             board_tasks = list(tasks_qs.order_by("-id")[:200])
@@ -1223,9 +1238,13 @@ def update_member_role(request, project_id, user_id):
         return HttpResponseForbidden("Not allowed")
 
     user = get_object_or_404(User, id=user_id)
-    new_role = request.POST.get("role")
+    new_role = (request.POST.get("role") or "").strip()
 
-    if new_role in ['developer', 'tester', 'qa', 'ui_ux_designer', 'deployment_team', 'delivery_team']:
+    # project_lead is excluded here (and from the role dropdown itself) —
+    # that assignment happens through project settings, not this form.
+    valid_roles = {c[0] for c in ProjectMembership.ROLE_CHOICES if c[0] != 'project_lead'}
+
+    if new_role in valid_roles:
         ProjectMembership.objects.update_or_create(
             user=user,
             project=project,
@@ -1235,6 +1254,9 @@ def update_member_role(request, project_id, user_id):
             NotificationService().notify_project_member_added(project, user, new_role, request.user)
         except Exception:
             pass
+        messages.success(request, f"{user.username}'s role updated successfully.")
+    else:
+        messages.error(request, "Invalid role selected.")
 
     return redirect('core:project_team', project_id=project.id)
 
@@ -1526,6 +1548,7 @@ def get_status_counts(tasks):
         'todo': tasks.filter(status='todo').count(),
         'in_progress': tasks.filter(status='in_progress').count(),
         'in_review': tasks.filter(status='in_review').count(),
+        'qa': tasks.filter(status='qa').count(),
         'done': tasks.filter(status='done').count(),
     }
 
@@ -1563,13 +1586,15 @@ def project_board(request, project_id):
     total_tasks = sum(status_counts.values())
     progress_percent = 0
     if total_tasks > 0:
-        completed = status_counts.get('done', 0) + status_counts.get('in_review', 0)
+        # 'done' is the only terminal status — in_review/qa are still in flight.
+        completed = status_counts.get('done', 0)
         progress_percent = int((completed / total_tasks) * 100)
 
     board_tasks = list(tasks)
     for task in board_tasks:
         task.allowed_next_statuses = _task_allowed_next_statuses(user, task)
         task.allowed_next_status_labels = [_status_label(status) for status in task.allowed_next_statuses]
+        task.can_edit_or_delete = _task_can_edit_or_delete(user, task)
 
     # Effective role for this project — membership role overrides global profile role
     project_role = ProjectMembership.objects.filter(
@@ -1706,6 +1731,7 @@ def tasks(request):
         ('todo', 'To Do'),
         ('in_progress', 'In Progress'),
         ('in_review', 'In Review'),
+        ('qa', 'Send to QA'),
         ('done', 'Done'),
     ]
 
@@ -1761,7 +1787,14 @@ def tasks(request):
     if status:
         tasks = tasks.filter(status=status)
 
-    if user_id and role == 'admin':
+    # `users` above is already scoped per-role (admins see everyone, leads/
+    # delivery-team see their own project members, regular members see only
+    # themselves) — the dropdown only ever offers users the requester can
+    # already see, so there's no need to additionally restrict this to
+    # role == 'admin'. That extra gate was silently dropping the selection
+    # for project leads and delivery-team leads even though the User filter
+    # was visibly rendered and populated for them.
+    if user_id:
         tasks = tasks.filter(assigned_to_id=user_id)
 
     # ✅ Status count AFTER filtering
@@ -2009,6 +2042,148 @@ def create_task(request):
         'labels': labels_qs,
         'teams': teams_qs,
     })
+
+
+@login_required
+def edit_task(request, task_id):
+    task = get_object_or_404(Task, id=task_id)
+
+    if not _task_can_view(request.user, task):
+        return redirect('core:tasks')
+    if not _task_can_edit_or_delete(request.user, task):
+        messages.error(request, "You don't have permission to edit this task.")
+        return redirect('core:task_detail', task_id=task.id)
+
+    project = task.project
+    users = project.members.all() if project else User.objects.none()
+    if project and project.project_lead and project.project_lead not in users:
+        users = users | User.objects.filter(id=project.project_lead.id)
+
+    if request.method == 'POST':
+        title = (request.POST.get('title') or '').strip()
+        description = request.POST.get('description', '')
+        priority = request.POST.get('priority') or task.priority
+        assigned_to_id = request.POST.get('assigned_to')
+        due_date_raw = (request.POST.get('due_date') or '').strip()
+        start_date_raw = (request.POST.get('start_date') or '').strip()
+        delivery_date_raw = (request.POST.get('delivery_date') or '').strip()
+
+        if not title:
+            messages.error(request, "Title is required")
+            return redirect('core:edit_task', task_id=task.id)
+
+        assigned_user = task.assigned_to
+        if assigned_to_id:
+            assigned_user = get_object_or_404(User, id=assigned_to_id)
+            # Same JIRA-style rule create_task enforces.
+            if project and assigned_user not in project.members.all() and assigned_user != project.project_lead:
+                messages.error(request, "User not part of this project")
+                return redirect('core:edit_task', task_id=task.id)
+
+        def _parse_date(raw):
+            if not raw:
+                return None
+            y, m, d = [int(x) for x in raw.split("-")]
+            return date(y, m, d)
+
+        try:
+            due_dt = _parse_date(due_date_raw)
+        except Exception:
+            messages.error(request, "Invalid due date")
+            return redirect('core:edit_task', task_id=task.id)
+        try:
+            start_dt = _parse_date(start_date_raw)
+        except Exception:
+            start_dt = task.start_date
+        try:
+            delivery_dt = _parse_date(delivery_date_raw)
+        except Exception:
+            delivery_dt = task.delivery_date
+
+        # Diff against current values so the activity log only records what
+        # actually changed (same convention as update_task_due_date/labels).
+        if task.title != title:
+            _log_task_activity(task, request.user, "Title changed", task.title, title)
+            task.title = title
+        if task.description != description:
+            _log_task_activity(task, request.user, "Description updated")
+            task.description = description
+        if task.priority != priority:
+            _log_task_activity(task, request.user, "Priority changed", task.priority, priority)
+            task.priority = priority
+        if task.assigned_to_id != (assigned_user.id if assigned_user else None):
+            _log_task_activity(
+                task, request.user, "Assigned changed",
+                getattr(task.assigned_to, 'username', 'Unassigned'),
+                getattr(assigned_user, 'username', 'Unassigned'),
+            )
+            task.assigned_to = assigned_user
+        if task.due_date != due_dt:
+            _log_task_activity(
+                task, request.user, "Due date changed",
+                task.due_date.isoformat() if task.due_date else "",
+                due_dt.isoformat() if due_dt else "",
+            )
+            task.due_date = due_dt
+        task.start_date = start_dt
+        task.delivery_date = delivery_dt
+
+        task._updated_by = request.user
+        task.save()
+
+        messages.success(request, "Task updated successfully")
+        return redirect('core:task_detail', task_id=task.id)
+
+    return render(request, 'core/edit_task.html', {
+        'task': task,
+        'users': users,
+    })
+
+
+@login_required
+def archive_task(request, task_id):
+    """Soft-delete: hides the task everywhere instead of removing it, so its
+    comments/attachments/activity history survive (Task.all_objects can still
+    reach it, e.g. for restore_task)."""
+    if request.method != "POST":
+        return redirect('core:tasks')
+
+    task = get_object_or_404(Task, id=task_id)
+
+    if not _task_can_edit_or_delete(request.user, task):
+        messages.error(request, "You don't have permission to delete this task.")
+        return redirect('core:task_detail', task_id=task.id)
+
+    task.is_archived = True
+    task.save(update_fields=["is_archived"])
+    _log_task_activity(task, request.user, "Task deleted", new_value=task.issue_key)
+
+    messages.success(request, f"Task '{task.title}' deleted.")
+    return redirect('core:tasks')
+
+
+@login_required
+def restore_task(request, task_id):
+    """Undo archive_task. Admin/project-lead only — a stricter bar than
+    delete, since restoring can resurrect a task into someone else's board."""
+    if request.method != "POST":
+        return redirect('core:tasks')
+
+    task = get_object_or_404(Task.all_objects, id=task_id)
+
+    is_lead = task.project_id and _is_project_lead_for_project(request.user, task.project)
+    if not (_is_admin_user(request.user) or is_lead):
+        messages.error(request, "You don't have permission to restore this task.")
+        return redirect('core:tasks')
+
+    task.is_archived = False
+    task.save(update_fields=["is_archived"])
+    _log_task_activity(task, request.user, "Task restored", new_value=task.issue_key)
+
+    messages.success(request, f"Task '{task.title}' restored.")
+    return redirect('core:task_detail', task_id=task.id)
+
+
 @login_required
 def update_task_status(request, task_id, new_status):
     if request.method != 'POST':
@@ -2221,6 +2396,7 @@ def task_detail(request, task_id):
         'role_label': _role_label(role),
         'workflow_rows': workflow_rows,
         'today': timezone.now().date(),
+        'can_edit_or_delete': _task_can_edit_or_delete(request.user, task),
     })
 
 
@@ -2254,7 +2430,12 @@ def get_comments(request, task_id):
         {
             "user": c.user.username,
             "text": c.text,
-            "time": c.created.strftime("%d %b %H:%M")
+            # Raw ISO (UTC, tz-aware) — the browser converts to the viewer's
+            # own local time when it formats this for display. Pre-formatting
+            # a fixed "%d %b %H:%M" string server-side bakes in UTC with no
+            # offset info, so it silently reads as local time and is wrong
+            # for anyone not in UTC.
+            "time": c.created.isoformat()
         }
         for c in comments
     ]
@@ -2346,7 +2527,7 @@ def add_comment(request, task_id):
         "comment": {
             "user": comment.user.username,
             "text": comment.text,
-            "time": comment.created.strftime("%d %b %H:%M"),
+            "time": comment.created.isoformat(),
         }
     })
 
@@ -2401,7 +2582,7 @@ def task_activity(request, task_id):
             "action": a.action,
             "old": a.old_value,
             "new": a.new_value,
-            "time": a.created_at.strftime("%d %b %H:%M")
+            "time": a.created_at.isoformat()
         }
         for a in activities
     ], safe=False)
@@ -2513,31 +2694,40 @@ def update_task_labels(request, task_id):
     })
     
     
-def _check_login_attempts(request):
-    """Rate limiting: max 5 attempts per 15 minutes"""
-    ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', ''))
-    key = f'login_attempts_{ip}'
-    
-    attempts = request.session.get(key, 0)
-    last_attempt = request.session.get(f'{key}_time')
+def _client_ip(request) -> str:
+    """Best-effort real client IP.
 
-    if last_attempt:
-        elapsed = time.time() - last_attempt   # ✅ FIX
-        if elapsed > 900:  # 15 minutes = 900 seconds
-            request.session[key] = 0
-            request.session.pop(f'{key}_time', None)
-            return False
+    Render (our only deployment target) terminates connections at its own
+    edge and appends the true client IP as the LAST entry of
+    X-Forwarded-For. Earlier entries in that header can be set by the
+    client itself, so they must not be trusted for rate limiting.
+    """
+    xff = request.META.get('HTTP_X_FORWARDED_FOR')
+    if xff:
+        return xff.split(',')[-1].strip()
+    return request.META.get('REMOTE_ADDR', '')
 
-    return attempts >= 5
+
+def _check_login_attempts(request) -> bool:
+    """Rate limiting: max 5 attempts per 15 minutes per client IP.
+
+    Tracked in the cache rather than the session, since an anonymous
+    session is just a client-supplied cookie — a scripted attacker can
+    drop it between requests and get a fresh counter every time.
+    """
+    key = f'login_attempts_{_client_ip(request)}'
+    return cache.get(key, 0) >= 5
 
 
 def _increment_login_attempts(request):
     """Increment login attempt counter"""
-    ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', ''))
-    key = f'login_attempts_{ip}'
-    
-    request.session[key] = request.session.get(key, 0) + 1
-    request.session[f'{key}_time'] = time.time()   # ✅ FIX
+    key = f'login_attempts_{_client_ip(request)}'
+    cache.set(key, cache.get(key, 0) + 1, timeout=900)  # 15 minutes
+
+
+def _clear_login_attempts(request):
+    """Reset the counter for this client IP (called on successful login)."""
+    cache.delete(f'login_attempts_{_client_ip(request)}')
 
 def login_view(request):
     if request.method == "POST":
@@ -2571,9 +2761,20 @@ def login_view(request):
         if user is not None:
             # ✅ FIX: Ensure profile exists
             profile, created = Profile.objects.get_or_create(user=user)
+
+            if not profile.email_verified:
+                # Correct password, just not proven ownership of the inbox
+                # yet — not a guessing signal, so don't count it as a failed
+                # attempt.
+                messages.error(
+                    request,
+                    "Please verify your email before signing in. Check your inbox for the "
+                    "confirmation link, or use \"Resend verification email\" below."
+                )
+                return render(request, "core/auth.html", {"initialTab": "login"})
+
             # Clear attempt counter on success
-            ip = request.META.get('REMOTE_ADDR', '')
-            request.session.pop(f'login_attempts_{ip}', None)
+            _clear_login_attempts(request)
 
             login(request, user)
             messages.success(request, f"Welcome back, {user.username}!")
@@ -2718,22 +2919,174 @@ def mobile_session_handoff(request):
 # ✅ PASSWORD RESET REQUEST (Jira-style)
 def password_reset_request(request):
     if request.method == "POST":
+        from django.urls import reverse
+
         email = (request.POST.get("email") or "").strip().lower()
         try:
             validate_email(email)
-            user = User.objects.filter(email__iexact=email).first()
+            user = User.objects.filter(email__iexact=email, is_active=True).first()
             if user:
-                # Generate reset token (in production, send via email)
-                reset_token = secrets.token_urlsafe(32)
-                request.session[f'reset_token_{user.id}'] = reset_token
-                request.session.set_expiry(3600)  # 1 hour expiry
-                messages.success(request, f"Password reset instructions have been sent to your email.")
-            else:
-                # Don't reveal if email exists (security best practice)
-                messages.info(request, f"If an account exists with that email, you will receive reset instructions.")
+                # Sign the user id together with their current password hash so the
+                # link stops working the moment it's used (or the password changes
+                # some other way) — no extra "used" table needed. signing_dumps
+                # base64-urlsafe-encodes the payload, so the token is always a
+                # single clean URL path segment (raw password hashes can contain
+                # '/', which a bare TimestampSigner.sign() would leak verbatim).
+                token = signing_dumps(
+                    {"uid": user.pk, "pwd": user.password},
+                    salt='password-reset',
+                )
+                reset_url = request.build_absolute_uri(
+                    reverse('core:password_reset_confirm', args=[token])
+                )
+                try:
+                    html_content = render_to_string("emails/password_reset.html", {
+                        "user": user,
+                        "reset_url": reset_url,
+                    })
+                    text_content = strip_tags(html_content)
+                    email_msg = EmailMultiAlternatives(
+                        subject="Reset your VetriFlow password",
+                        body=text_content,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        to=[user.email],
+                    )
+                    email_msg.attach_alternative(html_content, "text/html")
+                    email_msg.send()
+                except Exception as _email_exc:
+                    import traceback
+                    print(f"[TF-EMAIL-RESET] FAILED to {user.email}: {_email_exc}")
+                    traceback.print_exc()
+
+            # Same message whether or not the account exists — don't reveal it.
+            messages.success(
+                request,
+                "If an account exists with that email, you will receive reset instructions."
+            )
         except ValidationError:
             messages.error(request, "Please enter a valid email address.")
     return render(request, "core/auth.html", {"initialTab": "login"})
+
+
+def password_reset_confirm(request, token):
+    """Consume the signed link from password_reset_request and set a new password."""
+    user = None
+    try:
+        payload = signing_loads(token, salt='password-reset', max_age=3600)  # 1 hour
+        candidate = User.objects.filter(pk=payload.get("uid"), is_active=True).first()
+        if candidate and candidate.password == payload.get("pwd"):
+            user = candidate
+    except (BadSignature, SignatureExpired):
+        user = None
+
+    if not user:
+        messages.error(request, "This password reset link is invalid or has expired.")
+        return redirect('core:password-reset')
+
+    if request.method == "POST":
+        password = request.POST.get("password") or ""
+        confirm_password = request.POST.get("confirm_password") or ""
+
+        if password != confirm_password:
+            messages.error(request, "Passwords do not match.")
+            return render(request, "core/password_reset_confirm.html", {"token": token})
+
+        try:
+            validate_password(password, user=user)
+        except ValidationError as e:
+            for err in e.messages:
+                messages.error(request, err)
+            return render(request, "core/password_reset_confirm.html", {"token": token})
+
+        user.set_password(password)
+        user.save(update_fields=["password"])
+        messages.success(request, "Your password has been reset. Please sign in.")
+        return redirect('core:login')
+
+    return render(request, "core/password_reset_confirm.html", {"token": token})
+
+
+def _send_verification_email(request, user):
+    """Email a signed confirmation link for a newly created (or re-pointed)
+    manual account. Must never raise — a delivery failure shouldn't break
+    the account-creation/update flow that calls this.
+
+    The email is bound into the signed payload (not just the user id) so a
+    stale link can't be replayed to verify a *different* address if the
+    email is changed again before the original link is used or expires.
+    """
+    try:
+        token = signing_dumps(
+            {"uid": user.pk, "email": user.email},
+            salt='email-verification',
+        )
+        verify_url = request.build_absolute_uri(
+            reverse('core:verify_email_confirm', args=[token])
+        )
+        html_content = render_to_string("emails/verify_email.html", {
+            "user": user,
+            "verify_url": verify_url,
+        })
+        text_content = strip_tags(html_content)
+        email_msg = EmailMultiAlternatives(
+            subject="Verify your VetriFlow email address",
+            body=text_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user.email],
+        )
+        email_msg.attach_alternative(html_content, "text/html")
+        email_msg.send()
+    except Exception as _email_exc:
+        import traceback
+        print(f"[TF-EMAIL-VERIFY] FAILED to {user.email}: {_email_exc}")
+        traceback.print_exc()
+
+
+def verify_email_confirm(request, token):
+    """Consume the signed link from _send_verification_email."""
+    user = None
+    try:
+        payload = signing_loads(token, salt='email-verification', max_age=259200)  # 3 days
+        candidate = User.objects.filter(pk=payload.get("uid"), is_active=True).first()
+        if candidate and candidate.email.lower() == (payload.get("email") or "").lower():
+            user = candidate
+    except (BadSignature, SignatureExpired):
+        user = None
+
+    if not user:
+        messages.error(request, "This verification link is invalid or has expired.")
+        return redirect('core:login')
+
+    profile, _ = Profile.objects.get_or_create(user=user)
+    profile.email_verified = True
+    profile.save(update_fields=["email_verified"])
+
+    messages.success(request, "Your email has been verified. You can now sign in.")
+    return redirect('core:login')
+
+
+def resend_verification_email(request):
+    if request.method == "POST":
+        email = (request.POST.get("email") or "").strip().lower()
+        try:
+            validate_email(email)
+            user = User.objects.filter(
+                email__iexact=email,
+                is_active=True,
+                profile__email_verified=False,
+            ).exclude(profile__oauth_provider__iexact='google').first()
+            if user:
+                _send_verification_email(request, user)
+            # Same message either way — don't reveal whether the account
+            # exists or was already verified.
+            messages.success(
+                request,
+                "If that account needs verification, we've sent a new confirmation link."
+            )
+        except ValidationError:
+            messages.error(request, "Please enter a valid email address.")
+    return render(request, "core/auth.html", {"initialTab": "login"})
+
 
 @login_required(login_url='core:login')
 def search_view(request):
@@ -2869,16 +3222,36 @@ def create_project(request):
                 name = request.POST.get('name', '').strip()
                 description = request.POST.get('description', '').strip()
                 project_type = request.POST.get('project_type') or 'kanban'
-                key_prefix = (request.POST.get('key_prefix') or _generate_project_key_prefix(name)).strip().upper()[:10] or 'TF'
+                raw_key_prefix = (request.POST.get('key_prefix') or '').strip()
+                key_prefix = (raw_key_prefix or _generate_project_key_prefix(name)).strip().upper()[:10] or 'TF'
                 project_lead_id = request.POST.get('project_lead')
-                
+
                 # ====== VALIDATION ======
                 if not name:
                     if wants_json:
                         return JsonResponse({'status': 'error', 'error': 'Project name is required'}, status=400)
                     messages.error(request, 'Project name is required')
                     return render(request, 'core/create_project.html', {'users': users, 'default_start_date': default_start_date})
-                
+
+                # Task issue keys (e.g. "TF-1") are only unambiguous if key_prefix is
+                # unique — two projects sharing a prefix would both display tasks as
+                # "TF-1", "TF-2"... making an old task in one project look like it
+                # belongs to (or was auto-created in) the other.
+                if Project.objects.filter(key_prefix__iexact=key_prefix).exists():
+                    if raw_key_prefix:
+                        # User explicitly chose this prefix — make them pick another.
+                        error_msg = f'Key prefix "{key_prefix}" is already in use by another project. Please choose a different one.'
+                        if wants_json:
+                            return JsonResponse({'status': 'error', 'error': error_msg}, status=400)
+                        messages.error(request, error_msg)
+                        return render(request, 'core/create_project.html', {'users': users, 'default_start_date': default_start_date})
+                    # Auto-generated prefix collided — disambiguate quietly.
+                    base_prefix = key_prefix[:9]
+                    suffix = 2
+                    while Project.objects.filter(key_prefix__iexact=f"{base_prefix}{suffix}").exists():
+                        suffix += 1
+                    key_prefix = f"{base_prefix}{suffix}"
+
                 # ====== NEW FIELDS ======
                 category = request.POST.get('category') or 'other'
                 project_url = request.POST.get('project_url') or ''
@@ -2994,8 +3367,8 @@ def projects(request):
 
     if global_role == 'admin':
         projects_qs = Project.objects.prefetch_related('members').annotate(
-            total_tasks=Count('task', distinct=True),
-            done_tasks=Count('task', filter=Q(task__status='done'), distinct=True),
+            total_tasks=Count('task', filter=Q(task__is_archived=False), distinct=True),
+            done_tasks=Count('task', filter=Q(task__status='done', task__is_archived=False), distinct=True),
         )
         google_users = list(
             User.objects.filter(profile__oauth_provider__iexact='google')
@@ -3012,8 +3385,8 @@ def projects(request):
             Q(project_lead=request.user) |
             Q(created_by=request.user)
         ).distinct().prefetch_related('members').annotate(
-            total_tasks=Count('task', distinct=True),
-            done_tasks=Count('task', filter=Q(task__status='done'), distinct=True),
+            total_tasks=Count('task', filter=Q(task__is_archived=False), distinct=True),
+            done_tasks=Count('task', filter=Q(task__status='done', task__is_archived=False), distinct=True),
         )
         users = User.objects.filter(is_active=True).order_by('username')
 
@@ -3376,17 +3749,15 @@ def get_project_progress(request, project_id):
     tasks = Task.objects.filter(project=project)
     total_tasks = tasks.count()
     done_tasks = tasks.filter(status='done').count()
-    in_review_tasks = tasks.filter(status='in_review').count()
-    completed_count = done_tasks + in_review_tasks
 
     progress_percent = 0
     if total_tasks > 0:
-        progress_percent = int((completed_count / total_tasks) * 100)
+        progress_percent = int((done_tasks / total_tasks) * 100)
 
     return JsonResponse({
         'status': 'ok',
         'total_tasks': total_tasks,
-        'done_tasks': completed_count,
+        'done_tasks': done_tasks,
         'progress_percent': progress_percent
     })
 
@@ -3488,10 +3859,8 @@ def project_detail(request, project_id):
 
     progress_percent = 0
     if task_count > 0:
-        completed_count = (
-            status_counts.get('done', 0) +
-            status_counts.get('in_review', 0)
-        )
+        # 'done' is the only terminal status — in_review/qa are still in flight.
+        completed_count = status_counts.get('done', 0)
         progress_percent = int((completed_count / task_count) * 100)
 
     # =========================
@@ -3752,6 +4121,15 @@ def user_create(request):
             try:
                 user = form.save()  # ✅ FULL CONTROL TO FORM
 
+                # Manual (non-Google) accounts need to prove they own the
+                # inbox before they can sign in — Google-linked rows get an
+                # unusable password (see UserCreateForm.save) so they can
+                # only ever get in via real OAuth, which proves it for free.
+                if user.profile.oauth_provider != 'google':
+                    user.profile.email_verified = False
+                    user.profile.save(update_fields=["email_verified"])
+                    _send_verification_email(request, user)
+
                 messages.success(request, f"User '{user.username}' created successfully 🚀")
                 return redirect('core:user_list')
 
@@ -3775,6 +4153,10 @@ def user_update(request, id):
         return redirect('core:home')
 
     user = get_object_or_404(User, id=id)
+    # Captured before form validation — ModelForm's _post_clean() writes
+    # cleaned values onto this same `user` instance as soon as is_valid()
+    # runs, so grabbing this later (even "before save()") would be too late.
+    original_email = user.email
 
     if request.method == "POST":
         form = UserUpdateForm(request.POST, instance=user)
@@ -3783,6 +4165,12 @@ def user_update(request, id):
             user = form.save()
 
             profile, _ = Profile.objects.get_or_create(user=user)
+
+            email_changed = original_email.strip().lower() != user.email.strip().lower()
+            if email_changed and profile.oauth_provider != 'google':
+                profile.email_verified = False
+                profile.save(update_fields=["email_verified"])
+                _send_verification_email(request, user)
 
             # Once a user is Project Lead the role is locked — ignore any
             # attempt to downgrade it through this form.
@@ -4059,6 +4447,21 @@ def _delayed_tasks_count(user):
 
 
 # ================== NOTIFICATIONS ==================
+
+@login_required(login_url='core:login')
+def notification_history(request):
+    """Full notification history page (HTML) — the topbar dropdown's 'View all
+    notifications' link used to point straight at get_notifications, which is
+    a JSON API, so clicking it showed raw JSON instead of a page."""
+    notifications_qs = Notification.objects.filter(user=request.user).order_by('-created_at')
+    paginator = Paginator(notifications_qs, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'core/notification_history.html', {
+        'page_obj': page_obj,
+        'notification_count': _get_notification_count(request.user),
+    })
+
 
 @login_required
 def get_notifications(request):

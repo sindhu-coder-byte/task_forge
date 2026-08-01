@@ -1,0 +1,154 @@
+{% extends 'core/app_shell.html' %}
+
+{% block shell_title %}Notifications{% endblock %}
+
+{% block shell_extra_css %}
+<style>
+.notif-history { max-width: 720px; margin: 0 auto; }
+
+.notif-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.notif-history-head h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 650;
+  color: #172b4d;
+}
+.notif-history-mark-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #dfe1e6;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  cursor: pointer;
+}
+.notif-history-mark-all:hover { background: #f9fafb; }
+
+.notif-history-list {
+  background: #fff;
+  border: 1px solid #dfe1e6;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Relax the dropdown's truncation rules for the full-page reading context */
+.notif-history .tb-notif-item { padding: 14px 16px; }
+.notif-history .tb-notif-title { white-space: normal; overflow: visible; text-overflow: clip; }
+.notif-history .tb-notif-msg { -webkit-line-clamp: unset; overflow: visible; }
+
+.notif-history-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 60px 20px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+.notif-history-empty i { font-size: 34px; }
+
+.notif-history-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: #6b7280;
+}
+.notif-history-pagination a {
+  padding: 6px 12px;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #172b4d;
+  background: #fff;
+}
+.notif-history-pagination a:hover { background: #f9fafb; }
+</style>
+{% endblock %}
+
+{% block shell_page %}
+<div class="notif-history">
+  <div class="notif-history-head">
+    <h1>Notifications</h1>
+    <button type="button" class="notif-history-mark-all" id="notifHistoryMarkAll">
+      <i class="ri-check-double-line"></i> Mark all read
+    </button>
+  </div>
+
+  <div class="notif-history-list">
+    {% for notif in page_obj %}
+      {% if notif.task_id %}
+        {% url 'core:task_detail' notif.task_id as notif_link %}
+      {% elif notif.project_id %}
+        {% url 'core:project_detail' notif.project_id as notif_link %}
+      {% endif %}
+      <a href="{{ notif_link|default:'#' }}"
+         class="tb-notif-item{% if not notif.is_read %} unread{% endif %}"
+         data-notif-id="{{ notif.id }}">
+        <div class="tb-notif-icon {{ notif.notification_type }}"><i class="ri-notification-3-line"></i></div>
+        <div class="tb-notif-content">
+          <div class="tb-notif-title">{{ notif.title }}</div>
+          <div class="tb-notif-msg">{{ notif.message }}</div>
+          <div class="tb-notif-meta">
+            <span class="tb-notif-time">{{ notif.created_at|date:"M d, Y H:i" }}</span>
+            {% if not notif.is_read %}
+              <button type="button" class="tb-notif-read-btn" onclick="notifHistoryMarkRead({{ notif.id }}, event)">Mark read</button>
+            {% endif %}
+          </div>
+        </div>
+      </a>
+    {% empty %}
+      <div class="notif-history-empty">
+        <i class="ri-notification-off-line"></i>
+        <span>No notifications yet</span>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+    <div class="notif-history-pagination">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}">&larr; Prev</a>
+      {% endif %}
+      <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}">Next &rarr;</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block shell_foot_scripts %}
+<script>
+function notifHistoryMarkRead(id, event) {
+  if (event) { event.preventDefault(); event.stopPropagation(); }
+  fetch('/notifications/' + id + '/read/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+  }).then(function () { window.location.reload(); });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  var markAllBtn = document.getElementById('notifHistoryMarkAll');
+  if (markAllBtn) {
+    markAllBtn.addEventListener('click', function () {
+      fetch('{% url "core:mark_all_notifications_read" %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+      }).then(function () { window.location.reload(); });
+    });
+  }
+});
+</script>
+{% endblock %}

@@ -186,6 +186,16 @@
   border-color: var(--td-border);
 }
 
+.btn-ghost--danger {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.btn-ghost--danger:hover {
+  background: #fef2f2;
+  border-color: #dc2626;
+}
+
 .btn-ghost i {
   font-size: 16px;
 }

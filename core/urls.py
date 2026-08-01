@@ -21,6 +21,9 @@ urlpatterns = [
     # path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
     path('password-reset/', views.password_reset_request, name='password-reset'),
+    path('password-reset/confirm/<str:token>/', views.password_reset_confirm, name='password_reset_confirm'),
+    path('verify-email/<str:token>/', views.verify_email_confirm, name='verify_email_confirm'),
+    path('resend-verification/', views.resend_verification_email, name='resend-verification'),
 
 
     # =========================
@@ -63,6 +66,9 @@ urlpatterns = [
     path('tasks/', views.tasks, name='tasks'),
     path('tasks/create/', views.create_task, name='create_task'),
     path('tasks/<int:task_id>/', views.task_detail, name='task_detail'),
+    path('tasks/<int:task_id>/edit/', views.edit_task, name='edit_task'),
+    path('tasks/<int:task_id>/delete/', views.archive_task, name='archive_task'),
+    path('tasks/<int:task_id>/restore/', views.restore_task, name='restore_task'),
 
     #  Status (Jira style)
     path('tasks/<int:task_id>/status/<str:new_status>/', views.update_task_status, name='update_task_status'),
@@ -122,6 +128,7 @@ urlpatterns = [
     #  NOTIFICATIONS
     # =========================
     path('notifications/', views.get_notifications, name='get_notifications'),
+    path('notifications/all/', views.notification_history, name='notification_history'),
     path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
     path('project/<int:project_id>/member/<int:user_id>/role/', views.update_member_role, name='update_member_role'),
