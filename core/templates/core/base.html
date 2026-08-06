@@ -486,6 +486,49 @@
             <i class="ri-shield-check-line"></i>
             Work or Google account required for full access
           </p>
+
+          <p class="tf-auth-footer">
+            Don't have an account?
+            <a href="#" onclick="showRegisterPanel(event)" class="tf-auth-link">Sign up</a>
+          </p>
+        </div>
+
+        <!-- REGISTER VIEW -->
+        <div id="authRegisterView" class="auth-fp-panel">
+          <button class="auth-fp-back" onclick="hideRegisterPanel()">
+            <i class="ri-arrow-left-line"></i> Back to sign in
+          </button>
+
+          <h3 class="tf-auth-title">Create your account</h3>
+          <p class="auth-fp-note">Sign up with a username, email, and password.</p>
+
+          <form id="registerForm" method="POST" action="{% url 'core:register' %}">
+            {% csrf_token %}
+
+            <div class="input-group">
+              <i class="ri-user-line"></i>
+              <input type="text" name="username" placeholder="Username" required autocomplete="username" minlength="3">
+            </div>
+
+            <div class="input-group">
+              <i class="ri-mail-line"></i>
+              <input type="email" name="email" placeholder="Work email address" required autocomplete="email">
+            </div>
+
+            <div class="input-group">
+              <i class="ri-lock-line"></i>
+              <input type="password" id="registerPassword" name="password" placeholder="Password" required autocomplete="new-password" minlength="8">
+              <i class="ri-eye-line toggle" onclick="togglePassword('registerPassword')" title="Show password"></i>
+            </div>
+
+            <div class="input-group">
+              <i class="ri-lock-line"></i>
+              <input type="password" id="registerConfirmPassword" name="confirm_password" placeholder="Confirm password" required autocomplete="new-password" minlength="8">
+              <i class="ri-eye-line toggle" onclick="togglePassword('registerConfirmPassword')" title="Show password"></i>
+            </div>
+
+            <button type="submit" class="tf-auth-btn">Create account</button>
+          </form>
         </div>
 
         <!-- FORGOT PASSWORD VIEW -->
@@ -545,9 +588,17 @@ document.addEventListener("DOMContentLoaded", function () {
 /* ---- AUTH MODAL ---- */
 document.addEventListener("DOMContentLoaded", function () {
 
-  window.openAuth = function () {
+  window.openAuth = function (tab) {
     var modal = document.getElementById("authModal");
     if (modal) modal.classList.add("active");
+
+    if (tab === "register") {
+      window.showRegisterPanel(null);
+    } else {
+      window.hideRegisterPanel();
+      window.hideForgotPanel();
+      window.hideResendPanel();
+    }
   };
 
   window.closeAuth = function () {
@@ -608,6 +659,22 @@ document.addEventListener("DOMContentLoaded", function () {
   window.hideResendPanel = function () {
     document.getElementById('authLoginView').style.display = '';
     document.getElementById('authResendView').classList.remove('active');
+  };
+
+  window.showRegisterPanel = function (e) {
+    if (e) e.preventDefault();
+    document.getElementById('authLoginView').style.display = 'none';
+    document.getElementById('authFpView').classList.remove('active');
+    document.getElementById('authResendView').classList.remove('active');
+    var rv = document.getElementById('authRegisterView');
+    rv.classList.add('active');
+    var un = rv.querySelector('input[name="username"]');
+    if (un) un.focus();
+  };
+
+  window.hideRegisterPanel = function () {
+    document.getElementById('authLoginView').style.display = '';
+    document.getElementById('authRegisterView').classList.remove('active');
   };
 
   /* Close on Escape */

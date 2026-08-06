@@ -182,7 +182,8 @@
       <i class="ri-alarm-warning-line"></i> Overdue Tasks
     </div>
   </div>
-  <div class="adm-card" style="overflow:auto;">
+  <div class="adm-card adm-card--scrollable">
+    <div class="adm-table-wrapper">
     <table class="adm-table">
       <thead>
         <tr>
@@ -226,6 +227,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
   </div>
   {% endif %}
 
@@ -240,7 +242,8 @@
         <div class="adm-section-title"><i class="ri-user-3-line"></i> Users &amp; Roles</div>
         <a href="{% url 'core:user_list' %}" class="adm-section-link">Full list →</a>
       </div>
-      <div class="adm-card" style="overflow:auto;">
+      <div class="adm-card adm-card--scrollable">
+        <div class="adm-table-wrapper">
         <table class="adm-table">
           <thead>
             <tr>
@@ -292,6 +295,7 @@
             {% endfor %}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
 
@@ -507,6 +511,11 @@
 .btn-sm--primary:hover{ opacity:.9; }
 
 /* ── TABLE ──────────────────────────────────── */
+.adm-table-wrapper{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-x;
+}
 .adm-table{ width:100%; border-collapse:collapse; }
 .adm-table th{
   font-size:11px; text-transform:uppercase; letter-spacing:.05em;
@@ -685,6 +694,10 @@
   grid-template-columns:1.4fr .6fr;
   gap:20px;
 }
+/* Grid items default to min-width:auto, which refuses to shrink below the
+   width of their content (e.g. a wide table) — that pushes the whole item
+   past the viewport instead of letting its own overflow:auto engage. */
+.adm-two-col > div{ min-width:0; }
 
 /* ── RESPONSIVE ─────────────────────────────── */
 @media (max-width:1100px){
@@ -694,6 +707,20 @@
   .adm-page{ padding:14px; }
   .proj-grid{ grid-template-columns:1fr; }
   .adm-stats{ grid-template-columns:repeat(2,1fr); }
+
+  /* Visual hint that the table scrolls horizontally, matching the same
+     pattern used on the Users page table (user_list.html). The shadow lives
+     on the outer (non-scrolling) card so it stays pinned to the edge
+     instead of scrolling away with the table content. */
+  .adm-card--scrollable{ position:relative; }
+  .adm-card--scrollable::after{
+    content:"";
+    position:absolute;
+    top:0; right:0; bottom:0;
+    width:14px;
+    box-shadow:inset -8px 0 8px -8px rgba(0,0,0,0.35);
+    pointer-events:none;
+  }
 }
 </style>
 {% endblock %}

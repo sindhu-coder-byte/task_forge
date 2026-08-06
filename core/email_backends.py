@@ -64,7 +64,7 @@ class BrevoAPIBackend(BaseEmailBackend):
                     payload['htmlContent'] = content
                     break
 
-            print(f"[TF-EMAIL] Brevo → from={msg_email} to={message.to} subject={message.subject!r}")
+            print(f"[TF-EMAIL] Brevo -> from={msg_email} to={message.to} subject={message.subject!r}")
 
             try:
                 resp = _requests.post(
@@ -78,7 +78,7 @@ class BrevoAPIBackend(BaseEmailBackend):
                 )
                 if resp.status_code in (200, 201, 202):
                     sent += 1
-                    print(f"[TF-EMAIL] Brevo OK ({resp.status_code}) → {message.to}")
+                    print(f"[TF-EMAIL] Brevo OK ({resp.status_code}) -> {message.to}")
                 else:
                     print(f"[TF-EMAIL] Brevo error {resp.status_code}: {resp.text[:300]}")
                     if not self.fail_silently:
@@ -127,7 +127,7 @@ class ResendAPIBackend(BaseEmailBackend):
                     payload['html'] = content
                     break
 
-            print(f"[TF-EMAIL] Resend → from={payload['from']} to={payload['to']} subject={payload['subject']!r}")
+            print(f"[TF-EMAIL] Resend -> from={payload['from']} to={payload['to']} subject={payload['subject']!r}")
 
             try:
                 resp = _requests.post(
@@ -141,7 +141,7 @@ class ResendAPIBackend(BaseEmailBackend):
                 )
                 if resp.status_code in (200, 201, 202):
                     sent += 1
-                    print(f"[TF-EMAIL] Resend OK ({resp.status_code}) → {message.to}")
+                    print(f"[TF-EMAIL] Resend OK ({resp.status_code}) -> {message.to}")
                 else:
                     print(f"[TF-EMAIL] Resend error {resp.status_code}: {resp.text[:300]}")
                     if not self.fail_silently:

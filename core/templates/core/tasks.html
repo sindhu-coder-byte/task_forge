@@ -1386,48 +1386,26 @@ document.querySelectorAll(".column").forEach(column => {
 
     if (!draggedCard) return;
 
-    column.appendChild(draggedCard);
-
+    const previousStatus = draggedCard.dataset.status;
     const newStatus = column.dataset.status;
     const taskId = draggedCard.dataset.id;
 
-    draggedCard.dataset.status = newStatus;
+    if (previousStatus === newStatus) return;
 
-    updateTask(taskId, newStatus);
+    column.appendChild(draggedCard);
+    draggedCard.dataset.status = newStatus;
 
     if (sidebar.dataset.taskId == taskId) {
       const text = newStatus.replaceAll('_',' ');
       updateStatusUI(text, newStatus);
     }
 
+    updateTask(taskId, newStatus, previousStatus, draggedCard);
+
     refreshEmptyStates();
   });
 
 });
-
-
-/* =========================
-   🔄 UPDATE STATUS INLINE
-========================= */
-function updateStatusInline() {
-  const status = document.getElementById("statusSelect").value;
-  const taskId = sidebar.dataset.taskId;
-
-  const card = document.querySelector(`[data-id="${taskId}"]`);
-  const column = document.querySelector(`[data-status="${status}"]`);
-
-  if (card && column) {
-    column.appendChild(card);
-    card.dataset.status = status;
-  }
-
-  updateTask(taskId, status);
-
-  const text = status.replaceAll('_',' ');
-  updateStatusUI(text, status);
-
-  refreshEmptyStates();
-}
 
 
 /* =========================
@@ -1441,16 +1419,39 @@ function updateGlobalNotificationCount(n) {
   if (sub) sub.textContent = String(n) + " pending";
 }
 
-function updateTask(id, status){
+function revertTaskMove(card, previousStatus) {
+  const target = document.querySelector(`.column[data-status="${previousStatus}"]`);
+  if (!card || !target) return;
+  target.appendChild(card);
+  card.dataset.status = previousStatus;
+
+  if (sidebar.dataset.taskId == card.dataset.id) {
+    const text = previousStatus.replaceAll('_',' ');
+    updateStatusUI(text, previousStatus);
+  }
+
+  refreshEmptyStates();
+}
+
+function updateTask(id, status, previousStatus, card){
   fetch(`/tasks/${id}/status/${status}/`, {
     method:'POST',
     headers:{ 'X-CSRFToken': '{{ csrf_token }}' }
   })
   .then(res => res.json().then(data => ({ ok: res.ok, data })).catch(() => ({ ok: res.ok, data: {} })))
   .then(({ ok, data }) => {
-    if (ok && data && data.status === 'success') updateGlobalNotificationCount(data.notification_count);
+    const success = ok && data && (data.status === 'success' || data.status === 'no_change');
+    if (!success) {
+      console.warn("Status update failed", data && data.message);
+      if (previousStatus && card) revertTaskMove(card, previousStatus);
+      return;
+    }
+    updateGlobalNotificationCount(data.notification_count);
   })
-  .catch(() => console.warn("Status update failed"));
+  .catch(() => {
+    console.warn("Status update failed");
+    if (previousStatus && card) revertTaskMove(card, previousStatus);
+  });
 }
 
 
@@ -1781,7 +1782,6 @@ document.addEventListener("DOMContentLoaded", () => {
 window.openTaskModal = openTaskModal;
 window.closeTaskModal = closeTaskModal;
 window.closeSidebar = closeSidebar;
-window.updateStatusInline = updateStatusInline;
 window.addComment = addComment;
 window.uploadFile = uploadFile;
 

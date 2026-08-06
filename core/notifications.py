@@ -53,7 +53,7 @@ class NotificationService:
         if text_content is None:
             text_content = strip_tags(html_content) if html_content else subject
 
-        print(f"[TF-EMAIL] Sending '{subject}' → {recipient.email} "
+        print(f"[TF-EMAIL] Sending '{subject}' -> {recipient.email} "
               f"via {host} as {user}")
 
         try:
@@ -66,10 +66,10 @@ class NotificationService:
             if html_content:
                 email.attach_alternative(html_content, "text/html")
             email.send(fail_silently=False)
-            print(f"[TF-EMAIL] OK — sent '{subject}' → {recipient.email}")
+            print(f"[TF-EMAIL] OK - sent '{subject}' -> {recipient.email}")
             return True
         except Exception as e:
-            print(f"[TF-EMAIL] FAILED '{subject}' → {recipient.email} | error: {e}")
+            print(f"[TF-EMAIL] FAILED '{subject}' -> {recipient.email} | error: {e}")
             return False
     
     def get_project_lead(self, project):

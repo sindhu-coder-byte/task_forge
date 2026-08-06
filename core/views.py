@@ -2802,60 +2802,60 @@ def is_project_lead(user, project):
 
 
 # ✅ REGISTER with validation
-# def register_view(request):
-#     if request.method == "POST":
-#         username = (request.POST.get("username") or "").strip()
-#         email = (request.POST.get("email") or "").strip().lower()
-#         password = (request.POST.get("password") or "").strip()
-#         confirm_password = (request.POST.get("confirm_password") or "").strip()
+def register_view(request):
+    if request.method == "POST":
+        username = (request.POST.get("username") or "").strip()
+        email = (request.POST.get("email") or "").strip().lower()
+        password = (request.POST.get("password") or "").strip()
+        confirm_password = (request.POST.get("confirm_password") or "").strip()
 
-#         # Validation
-#         if not all([username, email, password]):
-#             messages.error(request, "All fields are required.")
-#             return render(request, "core/auth.html", {"initialTab": "register"})
+        # Validation
+        if not all([username, email, password]):
+            messages.error(request, "All fields are required.")
+            return render(request, "core/auth.html", {"initialTab": "register"})
 
-#         if len(username) < 3:
-#             messages.error(request, "Username must be at least 3 characters.")
-#             return render(request, "core/auth.html", {"initialTab": "register"})
+        if len(username) < 3:
+            messages.error(request, "Username must be at least 3 characters.")
+            return render(request, "core/auth.html", {"initialTab": "register"})
 
-#         if len(password) < 8:
-#             messages.error(request, "Password must be at least 8 characters.")
-#             return render(request, "core/auth.html", {"initialTab": "register"})
+        if len(password) < 8:
+            messages.error(request, "Password must be at least 8 characters.")
+            return render(request, "core/auth.html", {"initialTab": "register"})
 
-#         if password != confirm_password:
-#             messages.error(request, "Passwords do not match.")
-#             return render(request, "core/auth.html", {"initialTab": "register"})
+        if password != confirm_password:
+            messages.error(request, "Passwords do not match.")
+            return render(request, "core/auth.html", {"initialTab": "register"})
 
-#         try:
-#             validate_email(email)
-#         except ValidationError:
-#             messages.error(request, "Please enter a valid email address.")
-#             return render(request, "core/auth.html", {"initialTab": "register"})
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, "Please enter a valid email address.")
+            return render(request, "core/auth.html", {"initialTab": "register"})
 
-#         if User.objects.filter(username__iexact=username).exists():
-#             messages.error(request, "Username already exists.")
-#             return render(request, "core/auth.html", {"initialTab": "register"})
+        if User.objects.filter(username__iexact=username).exists():
+            messages.error(request, "Username already exists.")
+            return render(request, "core/auth.html", {"initialTab": "register"})
 
-#         if User.objects.filter(email__iexact=email).exists():
-#             messages.error(request, "Email already registered.")
-#             return render(request, "core/auth.html", {"initialTab": "register"})
+        if User.objects.filter(email__iexact=email).exists():
+            messages.error(request, "Email already registered.")
+            return render(request, "core/auth.html", {"initialTab": "register"})
 
-#         try:
-#             user = User.objects.create_user(username=username, email=email, password=password)
-#             user.save()
+        try:
+            user = User.objects.create_user(username=username, email=email, password=password)
+            user.save()
 
-#             # default role
-#             profile, _ = Profile.objects.get_or_create(user=user)
-#             profile.role = 'user'
-#             profile.save()
+            # default role
+            profile, _ = Profile.objects.get_or_create(user=user)
+            profile.role = 'user'
+            profile.save()
 
-#             login(request, user)
-#             messages.success(request, f"Welcome to VetriFlow, {username}! Your account has been created.")
-#             return redirect('core:home')
-#         except Exception as e:
-#             messages.error(request, f"An error occurred during registration. Please try again.")
-            
-#     return render(request, "core/auth.html", {"initialTab": "register"})
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            messages.success(request, f"Welcome to VetriFlow, {username}! Your account has been created.")
+            return redirect('core:home')
+        except Exception:
+            messages.error(request, "An error occurred during registration. Please try again.")
+
+    return render(request, "core/auth.html", {"initialTab": "register"})
 
 def logout_view(request):
     logout(request)
