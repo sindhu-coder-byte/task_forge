@@ -4,7 +4,7 @@
 {% block shell_title %}My Tasks{% endblock %}
 
 {% block shell_page %}
-<div style="padding:24px;max-width:1200px;margin:auto;">
+<div class="mt-page-wrap" style="padding:24px;max-width:1200px;margin:auto;">
   <div class="mt-head">
     <div>
       <h2 style="margin:0;font-size:20px;">My Tasks</h2>
@@ -79,6 +79,12 @@
 .status-pill--done{background:#e3fcef;color:#006644}
 .pill-btn{padding:7px 10px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;font-size:12px;font-weight:900;cursor:pointer}
 .pill-btn:disabled{opacity:.6;cursor:not-allowed}
+
+@media (max-width: 768px) {
+  .mt-page-wrap{padding:14px !important;}
+  .row{flex-direction:column;align-items:flex-start;}
+  .row-side{width:100%;justify-content:flex-start;}
+}
 </style>
 {% endblock %}
 

@@ -74,6 +74,7 @@
         </div>
 
         <div class="pj-card-chips">
+          <span class="pj-chip pj-chip--status pj-chip--status-{{ project.status_key }}">{{ project.status_label }}</span>
           <span class="pj-chip pj-chip--type">{{ project.get_project_type_display }}</span>
           {% if project.priority %}
           <span class="pj-chip pj-chip--pri pj-chip--pri-{{ project.priority }}">{{ project.priority|upper }}</span>
@@ -506,6 +507,7 @@ document.addEventListener('DOMContentLoaded', function () {
           <i class="ri-folder-3-line"></i>
         </div>
         <div class="pj-card-chips">
+          <span class="pj-chip pj-chip--status pj-chip--status-not_started">Not Started</span>
           <span class="pj-chip pj-chip--type">${project.project_type || 'Kanban'}</span>
         </div>
         <div class="pj-card-actions"></div>

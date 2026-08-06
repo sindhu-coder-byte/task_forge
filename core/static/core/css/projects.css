@@ -231,6 +231,11 @@
 .pj-chip--pri-p3  { background: #fffbeb; color: #92400e; }
 .pj-chip--pri-p4  { background: #f0fdf4; color: #15803d; }
 
+.pj-chip--status-not_started { background: #f1f5f9; color: #475569; }
+.pj-chip--status-in_progress { background: #eef2ff; color: #4338ca; }
+.pj-chip--status-completed   { background: #f0fdf4; color: #15803d; }
+.pj-chip--status-overdue     { background: #fef2f2; color: #991b1b; }
+
 /* CARD BODY */
 .pj-card-body { padding: 12px 16px 8px; flex: 1; }
 .pj-name {

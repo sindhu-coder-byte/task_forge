@@ -3396,6 +3396,18 @@ def projects(request):
         p.progress_pct = int(p.done_tasks / p.total_tasks * 100) if p.total_tasks else 0
         p.is_overdue = bool(p.target_end_date and p.target_end_date < today)
 
+        # Simple lifecycle status for the project card — same signal as the
+        # Command Center's health badge (not_started/on_track/delivered),
+        # just also surfacing "overdue" here since that's already computed.
+        if p.is_overdue:
+            p.status_key, p.status_label = 'overdue', 'Overdue'
+        elif not p.total_tasks:
+            p.status_key, p.status_label = 'not_started', 'Not Started'
+        elif p.progress_pct == 100:
+            p.status_key, p.status_label = 'completed', 'Completed'
+        else:
+            p.status_key, p.status_label = 'in_progress', 'In Progress'
+
     return render(request, 'core/projects.html', {
         'projects': project_list,
         'users': users,
