@@ -28,7 +28,7 @@
         <i class="ri-search-line"></i>
         <input type="text" id="pjSearch" placeholder="Search projects…" autocomplete="off">
       </div>
-      {% if request.user.is_authenticated and request.user.profile.role == 'admin' or request.user.is_authenticated and is_project_lead %}
+      {% if request.user.is_authenticated and request.user.profile.role == 'admin' or request.user.is_authenticated and request.user.profile.role == 'visitor' or request.user.is_authenticated and is_project_lead %}
       <button type="button" class="pj-btn pj-btn--primary" id="openCreateProject">
         <i class="ri-add-line"></i> New Project
       </button>

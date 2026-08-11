@@ -2844,9 +2844,10 @@ def register_view(request):
             user = User.objects.create_user(username=username, email=email, password=password)
             user.save()
 
-            # default role
+            # Self-registered accounts are visitors: they get their own
+            # project sandbox but aren't part of any admin-provisioned team.
             profile, _ = Profile.objects.get_or_create(user=user)
-            profile.role = 'user'
+            profile.role = 'visitor'
             profile.save()
 
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
@@ -3202,7 +3203,7 @@ def _generate_project_key_prefix(name: str) -> str:
 
 
 @login_required
-@role_required(['admin', 'project_lead'])
+@role_required(['admin', 'project_lead', 'visitor'])
 def create_project(request):
     google_users = list(
         User.objects.filter(profile__oauth_provider__iexact='google')

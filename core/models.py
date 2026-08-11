@@ -9,6 +9,7 @@ class Profile(models.Model):
         # ── Platform-level ──────────────────────────────────────────────────
         ('admin',            'Admin'),
         ('user',             'User'),
+        ('visitor',          'Visitor'),
 
         # ── Product & Project Management ────────────────────────────────────
         ('project_lead',     'Project Lead'),

@@ -24,6 +24,15 @@
         <span class="nav-label">Dashboard</span>
       </a>
 
+      <!-- ONLY LEADS / ADMIN -->
+      {% if profile_role == 'project_lead' or profile_role == 'admin' or is_project_lead %}
+      <a href="{% url 'core:reports' %}"
+         class="{% if url_name == 'reports' %}active{% endif %}">
+        <i class="ri-bar-chart-2-line"></i>
+        <span class="nav-label">Reports</span>
+      </a>
+      {% endif %}
+
       <a href="{% url 'core:projects' %}"
          class="{% if 'project' in url_name %}active{% endif %}">
         <i class="ri-folder-3-line"></i>
@@ -56,19 +65,13 @@
         <i class="ri-user-settings-line"></i>
         <span class="nav-label">My Team</span>
       </a>
-
-      <a href="{% url 'core:reports' %}"
-         class="{% if url_name == 'reports' %}active{% endif %}">
-        <i class="ri-bar-chart-2-line"></i>
-        <span class="nav-label">Reports</span>
-      </a>
       {% endif %}
 
       {% endif %}
 
 
       <!-- ================= TEAMS ================= -->
-      {% if profile_role != 'user' or is_project_lead %}
+      {% if profile_role != 'user' and profile_role != 'visitor' or is_project_lead %}
       <div class="sidebar-section-label">Teams</div>
 
       <a href="{% url 'core:teams' %}"

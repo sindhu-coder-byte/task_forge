@@ -488,8 +488,8 @@
           </p>
 
           <p class="tf-auth-footer">
-            Don't have an account?
-            <a href="#" onclick="showRegisterPanel(event)" class="tf-auth-link">Sign up</a>
+            Not part of a team yet?
+            <a href="#" onclick="showRegisterPanel(event)" class="tf-auth-link">Start your own project</a>
           </p>
         </div>
 
@@ -499,8 +499,8 @@
             <i class="ri-arrow-left-line"></i> Back to sign in
           </button>
 
-          <h3 class="tf-auth-title">Create your account</h3>
-          <p class="auth-fp-note">Sign up with a username, email, and password.</p>
+          <h3 class="tf-auth-title">Create your own workspace</h3>
+          <p class="auth-fp-note">Sign up to create and manage your own project. If you're joining an existing team, ask your admin for an invite instead.</p>
 
           <form id="registerForm" method="POST" action="{% url 'core:register' %}">
             {% csrf_token %}
