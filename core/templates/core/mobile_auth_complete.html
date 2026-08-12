@@ -11,10 +11,10 @@
 <body>
   <div>
     <p>Signed in. Returning to the app&hellip;</p>
-    <p><a href="com.vetriflow.taskforge://auth-callback?token={{ token|urlencode }}">Tap here if you're not redirected automatically</a></p>
+    <p><a href="{{ deep_link_base }}?token={{ token|urlencode }}">Tap here if you're not redirected automatically</a></p>
   </div>
   <script>
-    window.location.href = "com.vetriflow.taskforge://auth-callback?token={{ token|urlencode }}";
+    window.location.href = "{{ deep_link_base }}?token={{ token|urlencode }}";
   </script>
 </body>
 </html>

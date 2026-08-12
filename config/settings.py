@@ -398,3 +398,8 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+# Custom URL scheme the native Android app registers for the OAuth deep-link
+# handoff (see core.views.mobile_auth_complete) — distinct from the older
+# Capacitor app's scheme so both can be installed side by side.
+MOBILE_APP_AUTH_SCHEME = os.environ.get('MOBILE_APP_AUTH_SCHEME', 'taskforgeapp://auth-callback')
