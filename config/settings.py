@@ -58,6 +58,13 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 if _allowed_env:
     ALLOWED_HOSTS += [h.strip() for h in _allowed_env.split(',') if h.strip()]
 
+# Local dev only (DEBUG is never True in production — see the DEBUG assignment
+# above): allow any host so the mobile_app Flutter build can reach `runserver`
+# whether it's running in the Android emulator (10.0.2.2) or on a physical
+# phone over the LAN (whatever IP DHCP hands the dev machine that day).
+if DEBUG:
+    ALLOWED_HOSTS.append('*')
+
 # Render injects RENDER_EXTERNAL_HOSTNAME automatically — add it if present
 _render_host = os.getenv('RENDER_EXTERNAL_HOSTNAME')
 if _render_host:
@@ -85,6 +92,11 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'corsheaders',
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -96,6 +108,7 @@ AUTHENTICATION_BACKENDS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'core.middleware.OAuthStateFallbackMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -153,6 +166,15 @@ elif DATABASE_URL:
         DATABASES['default'].setdefault('OPTIONS', {})
         DATABASES['default']['OPTIONS']['charset'] = 'utf8mb4'
         DATABASES['default']['OPTIONS']['connect_timeout'] = 10
+
+        # dj_database_url copies query-string params (e.g. ?ssl-mode=REQUIRED,
+        # used by managed hosts like Aiven) straight into OPTIONS with their
+        # literal hyphens, but MySQLdb/PyMySQL only accept them as underscored
+        # kwargs — rename so TLS actually gets negotiated instead of silently
+        # being dropped as an unrecognized option.
+        for key in list(DATABASES['default']['OPTIONS']):
+            if '-' in key:
+                DATABASES['default']['OPTIONS'][key.replace('-', '_')] = DATABASES['default']['OPTIONS'].pop(key)
 else:
     DATABASES = {
         'default': {
@@ -340,3 +362,33 @@ TASKFORGE_ADMIN_EMAILS = [
     for e in os.environ.get('TASKFORGE_ADMIN_EMAILS', '').split(',')
     if e.strip()
 ]
+
+# ── REST API (native Flutter app) ────────────────────────────────────────────
+# The Flutter app is a native HTTP client, not a browser — CORS mostly matters
+# for local web-based debugging (Postman-style tools honor CORS in a browser
+# tab), so this stays narrow and credential-less; auth is header-based JWT.
+CORS_ALLOWED_ORIGINS = [
+    o.strip() for o in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if o.strip()
+]
+CORS_ALLOW_CREDENTIALS = False
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+}
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=45),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=14),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
