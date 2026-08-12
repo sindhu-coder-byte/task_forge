@@ -618,17 +618,6 @@ class Notification(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.title}"
     
-class RolePermission(models.Model):
-    PERMISSION_CHOICES = (
-        ('create_task', 'Create Task'),
-        ('delete_task', 'Delete Task'),
-        ('assign_task', 'Assign Task'),
-    )
-
-    role = models.CharField(max_length=25, choices=ProjectMembership.ROLE_CHOICES)
-    permission = models.CharField(max_length=50, choices=PERMISSION_CHOICES)
-
-
 # ---------------- DEPARTMENT PIPELINE SETTINGS ----------------
 class DepartmentPipelineSettings(models.Model):
     DEPARTMENT_CHOICES = [

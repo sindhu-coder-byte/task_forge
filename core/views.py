@@ -1134,35 +1134,6 @@ def role_dashboard(request):
     
 
 
-def post_login_handler(request, user):
-    profile, _ = Profile.objects.get_or_create(user=user)
-
-    # ✅ Apply invite if exists
-    invite = ProjectInvite.objects.filter(
-        email__iexact=user.email,
-        used=False
-    ).first()
-
-    if invite:
-        ProjectMembership.objects.get_or_create(
-            user=user,
-            project=invite.project,
-            defaults={'role': invite.role}
-        )
-        if invite.team:
-            invite.team.members.add(user)
-
-        invite.used = True
-        invite.save()
-
-    # ✅ Role-based redirect
-    if profile.role == 'admin':
-        return redirect('core:dashboard')
-    elif ProjectMembership.objects.filter(user=user, role__in=['project_lead', 'delivery_team']).exists():
-        return redirect('core:projects')
-    else:
-        return redirect('core:home')  
-    
 @login_required(login_url='core:login')
 def teams(request):
     profile = getattr(request.user, 'profile', None)
@@ -2792,13 +2763,6 @@ def login_view(request):
     return render(request, "core/auth.html", {"initialTab": "login"})
 
 
-def is_project_lead(user, project):
-    return (
-        user.profile.role == 'project_lead' or
-        project.project_lead_id == user.id
-    )
-
-
 # ✅ REGISTER with validation
 def register_view(request):
     if request.method == "POST":
@@ -2878,23 +2842,34 @@ def role_redirect(request):
 
 @login_required(login_url='core:login')
 def mobile_auth_complete(request):
-    """Landing point for the Capacitor app's in-app browser tab after Google OAuth.
+    """Landing point for the mobile app's in-app browser tab after Google OAuth.
 
     Google blocks OAuth inside an embedded WebView, so the mobile app opens login in a
     separate Custom Tab. Django's redirect() rejects non-http(s) schemes, and a raw
     Location header to a custom scheme isn't reliably picked up by Custom Tabs anyway,
-    so this page navigates via JS instead. Android/Capacitor intercepts that navigation
-    to close the tab and hand control back to the WebView (see AndroidManifest.xml
-    intent-filter and base.html's appUrlOpen listener).
+    so this page navigates via JS instead. Android intercepts that navigation to close
+    the tab and hand control back to the app (see AndroidManifest.xml intent-filter).
 
-    The Custom Tab (Chrome) and the app's own WebView have separate cookie jars, so the
-    session established here doesn't carry over on its own. A short-lived signed token
-    is embedded in the deep link instead, which mobile_session_handoff exchanges for a
-    real session cookie inside the WebView.
+    Two apps share this landing page during the Capacitor → Flutter transition:
+    the legacy Capacitor WebView (default, session-cookie handoff via
+    mobile_session_handoff) and the new native Flutter app (?app=native, JWT
+    handoff via the token-exchange API). The scheme differs per app because
+    they're separate installable APKs and Android intent-filters must not
+    collide, and the two flows differ in what they do with the token: the
+    Capacitor WebView's cookie jar is separate from the Custom Tab's, so it
+    exchanges the token for a session cookie; the native app has no such
+    WebView cookie jar to populate, so it exchanges the token for a JWT pair.
     """
     signer = TimestampSigner()
     token = signer.sign(request.user.pk)
-    return render(request, 'core/mobile_auth_complete.html', {'token': token})
+    if request.GET.get('app') == 'native':
+        deep_link_base = settings.MOBILE_APP_AUTH_SCHEME
+    else:
+        deep_link_base = 'com.vetriflow.taskforge://auth-callback'
+    return render(request, 'core/mobile_auth_complete.html', {
+        'token': token,
+        'deep_link_base': deep_link_base,
+    })
 
 
 def mobile_session_handoff(request):
@@ -3782,18 +3757,6 @@ def get_project_members(request, project_id):
 
     members = list(project.members.values('id', 'username'))
     return JsonResponse(members, safe=False)
-
-@login_required
-def get_project_members_api(request, project_id):
-    project = get_object_or_404(Project, id=project_id)
-
-    if not _project_accessible_by(request.user, project):
-        return JsonResponse({'error': 'Unauthorized'}, status=403)
-
-    members = project.members.values('id', 'username')
-
-    return JsonResponse(list(members), safe=False)
-
 
 from .models import Team  # ✅ add this
 
