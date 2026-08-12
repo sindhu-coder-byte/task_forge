@@ -2746,15 +2746,13 @@ def login_view(request):
 
         username = raw_login
         if "@" in raw_login:
-            try:
-                validate_email(raw_login)
-                matched_user = User.objects.filter(email__iexact=raw_login).first()
-                if matched_user:
-                    username = matched_user.username
-            except ValidationError:
-                messages.error(request, "Invalid email format.")
-                _increment_login_attempts(request)
-                return render(request, "core/auth.html", {"initialTab": "login"})
+            # Don't hard-fail on format here — just try the lookup. A
+            # non-matching or oddly-formatted email should fall through to
+            # authenticate() and produce the normal "invalid credentials"
+            # message below, not a confusing format-specific error.
+            matched_user = User.objects.filter(email__iexact=raw_login).first()
+            if matched_user:
+                username = matched_user.username
 
         user = authenticate(request, username=username, password=password)
 

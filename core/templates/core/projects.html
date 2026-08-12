@@ -199,7 +199,7 @@
       <div class="pj-empty-icon"><i class="ri-folder-open-line"></i></div>
       <h3>No projects yet</h3>
       <p>Create your first project to start tracking work.</p>
-      {% if request.user.is_authenticated and request.user.profile.role == 'admin' or request.user.is_authenticated and is_project_lead %}
+      {% if request.user.is_authenticated and request.user.profile.role == 'admin' or request.user.is_authenticated and request.user.profile.role == 'visitor' or request.user.is_authenticated and is_project_lead %}
       <button type="button" class="pj-btn pj-btn--primary" onclick="document.getElementById('openCreateProject').click()">
         <i class="ri-add-line"></i> Create Project
       </button>
@@ -219,7 +219,7 @@
 </div>
 
 <!-- ── CREATE PROJECT MODAL ── -->
-{% if request.user.is_authenticated and request.user.profile.role == 'admin' or request.user.is_authenticated and is_project_lead %}
+{% if request.user.is_authenticated and request.user.profile.role == 'admin' or request.user.is_authenticated and request.user.profile.role == 'visitor' or request.user.is_authenticated and is_project_lead %}
 <div class="pj-modal" id="createProjectModal" hidden aria-hidden="true">
   <div class="pj-modal-card" role="dialog" aria-modal="true" aria-labelledby="pmCreateTitle">
 
