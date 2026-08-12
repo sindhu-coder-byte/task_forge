@@ -146,7 +146,7 @@
           <i class="ri-folder-open-line"></i>
           <p>No projects yet.</p>
           {% if request.user.profile.role == 'admin' or request.user.profile.role == 'visitor' %}
-          <a href="{% url 'core:create_project' %}" class="ws-btn ws-btn--primary">Create a project</a>
+          <a href="{% url 'core:projects' %}?new=1" class="ws-btn ws-btn--primary">Create a project</a>
           {% else %}
           <a href="{% url 'core:projects' %}" class="ws-btn ws-btn--ghost">Browse projects</a>
           {% endif %}

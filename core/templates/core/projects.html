@@ -460,6 +460,14 @@ document.addEventListener('DOMContentLoaded', function () {
   modal?.addEventListener('click', function (e) { if (e.target === modal) setModal(false); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal?.hidden) setModal(false); });
 
+  // Other pages (e.g. the Home empty-state "Create a project" link) send
+  // people here with ?new=1 to open this modal directly instead of a
+  // separate, less-polished full-page form.
+  if (new URLSearchParams(location.search).get('new') === '1') {
+    setModal(true);
+    history.replaceState(null, '', location.pathname);
+  }
+
   // ── CREATE SUBMIT ──────────────────────────────────────────
   form?.addEventListener('submit', function (e) {
     e.preventDefault();
