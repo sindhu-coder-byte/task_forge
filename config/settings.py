@@ -156,8 +156,14 @@ if _should_use_sqlite_fallback(DATABASE_URL, debug=DEBUG):
 elif DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.config(
+            # Managed hosts (especially free/trial-tier instances like Aiven)
+            # can silently close idle connections well before 600s — a worker
+            # then tries to reuse a dead connection and the request 500s.
+            # A short conn_max_age means we reconnect far more often, trading
+            # a little latency for not holding onto connections long enough
+            # to go stale.
             default=DATABASE_URL,
-            conn_max_age=600,
+            conn_max_age=60,
             conn_health_checks=True,
         )
     }
