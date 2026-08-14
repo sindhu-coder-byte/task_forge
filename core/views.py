@@ -165,6 +165,8 @@ def _can_manage_project_members(user, project: Project) -> bool:
 
     return (
         profile.role == 'admin' or
+        profile.role == 'project_lead' or
+        profile.isProjectLead or
         project.project_lead_id == user.id or
         project.created_by_id == user.id or
         ProjectMembership.objects.filter(user=user, project=project, role='project_lead').exists()
