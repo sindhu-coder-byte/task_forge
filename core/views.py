@@ -1590,6 +1590,7 @@ def project_board(request, project_id):
         'users': project.members.all(),
         'department_choices': DepartmentPipelineSettings.DEPARTMENT_CHOICES,
         'is_admin': _is_admin_user(request.user),
+        'project_pipeline_department': _match_pipeline_department(project.department),
     }
     return render(request, 'core/project_board.html', context)
 
@@ -4506,6 +4507,22 @@ def mark_all_notifications_read(request):
 # All pipeline stages in their canonical order
 _PIPELINE_STAGES = DepartmentPipelineSettings.STAGE_CHOICES   # list of (key, label)
 _DEPARTMENT_CHOICES = DepartmentPipelineSettings.DEPARTMENT_CHOICES
+
+
+def _match_pipeline_department(free_text_department: str) -> str:
+    """
+    Project.department is free text; Pipeline Settings only covers a fixed
+    set of keys. Match the project's department to one of those keys
+    (by key or label, case-insensitive) so the board can auto-apply the
+    right visibility filter. Returns '' when there's no match.
+    """
+    if not free_text_department:
+        return ''
+    value = free_text_department.strip().lower()
+    for key, label in _DEPARTMENT_CHOICES:
+        if value == key.lower() or value == label.lower():
+            return key
+    return ''
 
 
 def _get_pipeline_settings_map(department: str) -> dict:

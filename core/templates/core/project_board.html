@@ -73,9 +73,9 @@
       <i class="ri-filter-3-line" style="color:#6366f1;"></i>
       <span class="board-dept-label">Department View</span>
       <select id="deptFilterSelect" class="board-dept-select" onchange="applyDepartmentFilter(this.value)">
-        <option value="">All Stages</option>
+        <option value="" {% if not project_pipeline_department %}selected{% endif %}>All Stages</option>
         {% for key, label in department_choices %}
-        <option value="{{ key }}">{{ label }}</option>
+        <option value="{{ key }}" {% if key == project_pipeline_department %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
     </div>
@@ -1047,6 +1047,10 @@ document.querySelectorAll(".column").forEach(column => {
       console.error('Failed to load pipeline settings', e);
     }
   };
+
+  {% if project_pipeline_department %}
+  applyDepartmentFilter('{{ project_pipeline_department }}');
+  {% endif %}
   // ───────────────────────────────────────────────────────────────────────
 });
 </script>
