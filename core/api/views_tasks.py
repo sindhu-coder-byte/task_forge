@@ -1,11 +1,11 @@
 from django.db.models import Q
-from rest_framework import status, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from core.api.permissions import CanViewTask
-from core.api.serializers import CommentSerializer, TaskDetailSerializer, TaskListSerializer
+from core.api.serializers import CommentSerializer, TaskCreateSerializer, TaskDetailSerializer, TaskListSerializer
 from core.models import Profile, Task
 from core.notifications import NotificationService
 from core.views import (
@@ -16,15 +16,24 @@ from core.views import (
 )
 
 
-class TaskViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only for now, plus the transition/comment actions below —
-    create/edit/delete land in a later milestone.
+class TaskViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """List/retrieve, plus the transition/comment actions below, plus create
+    (any authenticated user can attempt it — TaskCreateSerializer enforces
+    the same project-access + assignee-membership rules create_task does in
+    core/views.py). Update/delete land in a later milestone.
     """
     permission_classes = [IsAuthenticated, CanViewTask]
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return TaskDetailSerializer
+        if self.action == 'create':
+            return TaskCreateSerializer
         return TaskListSerializer
 
     def get_queryset(self):
@@ -47,10 +56,13 @@ class TaskViewSet(viewsets.ReadOnlyModelViewSet):
 
         project_id = self.request.query_params.get('project')
         task_status = self.request.query_params.get('status')
+        assigned_to_id = self.request.query_params.get('assigned_to')
         if project_id:
             qs = qs.filter(project_id=project_id)
         if task_status:
             qs = qs.filter(status=task_status)
+        if assigned_to_id:
+            qs = qs.filter(assigned_to_id=assigned_to_id)
         return qs
 
     @action(detail=True, methods=['post'])

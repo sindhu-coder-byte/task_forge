@@ -1,24 +1,44 @@
 from django.db.models import Count, Q
-from rest_framework import viewsets
+from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from core.api.permissions import IsProjectAccessible
-from core.api.serializers import ProjectDetailSerializer, ProjectMembershipSerializer, ProjectSerializer
+from core.api.permissions import CanCreateProject, IsProjectAccessible
+from core.api.serializers import (
+    ProjectCreateSerializer,
+    ProjectDetailSerializer,
+    ProjectMembershipSerializer,
+    ProjectSerializer,
+)
 from core.models import Profile, Project, ProjectMembership
 from core.views import _is_admin_user
 
 
-class ProjectViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only for now — create/edit/delete land in a later milestone
-    alongside the rest of the admin/project-lead management screens.
+class ProjectViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """List/retrieve are open to anyone with access; create is gated to
+    admin/project_lead/visitor (CanCreateProject, mirrors create_project's
+    @role_required in core/views.py). Update/delete land in a later
+    milestone alongside the rest of the admin/project-lead management
+    screens.
     """
     permission_classes = [IsAuthenticated, IsProjectAccessible]
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [IsAuthenticated(), CanCreateProject()]
+        return super().get_permissions()
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return ProjectDetailSerializer
+        if self.action == 'create':
+            return ProjectCreateSerializer
         return ProjectSerializer
 
     def get_queryset(self):

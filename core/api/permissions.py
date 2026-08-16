@@ -38,3 +38,12 @@ class CanManageProjectMembers(BasePermission):
 class CanViewTask(BasePermission):
     def has_object_permission(self, request, view, obj):
         return _task_can_view(request.user, obj)
+
+
+class CanCreateProject(BasePermission):
+    """Mirrors @role_required(['admin', 'project_lead', 'visitor']) on
+    core.views.create_project (views.py:3180-3181)."""
+
+    def has_permission(self, request, view):
+        profile = getattr(request.user, 'profile', None)
+        return bool(profile and profile.role in ('admin', 'project_lead', 'visitor'))
