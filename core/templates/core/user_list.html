@@ -265,24 +265,6 @@
 .um-toast.success { border-left: 3px solid #22c55e; }
 .um-toast.error   { border-left: 3px solid #ef4444; }
 
-/* PAGINATION */
-.um-pagination {
-  margin-top: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.um-page-btn {
-  padding: 8px 14px;
-  border-radius: 6px;
-  background: #f3f4f6;
-  text-decoration: none;
-  font-size: 13px;
-  color: #111827;
-}
-.um-page-btn:hover { background: #e5e7eb; }
-.um-page-info { font-size: 13px; color: #6b7280; }
-
 /* RESPONSIVE */
 @media (max-width: 992px) {
   .um-header { flex-direction: column; align-items: flex-start; gap: 10px; }
@@ -292,7 +274,6 @@
   .um-stats { grid-template-columns: 1fr; }
   .um-table th, .um-table td { padding: 10px 8px; font-size: 12px; }
   .um-avatar { width: 30px; height: 30px; font-size: 12px; }
-  .um-pagination { flex-direction: column; gap: 10px; }
 
   /* ID column is low-value on small screens; drop it to free up space
      for the columns (Role/Active/Actions) that need horizontal scroll. */
@@ -372,7 +353,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for u in page_obj %}
+          {% for u in users %}
           <tr id="user-row-{{ u.id }}">
 
             <!-- ID -->
@@ -468,23 +449,6 @@
         </tbody>
       </table>
     </div>
-  </div>
-
-  <!-- PAGINATION -->
-  <div class="um-pagination">
-    {% if page_obj.has_previous %}
-      <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}" class="um-page-btn">← Prev</a>
-    {% else %}
-      <span></span>
-    {% endif %}
-
-    <span class="um-page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}&q={{ query }}" class="um-page-btn">Next →</a>
-    {% else %}
-      <span></span>
-    {% endif %}
   </div>
 
 </div>

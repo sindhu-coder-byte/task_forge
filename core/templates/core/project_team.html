@@ -280,10 +280,15 @@
 
 
       <!-- TEAMS OVERVIEW -->
-      {% if teams %}
+      {% if teams or can_manage_members %}
       <div class="pt-section">
         <div class="pt-section-head">
           <h2 class="pt-section-title"><i class="ri-team-line"></i> Teams</h2>
+          {% if can_manage_members %}
+          <a href="{% url 'core:project_detail' project.id %}?create_team=1" class="pt-btn pt-btn--ghost pt-btn--sm">
+            <i class="ri-add-line"></i> Create Team
+          </a>
+          {% endif %}
         </div>
         <div class="pt-teams-list">
           {% for team in teams %}
@@ -305,6 +310,8 @@
               {% endif %}
             </div>
           </div>
+          {% empty %}
+          <p style="font-size:13px;color:#9ca3af;padding:8px 20px 16px;">No teams yet. Use "Create Team" to set one up.</p>
           {% endfor %}
         </div>
       </div>

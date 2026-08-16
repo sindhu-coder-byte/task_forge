@@ -3989,11 +3989,8 @@ def user_list(request):
 
     users = users.order_by('-is_google', 'username')
 
-    paginator = Paginator(users, 5)
-    page_obj = paginator.get_page(request.GET.get('page'))
-
     return render(request, 'core/user_list.html', {
-        'page_obj': page_obj,
+        'users': users,
         'query': query,
         'total_users': users.count(),
         'total_admins': User.objects.filter(is_superuser=True).count(),

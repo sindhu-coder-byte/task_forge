@@ -87,15 +87,9 @@
       <div class="sidebar-section-label">Admin</div>
 
       <a href="{% url 'core:user_list' %}"
-         class="{% if url_name == 'user_list' or url_name == 'user_update' or url_name == 'user_delete' %}active{% endif %}">
+         class="{% if url_name == 'user_list' or url_name == 'user_create' or url_name == 'user_update' or url_name == 'user_delete' %}active{% endif %}">
         <i class="ri-group-line"></i>
         <span class="nav-label">Users</span>
-      </a>
-
-      <a href="{% url 'core:user_create' %}"
-         class="{% if url_name == 'user_create' %}active{% endif %}">
-        <i class="ri-user-add-line"></i>
-        <span class="nav-label">Create User</span>
       </a>
 
       <a href="{% url 'core:pipeline_settings' %}"

@@ -31,11 +31,6 @@
           <i class="ri-team-line"></i>
           <span>Manage Team</span>
         </a>
-
-        <a class="btn-secondary-sm" id="openTeamModal">
-          <i class="ri-group-line"></i>
-          <span>Create Team</span>
-        </a>
       {% endif %}
 
       {% if role == 'delivery_team' %}
@@ -1847,6 +1842,11 @@ document.addEventListener("DOMContentLoaded", () => {
       openModal();
     }
   );
+
+  // Opened from the Manage Team page's "+ Create Team" action
+  if (new URLSearchParams(window.location.search).get("create_team") === "1") {
+    openModal();
+  }
 
   // =====================================================
   // CLOSE EVENTS
