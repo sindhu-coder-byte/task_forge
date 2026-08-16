@@ -12,7 +12,7 @@ from core.api.views_admin import (
     ToggleProjectLeadView,
     UserListView,
 )
-from core.api.views_auth import LoginView, MeView, TokenExchangeView
+from core.api.views_auth import GoogleNativeLoginView, LoginView, MeView, TokenExchangeView
 from core.api.views_notifications import (
     MarkAllNotificationsReadView,
     MarkNotificationReadView,
@@ -35,6 +35,7 @@ router.register('teams', TeamViewSet, basename='team')
 urlpatterns = [
     path('auth/login/', LoginView.as_view(), name='login'),
     path('auth/token-exchange/', TokenExchangeView.as_view(), name='token_exchange'),
+    path('auth/google/', GoogleNativeLoginView.as_view(), name='google_native_login'),
     path('auth/token-refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/token-verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('auth/me/', MeView.as_view(), name='me'),

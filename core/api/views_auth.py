@@ -1,3 +1,6 @@
+from allauth.socialaccount.adapter import get_adapter as get_social_adapter
+from allauth.socialaccount.helpers import complete_social_login
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -92,6 +95,51 @@ class TokenExchangeView(APIView):
             user = User.objects.get(pk=user_id, is_active=True)
         except (BadSignature, SignatureExpired, User.DoesNotExist):
             return Response({'error': 'Invalid or expired token'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'user': UserSerializer(user).data,
+        })
+
+
+class GoogleNativeLoginView(APIView):
+    """Exchanges a Google ID token obtained by the app's native Google Sign-In
+    (no browser/Custom Tab involved) for a JWT pair.
+
+    Reuses allauth's own Google provider to verify the token (signature,
+    issuer, audience against GOOGLE_OAUTH2_CLIENT_ID) and routes the result
+    through complete_social_login — the exact same pipeline the browser-based
+    login uses, so CustomSocialAccountAdapter's profile sync and pending-
+    invite logic (core/adapters.py) applies identically for both.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        id_token = request.data.get('id_token', '')
+        if not id_token:
+            return Response({'error': 'id_token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        adapter = get_social_adapter(request)
+        provider = adapter.get_provider(request, GoogleOAuth2Adapter.provider_id)
+        try:
+            sociallogin = provider.verify_token(request, {'id_token': id_token})
+        except Exception:
+            return Response({'error': 'Invalid Google token.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        complete_social_login(request, sociallogin)
+
+        user = request.user
+        if not user.is_authenticated:
+            return Response({'error': 'Google sign-in failed.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        profile, _created = Profile.objects.get_or_create(user=user)
+        if not profile.email_verified:
+            return Response(
+                {'error': 'Please verify your email before signing in.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         refresh = RefreshToken.for_user(user)
         return Response({
