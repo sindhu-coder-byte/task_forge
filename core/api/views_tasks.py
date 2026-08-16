@@ -65,6 +65,18 @@ class TaskViewSet(
             qs = qs.filter(assigned_to_id=assigned_to_id)
         return qs
 
+    def create(self, request, *args, **kwargs):
+        # TaskCreateSerializer's own fields (assigned_to as a raw PK, no
+        # issue_key/status/created_at) don't match what the app's Task model
+        # expects — respond with TaskDetailSerializer's shape instead, same
+        # as list/retrieve.
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        task = serializer.save()
+        output = TaskDetailSerializer(task, context=self.get_serializer_context())
+        headers = self.get_success_headers(output.data)
+        return Response(output.data, status=status.HTTP_201_CREATED, headers=headers)
+
     @action(detail=True, methods=['post'])
     def transition(self, request, pk=None):
         """Mirrors core.views.api_transition_task's business logic exactly."""

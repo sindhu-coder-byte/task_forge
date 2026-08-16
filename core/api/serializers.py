@@ -167,7 +167,15 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         model = Task
         fields = ['id', 'title', 'description', 'project', 'issue_type', 'assigned_to', 'priority', 'due_date']
         read_only_fields = ['id']
-        extra_kwargs = {'description': {'required': False, 'allow_blank': True}}
+        extra_kwargs = {
+            'description': {'required': False, 'allow_blank': True},
+            # project/assigned_to are nullable at the model level (legacy
+            # tasks predate both being mandatory) but create_task's web form
+            # requires them ("All fields required", views.py:1910) — match
+            # that here rather than trusting the model's own null=True.
+            'project': {'required': True},
+            'assigned_to': {'required': True},
+        }
 
     def validate(self, attrs):
         from core.views import _is_admin_user, _project_accessible_by
